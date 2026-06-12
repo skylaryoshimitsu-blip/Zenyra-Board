@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agency Performance Command Center — Zenyra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A0F1E;--surface:#111827;--card:#1E2A3B;--border:#263348;
+  --teal:#00C9B1;--teal-dim:#007A6B;--amber:#F59E0B;--red:#EF4444;
+  --white:#F8FAFC;--muted:#64748B;--label:#94A3B8;--body:#CBD5E1;
+}
+html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;}
+
+/* ── SCREEN MANAGER ── */
+.screen{display:none;height:100vh;overflow:hidden;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ── LANDING ── */
+#landing{align-items:center;justify-content:center;background:var(--navy);}
+.landing-inner{text-align:center;max-width:480px;width:90%;}
+.landing-brand{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;color:var(--teal);margin-bottom:4px;}
+.landing-sub{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:48px;}
+.portal-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.portal-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 20px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;}
+.portal-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+.portal-icon{font-size:28px;margin-bottom:12px;}
+.portal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px;}
+.portal-desc{font-size:11px;color:var(--muted);}
+
+/* ── AUTH SCREEN ── */
+#auth{align-items:center;justify-content:center;}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;width:90%;max-width:420px;}
+.auth-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--white);margin-bottom:4px;}
+.auth-sub{font-size:12px;color:var(--muted);margin-bottom:28px;}
+.auth-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--card);padding:4px;border-radius:8px;}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted);transition:all 0.15s;}
+.auth-tab.active{background:var(--teal);color:var(--navy);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin-bottom:6px;}
+.field input,.field select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--white);font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:var(--teal);}
+.field select option{background:var(--card);}
+.btn-primary{width:100%;background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;margin-top:4px;}
+.btn-primary:hover{opacity:0.85;}
+.btn-ghost{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;text-decoration:underline;}
+.auth-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;}
+
+/* ── HEADER ── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.header-left{display:flex;align-items:baseline;gap:10px;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--teal);}
+.page-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);}
+.header-right{display:flex;align-items:center;gap:16px;}
+.live-dot{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 6px var(--teal);animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--teal);}50%{opacity:0.4;box-shadow:0 0 2px var(--teal);}}
+.clock{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--body);}
+.user-badge{font-size:11px;color:var(--label);display:flex;align-items:center;gap:6px;}
+.user-badge span{color:var(--teal);font-weight:600;}
+.btn-logout{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:border-color 0.15s;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+/* ── ADMIN TABS ── */
+.admin-nav{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.admin-tab{padding:12px 24px;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+.admin-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* ── PULSE STRIP ── */
+.pulse-strip{padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.pulse-meta{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;}
+.pulse-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);}
+.pulse-numbers{display:flex;align-items:baseline;gap:6px;}
+.pulse-current{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;color:var(--teal);}
+.pulse-sep{color:var(--muted);font-size:18px;}
+.pulse-goal{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--muted);}
+.pulse-pct{margin-left:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;}
+.pulse-pct.on-pace{background:rgba(0,201,177,0.15);color:var(--teal);}
+.pulse-pct.behind{background:rgba(245,158,11,0.15);color:var(--amber);}
+.pulse-pct.critical{background:rgba(239,68,68,0.15);color:var(--red);}
+.pulse-bar-track{height:8px;border-radius:99px;background:var(--card);overflow:hidden;}
+.pulse-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal-dim),var(--teal));box-shadow:0 0 10px rgba(0,201,177,0.4);transition:width 1s ease;}
+.pulse-sub{display:flex;gap:24px;margin-top:10px;flex-wrap:wrap;}
+.pulse-sub-item{display:flex;flex-direction:column;gap:1px;}
+.sub-val{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--white);}
+.sub-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+
+/* ── MAIN LAYOUT ── */
+.main-layout{display:grid;grid-template-columns:1fr 260px;flex:1;overflow:hidden;}
+.leaderboard-pane{padding:20px 24px;overflow-y:auto;border-right:1px solid var(--border);}
+.section-eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+thead th:not(:first-child){text-align:right;}
+tbody tr{border-bottom:1px solid rgba(38,51,72,0.5);transition:background 0.15s;}
+tbody tr:hover{background:rgba(30,42,59,0.5);}
+tbody td{padding:11px 10px;color:var(--body);vertical-align:middle;}
+tbody td:not(:first-child){text-align:right;}
+.agent-cell{display:flex;align-items:center;gap:8px;}
+.rank-badge{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;flex-shrink:0;}
+.rank-1{background:rgba(245,158,11,0.2);color:var(--amber);}
+.rank-2{background:rgba(148,163,184,0.15);color:#94A3B8;}
+.rank-3{background:rgba(180,120,80,0.15);color:#B47850;}
+.rank-n{background:rgba(38,51,72,0.8);color:var(--muted);}
+.agent-name{font-weight:600;color:var(--white);font-size:13px;}
+.agent-trend{font-size:10px;color:var(--muted);}
+.trend-up{color:var(--teal);}
+.trend-down{color:var(--red);}
+.ap-val{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--white);}
+.goal-bar-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
+.goal-pct-label{font-size:11px;font-weight:700;min-width:36px;text-align:right;}
+.pct-high{color:var(--teal)}.pct-mid{color:var(--amber)}.pct-low{color:var(--red);}
+.mini-bar-track{width:50px;height:4px;border-radius:99px;background:var(--card);overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:99px;}
+.fill-high{background:var(--teal)}.fill-mid{background:var(--amber)}.fill-low{background:var(--red);}
+.daily-pace{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;}
+.pace-on{background:rgba(0,201,177,0.12);color:var(--teal);}
+.pace-off{background:rgba(245,158,11,0.12);color:var(--amber);}
+.pace-crit{background:rgba(239,68,68,0.12);color:var(--red);}
+
+/* ── SIDEBAR ── */
+.sidebar{padding:20px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.stat-card-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-card-val{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);}
+.stat-card-sub{font-size:11px;color:var(--label);margin-top:2px;}
+.top-producer-card{background:linear-gradient(135deg,rgba(0,201,177,0.08),rgba(0,201,177,0.02));border:1px solid rgba(0,201,177,0.2);}
+.top-producer-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--teal);}
+.improved-card{background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.2);}
+.improved-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--amber);}
+.mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mini-stat{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px;}
+.ms-val{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.5px;color:var(--white);}
+.ms-lbl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:1px;}
+.week-rank-item{display:flex;align-items:center;gap:8px;}
+.divider{height:1px;background:var(--border);}
+
+/* ── SUBMIT FORM ── */
+#submit-screen{flex-direction:column;}
+.submit-wrap{flex:1;overflow-y:auto;padding:24px;}
+.submit-inner{max-width:760px;margin:0 auto;}
+.form-section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--teal);margin:24px 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+.form-section-title:first-child{margin-top:0;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr;}
+.form-grid.full{grid-template-columns:1fr;}
+.field-sm label{display:block;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin-bottom:5px;}
+.field-sm input,.field-sm select,.field-sm textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;}
+.field-sm input:focus,.field-sm select:focus,.field-sm textarea:focus{border-color:var(--teal);}
+.field-sm select option{background:var(--card);}
+.field-sm textarea{resize:vertical;min-height:70px;}
+.form-actions{display:flex;gap:12px;margin-top:24px;padding-bottom:24px;}
+.btn-submit{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+.btn-submit:hover{opacity:0.85;}
+.btn-cancel{background:none;border:1px solid var(--border);border-radius:6px;padding:12px 20px;font-size:14px;color:var(--muted);cursor:pointer;transition:border-color 0.15s;}
+.btn-cancel:hover{border-color:var(--label);}
+.submit-success{background:rgba(0,201,177,0.1);border:1px solid rgba(0,201,177,0.3);border-radius:8px;padding:16px;color:var(--teal);font-weight:600;margin-bottom:20px;display:none;}
+
+/* ── ADMIN SUBMISSIONS TABLE ── */
+#admin-submissions{flex:1;overflow-y:auto;padding:20px 24px;}
+.submissions-table{width:100%;border-collapse:collapse;font-size:13px;}
+.submissions-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+.submissions-table td{padding:10px 10px;border-bottom:1px solid rgba(38,51,72,0.4);vertical-align:top;color:var(--body);}
+.submissions-table tr:hover td{background:rgba(30,42,59,0.4);}
+.customer-name{font-weight:600;color:var(--white);}
+.product-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(0,201,177,0.12);color:var(--teal);white-space:nowrap;}
+.btn-delete{background:none;border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--red);cursor:pointer;transition:background 0.15s;}
+.btn-delete:hover{background:rgba(239,68,68,0.1);}
+.btn-edit{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--label);cursor:pointer;margin-right:4px;transition:border-color 0.15s;}
+.btn-edit:hover{border-color:var(--teal);color:var(--teal);}
+.no-data{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:var(--teal);border:none;color:var(--navy);font-size:24px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,201,177,0.4);transition:transform 0.15s,box-shadow 0.15s;z-index:100;}
+.fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(0,201,177,0.5);}
+
+/* ── FOOTER ── */
+.footer{padding:8px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;}
+.footer-left{font-size:11px;color:var(--muted);}
+.footer-right{font-size:11px;color:var(--muted);}
+.powered-by{color:var(--teal);font-weight:600;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- LANDING -->
+<!-- ══════════════════════════════════════════ -->
+<div id="landing" class="screen active">
+  <div class="landing-inner">
+    <div class="landing-brand">ZENYRA</div>
+    <div class="landing-sub">Agency Performance Command Center</div>
+    <div class="portal-cards">
+      <div class="portal-card" onclick="showAuth('agent')">
+        <div class="portal-icon">📊</div>
+        <div class="portal-title">Agent Portal</div>
+        <div class="portal-desc">Leaderboard & log a sale</div>
+      </div>
+      <div class="portal-card" onclick="showAuth('admin')">
+        <div class="portal-icon">🛡️</div>
+        <div class="portal-title">Admin Portal</div>
+        <div class="portal-desc">Full submissions & management</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- AUTH -->
+<!-- ══════════════════════════════════════════ -->
+<div id="auth" class="screen">
+  <div class="auth-box">
+    <div class="auth-title" id="authTitle">Agent Portal</div>
+    <div class="auth-sub" id="authSub">Sign in or create your account</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">First Time? Register</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="field">
+        <label>Your Name</label>
+        <select id="loginName"></select>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password"/>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" style="display:none;">
+      <div class="field" id="adminCodeField" style="display:none;">
+        <label>Admin Access Code</label>
+        <input type="password" id="adminCode" placeholder="Enter admin access code"/>
+      </div>
+      <div class="field">
+        <label>Select Your Name</label>
+        <select id="registerName"></select>
+      </div>
+      <div class="field">
+        <label>Create Password</label>
+        <input type="password" id="registerPassword" placeholder="Choose a password"/>
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="registerConfirm" placeholder="Confirm password"/>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Create Account</button>
+    </div>
+
+    <div style="text-align:center;">
+      <button class="btn-ghost" onclick="showScreen('landing')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- AGENT DASHBOARD -->
+<!-- ══════════════════════════════════════════ -->
+<div id="agent-dashboard" class="screen">
+  <div class="header">
+    <div class="header-left">
+      <span class="brand">ZENYRA</span>
+      <span class="page-title">Performance Command Center</span>
+    </div>
+    <div class="header-right">
+      <span class="live-dot">Live</span>
+      <span class="clock" id="agentClock"></span>
+      <span class="user-badge">Signed in as <span id="agentUserName">—</span></span>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- PULSE -->
+  <div class="pulse-strip">
+    <div class="pulse-meta">
+      <span class="pulse-label">Team Daily Goal Pulse — AP vs $8,000 Target</span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="pulse-numbers">
+          <span class="pulse-current" id="a_teamTodayAP">$0</span>
+          <span class="pulse-sep">/</span>
+          <span class="pulse-goal">$8,000</span>
+        </div>
+        <span class="pulse-pct" id="a_paceBadge">0%</span>
+      </div>
+    </div>
+    <div class="pulse-bar-track"><div class="pulse-bar-fill" id="a_pulseBar" style="width:0%"></div></div>
+    <div class="pulse-sub">
+      <div class="pulse-sub-item"><span class="sub-val" id="a_teamWeekAP">$0</span><span class="sub-lbl">This Week</span></div>
+      <div class="pulse-sub-item"><span class="sub-val" id="a_teamMonthAP">$0</span><span class="sub-lbl">This Month</span></div>
+      <div class="pulse-sub-item"><span class="sub-val" id="a_teamMonthPct">0%</span><span class="sub-lbl">Month % to Goal</span></div>
+      <div class="pulse-sub-item"><span class="sub-val" id="a_totalSubs">0</span><span class="sub-lbl">Submissions Today</span></div>
+    </div>
+  </div>
+
+  <div class="main-layout" style="flex:1;overflow:hidden;">
+    <div class="leaderboard-pane">
+      <div class="section-eyebrow">Agent Leaderboard</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Daily AP</th>
+            <th>Pace</th>
+            <th>Month AP</th>
+            <th>% Goal</th>
+            <th>Apps</th>
+          </tr>
+        </thead>
+        <tbody id="a_leaderboardBody"></tbody>
+      </table>
+      <!-- Recent submissions ticker -->
+      <div style="margin-top:20px;">
+        <div class="section-eyebrow">Recent Sales</div>
+        <div id="a_recentSales" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+    <div class="sidebar">
+      <div class="stat-card top-producer-card">
+        <div class="stat-card-label">🏆 Top Producer — Week</div>
+        <div class="top-producer-name" id="a_topProducerName">—</div>
+        <div class="stat-card-sub" id="a_topProducerAP">—</div>
+      </div>
+      <div class="stat-card improved-card">
+        <div class="stat-card-label">📈 Most Improved — WoW</div>
+        <div class="improved-name" id="a_mostImprovedName">—</div>
+        <div class="stat-card-sub" id="a_mostImprovedDelta">—</div>
+      </div>
+      <div class="divider"></div>
+      <div class="mini-stats">
+        <div class="mini-stat"><div class="ms-val" id="a_activeAgents">0</div><div class="ms-lbl">Agents</div></div>
+        <div class="mini-stat"><div class="ms-val" id="a_totalSubsToday">0</div><div class="ms-lbl">Sales Today</div></div>
+        <div class="mini-stat"><div class="ms-val" id="a_avgAP">$0</div><div class="ms-lbl">Avg AP</div></div>
+        <div class="mini-stat"><div class="ms-val" id="a_appsPerAgent">0</div><div class="ms-lbl">Apps/Agent</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-eyebrow">Weekly Ranking</div>
+      <div id="a_weeklyRanking" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-left" id="a_lastUpdated">—</span>
+    <span class="footer-right">Powered by <span class="powered-by">Zenyra</span></span>
+  </div>
+
+  <!-- FAB to log a sale -->
+  <button class="fab" onclick="showSubmitForm()" title="Log a Sale">+</button>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SUBMIT FORM -->
+<!-- ══════════════════════════════════════════ -->
+<div id="submit-screen" class="screen">
+  <div class="header">
+    <div class="header-left">
+      <span class="brand">ZENYRA</span>
+      <span class="page-title">Log a Sale</span>
+    </div>
+    <div class="header-right">
+      <button class="btn-logout" onclick="showScreen('agent-dashboard')">← Back to Board</button>
+    </div>
+  </div>
+  <div class="submit-wrap">
+    <div class="submit-inner">
+      <div class="submit-success" id="submitSuccess">✓ Sale logged successfully! Returning to leaderboard...</div>
+
+      <div class="form-section-title">Customer Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>First Name</label><input type="text" id="f_cFirstName"/></div>
+        <div class="field-sm"><label>Last Name</label><input type="text" id="f_cLastName"/></div>
+        <div class="field-sm"><label>Phone</label><input type="tel" id="f_cPhone"/></div>
+        <div class="field-sm"><label>Email</label><input type="email" id="f_cEmail"/></div>
+        <div class="field-sm"><label>Date of Birth</label><input type="date" id="f_cDOB"/></div>
+        <div class="field-sm"><label>Gender</label>
+          <select id="f_cGender">
+            <option value="">Select...</option>
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Street Address</label><input type="text" id="f_cStreet"/></div>
+      </div>
+      <div class="form-grid three" style="margin-top:12px;">
+        <div class="field-sm"><label>City</label><input type="text" id="f_cCity"/></div>
+        <div class="field-sm"><label>State</label><input type="text" id="f_cState" maxlength="2" placeholder="FL"/></div>
+        <div class="field-sm"><label>Postal Code</label><input type="text" id="f_cPostal"/></div>
+      </div>
+
+      <div class="form-section-title">Ancillary Policy Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>Product Type</label>
+          <select id="f_productType">
+            <option value="">Select...</option>
+            <option>Cancer</option>
+            <option>Dental/Vision</option>
+            <option>Heart Attack/Stroke</option>
+            <option>Home Health</option>
+            <option>Hospital Indemnity</option>
+            <option>Life Insurance</option>
+          </select>
+        </div>
+        <div class="field-sm"><label>Policy Number</label><input type="text" id="f_policyNum"/></div>
+        <div class="field-sm"><label>Carrier Name</label><input type="text" id="f_carrier"/></div>
+        <div class="field-sm"><label>Plan Name</label><input type="text" id="f_planName"/></div>
+        <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="f_monthlyPremium" step="0.01" min="0"/></div>
+        <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="f_draftDay" min="1" max="31"/></div>
+        <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
+        <div class="field-sm"><label>Draft Date</label><input type="date" id="f_draftDate"/></div>
+      </div>
+
+      <div class="form-section-title">Submitting Agent Info</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>Agent First Name</label><input type="text" id="f_aFirstName"/></div>
+        <div class="field-sm"><label>Agent Last Name</label><input type="text" id="f_aLastName"/></div>
+        <div class="field-sm"><label>Agent Email</label><input type="email" id="f_aEmail"/></div>
+        <div class="field-sm"><label>Agent NPN</label><input type="text" id="f_aNPN"/></div>
+      </div>
+
+      <div class="form-section-title">Doctor & Medication Info</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>PCP Name</label><input type="text" id="f_pcp"/></div>
+        <div class="field-sm"><label>Specialist Name</label><input type="text" id="f_specialist"/></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Medications (comma separated)</label><textarea id="f_medications" placeholder="e.g. Metformin, Lisinopril, Atorvastatin"></textarea></div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-submit" onclick="submitSale()">Log Sale</button>
+        <button class="btn-cancel" onclick="showScreen('agent-dashboard')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- ADMIN DASHBOARD -->
+<!-- ══════════════════════════════════════════ -->
+<div id="admin-dashboard" class="screen">
+  <div class="header">
+    <div class="header-left">
+      <span class="brand">ZENYRA</span>
+      <span class="page-title">Admin — Command Center</span>
+    </div>
+    <div class="header-right">
+      <span class="live-dot">Live</span>
+      <span class="clock" id="adminClock"></span>
+      <span class="user-badge">Admin: <span id="adminUserName">—</span></span>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="admin-nav">
+    <div class="admin-tab active" id="adminTab_board" onclick="switchAdminTab('board')">📊 Leaderboard</div>
+    <div class="admin-tab" id="adminTab_subs" onclick="switchAdminTab('subs')">📋 All Submissions</div>
+  </div>
+
+  <!-- LEADERBOARD PANEL -->
+  <div id="admin-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="pulse-strip">
+      <div class="pulse-meta">
+        <span class="pulse-label">Team Daily Goal Pulse — AP vs $8,000 Target</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="pulse-numbers">
+            <span class="pulse-current" id="ad_teamTodayAP">$0</span>
+            <span class="pulse-sep">/</span>
+            <span class="pulse-goal">$8,000</span>
+          </div>
+          <span class="pulse-pct" id="ad_paceBadge">0%</span>
+        </div>
+      </div>
+      <div class="pulse-bar-track"><div class="pulse-bar-fill" id="ad_pulseBar" style="width:0%"></div></div>
+      <div class="pulse-sub">
+        <div class="pulse-sub-item"><span class="sub-val" id="ad_teamWeekAP">$0</span><span class="sub-lbl">This Week</span></div>
+        <div class="pulse-sub-item"><span class="sub-val" id="ad_teamMonthAP">$0</span><span class="sub-lbl">This Month</span></div>
+        <div class="pulse-sub-item"><span class="sub-val" id="ad_teamMonthPct">0%</span><span class="sub-lbl">Month % to Goal</span></div>
+        <div class="pulse-sub-item"><span class="sub-val" id="ad_totalSubs">0</span><span class="sub-lbl">Submissions Today</span></div>
+      </div>
+    </div>
+    <div class="main-layout" style="flex:1;overflow:hidden;">
+      <div class="leaderboard-pane">
+        <div class="section-eyebrow">Agent Leaderboard</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th>
+            </tr>
+          </thead>
+          <tbody id="ad_leaderboardBody"></tbody>
+        </table>
+      </div>
+      <div class="sidebar">
+        <div class="stat-card top-producer-card">
+          <div class="stat-card-label">🏆 Top Producer — Week</div>
+          <div class="top-producer-name" id="ad_topProducerName">—</div>
+          <div class="stat-card-sub" id="ad_topProducerAP">—</div>
+        </div>
+        <div class="stat-card improved-card">
+          <div class="stat-card-label">📈 Most Improved — WoW</div>
+          <div class="improved-name" id="ad_mostImprovedName">—</div>
+          <div class="stat-card-sub" id="ad_mostImprovedDelta">—</div>
+        </div>
+        <div class="divider"></div>
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="ms-val" id="ad_activeAgents">0</div><div class="ms-lbl">Agents</div></div>
+          <div class="mini-stat"><div class="ms-val" id="ad_totalSubsToday">0</div><div class="ms-lbl">Sales Today</div></div>
+          <div class="mini-stat"><div class="ms-val" id="ad_avgAP">$0</div><div class="ms-lbl">Avg AP</div></div>
+          <div class="mini-stat"><div class="ms-val" id="ad_appsPerAgent">0</div><div class="ms-lbl">Apps/Agent</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-eyebrow">Weekly Ranking</div>
+        <div id="ad_weeklyRanking" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMISSIONS PANEL -->
+  <div id="admin-subs-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">All Submissions</div>
+    <div id="admin-subs-content"></div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-left" id="ad_lastUpdated">—</span>
+    <span class="footer-right">Powered by <span class="powered-by">Zenyra</span></span>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+const DAILY_GOAL    = 8000;
+const ADMIN_CODE    = 'bigbrothereye';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ══════════════════════════════════════════════════
+// SESSION
+// ══════════════════════════════════════════════════
+let currentUser = null;
+let allAgents   = [];
+
+function saveSession(user) {
+  localStorage.setItem('zenyra_board_session', JSON.stringify(user));
+  currentUser = user;
+}
+function loadSession() {
+  const s = localStorage.getItem('zenyra_board_session');
+  return s ? JSON.parse(s) : null;
+}
+function clearSession() {
+  localStorage.removeItem('zenyra_board_session');
+  currentUser = null;
+}
+
+// Simple password hash (SHA-256 via SubtleCrypto)
+async function hashPassword(password) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ══════════════════════════════════════════════════
+// SCREEN MANAGER
+// ══════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+// LANDING
+// ══════════════════════════════════════════════════
+let authRole = 'agent';
+
+async function showAuth(role) {
+  authRole = role;
+  document.getElementById('authTitle').textContent = role === 'agent' ? 'Agent Portal' : 'Admin Portal';
+  document.getElementById('authSub').textContent   = role === 'agent' ? 'Sign in or create your account' : 'Admin access only';
+  document.getElementById('adminCodeField').style.display = role === 'admin' ? 'block' : 'none';
+  document.getElementById('authError').style.display = 'none';
+
+  // Load agents for dropdowns
+  const { data } = await db.from('lb_agents').select('id,name').eq('active', true).order('name');
+  allAgents = data || [];
+
+  const loginSel    = document.getElementById('loginName');
+  const registerSel = document.getElementById('registerName');
+  loginSel.innerHTML    = allAgents.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  registerSel.innerHTML = allAgents.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+  switchAuthTab('login');
+  showScreen('auth');
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('loginForm').style.display    = tab === 'login'    ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tabLogin').classList.toggle('active',    tab === 'login');
+  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+  document.getElementById('authError').style.display = 'none';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function doLogin() {
+  const agentId  = document.getElementById('loginName').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!password) return showAuthError('Enter your password.');
+
+  const hash = await hashPassword(password);
+  const { data, error } = await db.from('lb_users')
+    .select('*')
+    .eq('agent_id', agentId)
+    .eq('role', authRole)
+    .eq('password_hash', hash)
+    .single();
+
+  if (error || !data) return showAuthError('Incorrect password. Try again or register.');
+
+  // Update last login
+  await db.from('lb_users').update({ last_login: new Date().toISOString() }).eq('id', data.id);
+
+  const agent = allAgents.find(a => a.id === agentId);
+  saveSession({ ...data, agentName: agent?.name || data.display_name });
+  enterDashboard(data.role);
+}
+
+async function doRegister() {
+  const agentId  = document.getElementById('registerName').value;
+  const password = document.getElementById('registerPassword').value;
+  const confirm  = document.getElementById('registerConfirm').value;
+
+  if (authRole === 'admin') {
+    const code = document.getElementById('adminCode').value;
+    if (code !== ADMIN_CODE) return showAuthError('Invalid admin access code.');
+  }
+  if (!password || password.length < 6) return showAuthError('Password must be at least 6 characters.');
+  if (password !== confirm) return showAuthError('Passwords do not match.');
+
+  // Check if already registered
+  const { data: existing } = await db.from('lb_users')
+    .select('id')
+    .eq('agent_id', agentId)
+    .eq('role', authRole)
+    .single();
+  if (existing) return showAuthError('An account for this name already exists. Sign in instead.');
+
+  const hash  = await hashPassword(password);
+  const agent = allAgents.find(a => a.id === agentId);
+  const { data, error } = await db.from('lb_users').insert({
+    agent_id:      agentId,
+    display_name:  agent?.name || 'Agent',
+    role:          authRole,
+    password_hash: hash,
+  }).select().single();
+
+  if (error) return showAuthError('Registration failed. Please try again.');
+
+  saveSession({ ...data, agentName: agent?.name || data.display_name });
+  enterDashboard(authRole);
+}
+
+function enterDashboard(role) {
+  if (role === 'admin') {
+    document.getElementById('adminUserName').textContent = currentUser.agentName;
+    showScreen('admin-dashboard');
+    renderAdminBoard();
+    startClocks();
+    startRealtime();
+  } else {
+    document.getElementById('agentUserName').textContent = currentUser.agentName;
+    showScreen('agent-dashboard');
+    renderAgentBoard();
+    startClocks();
+    startRealtime();
+  }
+}
+
+function doLogout() {
+  clearSession();
+  showScreen('landing');
+}
+
+// ══════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════
+async function fetchStats() {
+  const { data } = await db.from('lb_daily_stats').select('*');
+  return data || [];
+}
+
+async function fetchRecentSubmissions(limit = 10) {
+  const { data } = await db.from('lb_submissions')
+    .select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at')
+    .eq('status','live')
+    .order('submitted_at', { ascending: false })
+    .limit(limit);
+  return data || [];
+}
+
+async function fetchAllSubmissions() {
+  const { data } = await db.from('lb_submissions')
+    .select(`*, lb_agents(name)`)
+    .eq('status','live')
+    .order('submitted_at', { ascending: false });
+  return data || [];
+}
+
+// ══════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════
+const fmt$ = n => '$' + Number(n||0).toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtPct = n => Math.round(n) + '%';
+
+function getDayProgress() {
+  const now = new Date();
+  const et  = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const h   = et.getHours() + et.getMinutes() / 60;
+  if (h <= 9)  return 0;
+  if (h >= 19) return 1;
+  return (h - 9) / 10;
+}
+
+function paceStatus(pct, dp) {
+  if (dp === 0) return 'on';
+  const delta = pct - dp * 100;
+  return delta >= -10 ? 'on' : delta >= -25 ? 'off' : 'crit';
+}
+
+// ══════════════════════════════════════════════════
+// RENDER SHARED LEADERBOARD
+// ══════════════════════════════════════════════════
+function renderLeaderboard(stats, prefix) {
+  const ranked   = [...stats].sort((a,b) => b.month_ap - a.month_ap);
+  const dp       = getDayProgress();
+  const tToday   = stats.reduce((s,a) => s + Number(a.daily_ap), 0);
+  const tWeek    = stats.reduce((s,a) => s + Number(a.week_ap), 0);
+  const tMonth   = stats.reduce((s,a) => s + Number(a.month_ap), 0);
+  const tGoal    = stats.reduce((s,a) => s + Number(a.monthly_goal), 0);
+  const tApps    = stats.reduce((s,a) => s + Number(a.apps_today), 0);
+  const dailyPct = Math.min((tToday / DAILY_GOAL) * 100, 100);
+  const ps       = paceStatus(dailyPct, dp);
+
+  set(prefix+'teamTodayAP', fmt$(tToday));
+  set(prefix+'teamWeekAP',  fmt$(tWeek));
+  set(prefix+'teamMonthAP', fmt$(tMonth));
+  set(prefix+'teamMonthPct', fmtPct((tMonth/tGoal)*100));
+  set(prefix+'totalSubs', tApps);
+
+  const bar = document.getElementById(prefix+'pulseBar');
+  if (bar) bar.style.width = dailyPct + '%';
+  const badge = document.getElementById(prefix+'paceBadge');
+  if (badge) {
+    badge.textContent = fmtPct(dailyPct) + ' to goal';
+    badge.className = 'pulse-pct ' + (ps==='on'?'on-pace':ps==='off'?'behind':'critical');
+  }
+
+  const tbody = document.getElementById(prefix+'leaderboardBody');
+  if (tbody) {
+    tbody.innerHTML = '';
+    ranked.forEach((agent, i) => {
+      const rank     = i + 1;
+      const mPct     = (agent.month_ap / agent.monthly_goal) * 100;
+      const pClass   = mPct >= 60 ? 'pct-high' : mPct >= 35 ? 'pct-mid' : 'pct-low';
+      const fClass   = mPct >= 60 ? 'fill-high' : mPct >= 35 ? 'fill-mid' : 'fill-low';
+      const rClass   = ['','rank-1','rank-2','rank-3'][rank] || 'rank-n';
+      const share    = DAILY_GOAL / stats.length;
+      const aPct     = (agent.daily_ap / share) * 100;
+      const aPs      = paceStatus(aPct, dp);
+      const plLabel  = aPs==='on'?'On Pace':aPs==='off'?'Behind':'Critical';
+      const plClass  = aPs==='on'?'pace-on':aPs==='off'?'pace-off':'pace-crit';
+      const wowDelta = Number(agent.week_ap) - Number(agent.last_week_ap);
+      const tSign    = wowDelta >= 0 ? '▲' : '▼';
+      const tClass   = wowDelta >= 0 ? 'trend-up' : 'trend-down';
+      tbody.innerHTML += `
+        <tr>
+          <td><div class="agent-cell">
+            <div class="rank-badge ${rClass}">${rank}</div>
+            <div>
+              <div class="agent-name">${agent.name}</div>
+              <div class="agent-trend ${tClass}">${tSign} ${fmt$(Math.abs(wowDelta))} WoW</div>
+            </div>
+          </div></td>
+          <td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td>
+          <td><span class="daily-pace ${plClass}">${plLabel}</span></td>
+          <td><span class="ap-val">${fmt$(agent.month_ap)}</span></td>
+          <td><div class="goal-bar-wrap">
+            <span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span>
+            <div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div>
+          </div></td>
+          <td>${agent.apps_today}</td>
+        </tr>`;
+    });
+  }
+
+  // Sidebar
+  const topP = [...stats].sort((a,b) => b.week_ap - a.week_ap)[0];
+  const mostI = [...stats].sort((a,b) => (b.week_ap-b.last_week_ap)-(a.week_ap-a.last_week_ap))[0];
+  const miDelta = Number(mostI?.week_ap||0) - Number(mostI?.last_week_ap||0);
+
+  set(prefix+'topProducerName', topP?.name || '—');
+  set(prefix+'topProducerAP',   fmt$(topP?.week_ap||0) + ' this week');
+  set(prefix+'mostImprovedName',  mostI?.name || '—');
+  set(prefix+'mostImprovedDelta', '+' + fmt$(miDelta) + ' vs last week');
+  set(prefix+'activeAgents',    stats.length);
+  set(prefix+'totalSubsToday',  tApps);
+  set(prefix+'avgAP',           fmt$(tMonth / (stats.length||1)));
+  set(prefix+'appsPerAgent',    (tApps / (stats.length||1)).toFixed(1));
+
+  const weekEl = document.getElementById(prefix+'weeklyRanking');
+  if (weekEl) {
+    const wRanked = [...stats].sort((a,b) => b.week_ap - a.week_ap);
+    weekEl.innerHTML = '';
+    wRanked.forEach((a, i) => {
+      const pct = Math.min((a.week_ap / (DAILY_GOAL * 5)) * 100, 100);
+      const color = i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)';
+      weekEl.innerHTML += `
+        <div class="week-rank-item">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+              <span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span>
+              <span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span>
+            </div>
+            <div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
+            </div>
+          </div>
+        </div>`;
+    });
+  }
+
+  const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  set(prefix.replace('_','')+'_lastUpdated', 'Last updated: ' + ts);
+  const luEl = document.getElementById(prefix === 'a_' ? 'a_lastUpdated' : 'ad_lastUpdated');
+  if (luEl) luEl.textContent = 'Last updated: ' + ts;
+}
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ══════════════════════════════════════════════════
+// AGENT BOARD
+// ══════════════════════════════════════════════════
+async function renderAgentBoard() {
+  const stats = await fetchStats();
+  renderLeaderboard(stats, 'a_');
+
+  // Recent sales ticker
+  const subs = await fetchRecentSubmissions(8);
+  const rsEl = document.getElementById('a_recentSales');
+  if (rsEl) {
+    if (!subs.length) {
+      rsEl.innerHTML = '<div style="color:var(--muted);font-size:12px;">No sales logged today yet.</div>';
+    } else {
+      rsEl.innerHTML = subs.map(s => {
+        const agent = stats.find(a => a.id === s.agent_id);
+        const nameDisplay = s.customer_first_name
+          ? `${s.customer_first_name} ${(s.customer_last_name||'').charAt(0)}.`
+          : 'Customer';
+        const time = new Date(s.submitted_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'});
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);">
+          <div>
+            <span style="font-weight:600;color:var(--white);font-size:13px;">${nameDisplay}</span>
+            <span style="color:var(--muted);font-size:11px;margin-left:8px;">${s.product_type||'—'}</span>
+          </div>
+          <div style="text-align:right;">
+            <span style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</span>
+            <span style="color:var(--muted);font-size:10px;margin-left:6px;">${agent?.name||''} · ${time}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════
+// ADMIN BOARD
+// ══════════════════════════════════════════════════
+async function renderAdminBoard() {
+  const stats = await fetchStats();
+  renderLeaderboard(stats, 'ad_');
+}
+
+async function renderAdminSubmissions() {
+  const subs  = await fetchAllSubmissions();
+  const cont  = document.getElementById('admin-subs-content');
+  if (!subs.length) {
+    cont.innerHTML = '<div class="no-data">No submissions yet.</div>';
+    return;
+  }
+  cont.innerHTML = `
+    <table class="submissions-table">
+      <thead>
+        <tr>
+          <th>Date</th><th>Agent</th><th>Customer</th><th>Product</th>
+          <th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th>
+          <th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${subs.map(s => `
+          <tr data-id="${s.id}">
+            <td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td>
+            <td>${s.lb_agents?.name||'—'}</td>
+            <td>
+              <div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div>
+              <div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div>
+              <div style="font-size:11px;color:var(--muted);">${s.customer_dob||''}</div>
+            </td>
+            <td><span class="product-badge">${s.product_type||'—'}</span></td>
+            <td style="font-size:12px;">${s.carrier_name||'—'}</td>
+            <td style="font-size:12px;">${s.plan_name||'—'}</td>
+            <td style="color:var(--teal);">${fmt$(s.monthly_premium)}</td>
+            <td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td>
+            <td style="font-size:12px;">${s.effective_date||'—'}</td>
+            <td style="font-size:12px;">${s.pcp_name||'—'}</td>
+            <td style="font-size:11px;color:var(--muted);max-width:120px;">${s.medications||'—'}</td>
+            <td>
+              <button class="btn-delete" onclick="deleteSubmission('${s.id}')">Delete</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function deleteSubmission(id) {
+  if (!confirm('Delete this submission? This cannot be undone.')) return;
+  await db.from('lb_submissions').update({ status: 'deleted' }).eq('id', id);
+  renderAdminSubmissions();
+  renderAdminBoard();
+}
+
+function switchAdminTab(tab) {
+  document.getElementById('admin-board-panel').style.display = tab === 'board' ? 'flex' : 'none';
+  document.getElementById('admin-subs-panel').style.display  = tab === 'subs'  ? 'block' : 'none';
+  document.getElementById('adminTab_board').classList.toggle('active', tab === 'board');
+  document.getElementById('adminTab_subs').classList.toggle('active',  tab === 'subs');
+  if (tab === 'subs') renderAdminSubmissions();
+  if (tab === 'board') renderAdminBoard();
+}
+
+// ══════════════════════════════════════════════════
+// SUBMIT FORM
+// ══════════════════════════════════════════════════
+function showSubmitForm() {
+  document.getElementById('submitSuccess').style.display = 'none';
+  showScreen('submit-screen');
+}
+
+async function submitSale() {
+  const mp = parseFloat(document.getElementById('f_monthlyPremium').value);
+  if (!mp || mp <= 0) return alert('Monthly premium is required.');
+  if (!document.getElementById('f_productType').value) return alert('Product type is required.');
+
+  const agentId = currentUser?.agent_id;
+
+  const payload = {
+    agent_id:              agentId,
+    status:                'live',
+    customer_first_name:   document.getElementById('f_cFirstName').value,
+    customer_last_name:    document.getElementById('f_cLastName').value,
+    customer_phone:        document.getElementById('f_cPhone').value,
+    customer_email:        document.getElementById('f_cEmail').value,
+    customer_dob:          document.getElementById('f_cDOB').value || null,
+    customer_gender:       document.getElementById('f_cGender').value,
+    customer_street:       document.getElementById('f_cStreet').value,
+    customer_city:         document.getElementById('f_cCity').value,
+    customer_state:        document.getElementById('f_cState').value,
+    customer_postal_code:  document.getElementById('f_cPostal').value,
+    product_type:          document.getElementById('f_productType').value,
+    policy_number:         document.getElementById('f_policyNum').value,
+    carrier_name:          document.getElementById('f_carrier').value,
+    plan_name:             document.getElementById('f_planName').value,
+    monthly_premium:       mp,
+    recurring_draft_day:   parseInt(document.getElementById('f_draftDay').value) || null,
+    effective_date:        document.getElementById('f_effectiveDate').value || null,
+    draft_date:            document.getElementById('f_draftDate').value || null,
+    agent_first_name:      document.getElementById('f_aFirstName').value,
+    agent_last_name:       document.getElementById('f_aLastName').value,
+    agent_email:           document.getElementById('f_aEmail').value,
+    agent_npn:             document.getElementById('f_aNPN').value,
+    pcp_name:              document.getElementById('f_pcp').value,
+    specialist_name:       document.getElementById('f_specialist').value,
+    medications:           document.getElementById('f_medications').value,
+  };
+
+  const { error } = await db.from('lb_submissions').insert(payload);
+  if (error) return alert('Submission failed: ' + error.message);
+
+  const el = document.getElementById('submitSuccess');
+  el.style.display = 'block';
+  // Clear form
+  document.querySelectorAll('#submit-screen input, #submit-screen select, #submit-screen textarea')
+    .forEach(el => el.value = '');
+  setTimeout(() => {
+    el.style.display = 'none';
+    showScreen('agent-dashboard');
+    renderAgentBoard();
+  }, 2000);
+}
+
+// ══════════════════════════════════════════════════
+// REALTIME
+// ══════════════════════════════════════════════════
+function startRealtime() {
+  db.channel('lb_submissions_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'lb_submissions' }, () => {
+      if (currentUser?.role === 'admin') renderAdminBoard();
+      else renderAgentBoard();
+    })
+    .subscribe();
+}
+
+// ══════════════════════════════════════════════════
+// CLOCKS
+// ══════════════════════════════════════════════════
+function startClocks() {
+  function tick() {
+    const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'}) + ' ET';
+    const ac = document.getElementById('agentClock');
+    const adc = document.getElementById('adminClock');
+    if (ac)  ac.textContent  = t;
+    if (adc) adc.textContent = t;
+  }
+  tick();
+  setInterval(tick, 1000);
+  setInterval(() => {
+    if (currentUser?.role === 'admin') renderAdminBoard();
+    else if (currentUser) renderAgentBoard();
+  }, 30000);
+}
+
+// ══════════════════════════════════════════════════
+// INIT — check for existing session
+// ══════════════════════════════════════════════════
+(async function init() {
+  const session = loadSession();
+  if (session) {
+    currentUser = session;
+    // Reload agents
+    const { data } = await db.from('lb_agents').select('id,name').eq('active', true);
+    allAgents = data || [];
+    enterDashboard(session.role);
+  }
+})();
+</script>
+</body>
+</html>
