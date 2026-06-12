@@ -12,7 +12,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --navy:#0A0F1E;--surface:#111827;--card:#1E2A3B;--border:#263348;
-  --teal:#00C9B1;--teal-dim:#007A6B;--amber:#F59E0B;--red:#EF4444;--green:#22C55E;
+  --teal:#00C9B1;--teal-dim:#007A6B;--amber:#F59E0B;--red:#EF4444;--green:#22C55E;--blue:#3B82F6;
   --white:#F8FAFC;--muted:#64748B;--label:#94A3B8;--body:#CBD5E1;
 }
 html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;}
@@ -79,6 +79,7 @@ html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Int
 .pulse-goal{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--muted);}
 .pulse-pct{margin-left:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;}
 .pulse-pct.on-pace{background:rgba(0,201,177,0.15);color:var(--teal);}
+.pulse-pct.ahead{background:rgba(59,130,246,0.15);color:var(--blue);}
 .pulse-pct.behind{background:rgba(245,158,11,0.15);color:var(--amber);}
 .pulse-pct.critical{background:rgba(239,68,68,0.15);color:var(--red);}
 .pulse-bar-track{height:8px;border-radius:99px;background:var(--card);overflow:hidden;}
@@ -120,6 +121,7 @@ tbody td:not(:first-child){text-align:right;}
 .pace-on{background:rgba(0,201,177,0.12);color:var(--teal);}
 .pace-off{background:rgba(245,158,11,0.12);color:var(--amber);}
 .pace-crit{background:rgba(239,68,68,0.12);color:var(--red);}
+.pace-ahead{background:rgba(59,130,246,0.12);color:var(--blue);}
 
 /* SIDEBAR */
 .sidebar{padding:20px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
@@ -626,12 +628,14 @@ function getDayProgress(){
   if(h<=9)return 0; if(h>=19)return 1; return (h-9)/10;
 }
 function paceStatus(agentDailyAP, totalAgents, dp){
-  // FIX #1: pace based on each agent's own share
   const share = DAILY_GOAL / totalAgents;
   const pct   = (agentDailyAP / share) * 100;
   if(dp===0) return 'on';
   const delta = pct - dp*100;
-  return delta>=-10?'on':delta>=-25?'off':'crit';
+  if(delta > 10)  return 'ahead';
+  if(delta >= -10) return 'on';
+  if(delta >= -25) return 'off';
+  return 'crit';
 }
 
 // ══════════════════════════════════════════════════
@@ -643,29 +647,51 @@ function buildPulse(stats, prefix){
   const tMonth  = stats.reduce((s,a)=>s+Number(a.month_ap),0);
   const tGoal   = stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
   const tApps   = stats.reduce((s,a)=>s+Number(a.apps_today),0);
-  const dailyPct= Math.min((tToday/DAILY_GOAL)*100,100);
-  const dp      = getDayProgress();
-  const ps      = (()=>{ if(dp===0)return'on'; const d=dailyPct-dp*100; return d>=-10?'on':d>=-25?'off':'crit'; })();
-  const badgeCls= ps==='on'?'on-pace':ps==='off'?'behind':'critical';
+  const WEEKLY_GOAL  = 40000;
+  const dailyPct = Math.min((tToday/DAILY_GOAL)*100,100);
+  const weekPct  = Math.min((tWeek/WEEKLY_GOAL)*100,100);
+  const monthPct = Math.min((tMonth/tGoal)*100,100);
+  const dp       = getDayProgress();
+  const ps       = (()=>{ if(dp===0)return'on'; const d=dailyPct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; })();
+  const badgeCls = ps==='ahead'?'ahead':ps==='on'?'on-pace':ps==='off'?'behind':'critical';
+
+  function goalRow(current, goal, pct, label, barColor){
+    return `
+      <div style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:baseline;gap:6px;">
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--teal);">${fmt$(current)}</span>
+            <span style="color:var(--muted);font-size:14px;">/</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--muted);">${fmt$(goal)}</span>
+            <span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:4px;">${label}</span>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:rgba(0,201,177,0.12);color:var(--teal);">${fmtPct(pct)} to goal</span>
+        </div>
+        <div style="height:5px;border-radius:99px;background:var(--card);overflow:hidden;">
+          <div style="height:100%;width:${pct}%;border-radius:99px;background:${barColor};transition:width 1s ease;"></div>
+        </div>
+      </div>`;
+  }
+
   const el=document.getElementById(prefix+'pulse');
   if(!el)return;
   el.innerHTML=`
     <div class="pulse-meta">
-      <span class="pulse-label">Team Daily Goal Pulse — AP vs $8,000 Target</span>
+      <span class="pulse-label">Team Goal Pulse</span>
       <div style="display:flex;align-items:center;gap:12px;">
         <div class="pulse-numbers">
           <span class="pulse-current">${fmt$(tToday)}</span>
           <span class="pulse-sep">/</span>
-          <span class="pulse-goal">$8,000</span>
+          <span class="pulse-goal">${fmt$(DAILY_GOAL)}</span>
+          <span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span>
         </div>
         <span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span>
       </div>
     </div>
     <div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>
-    <div class="pulse-sub">
-      <div class="pulse-sub-item"><span class="sub-val">${fmt$(tWeek)}</span><span class="sub-lbl">This Week</span></div>
-      <div class="pulse-sub-item"><span class="sub-val">${fmt$(tMonth)}</span><span class="sub-lbl">This Month</span></div>
-      <div class="pulse-sub-item"><span class="sub-val">${fmtPct((tMonth/tGoal)*100)}</span><span class="sub-lbl">Month % to Goal</span></div>
+    ${goalRow(tWeek, WEEKLY_GOAL, weekPct, 'Weekly Goal', 'var(--amber)')}
+    ${goalRow(tMonth, tGoal, monthPct, 'Monthly Goal', 'var(--green)')}
+    <div class="pulse-sub" style="margin-top:10px;">
       <div class="pulse-sub-item"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div>
     </div>`;
 }
@@ -685,10 +711,9 @@ function buildLeaderboard(stats, tbodyId){
     const pClass=mPct>=60?'pct-high':mPct>=35?'pct-mid':'pct-low';
     const fClass=mPct>=60?'fill-high':mPct>=35?'fill-mid':'fill-low';
     const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
-    // FIX #1: pace per agent
     const ps=paceStatus(Number(agent.daily_ap), stats.length, dp);
-    const plLabel=ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
-    const plClass=ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
+    const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
+    const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
     const tClass=wow>=0?'trend-up':'trend-down';
     const tSign=wow>=0?'▲':'▼';
