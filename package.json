@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "inngest": "^3.22.0",
+    "inngest": "3.54.2",
     "@supabase/supabase-js": "^2.39.0"
   }
 }
