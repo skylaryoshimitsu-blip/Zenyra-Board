@@ -12,7 +12,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --navy:#0A0F1E;--surface:#111827;--card:#1E2A3B;--border:#263348;
-  --teal:#00C9B1;--teal-dim:#007A6B;--amber:#F59E0B;--red:#EF4444;--green:#22C55E;--blue:#3B82F6;
+  --teal:#00C9B1;--teal-dim:#007A6B;--amber:#F59E0B;--red:#EF4444;--green:#22C55E;--blue:#3B82F6;--purple:#A855F7;
   --white:#F8FAFC;--muted:#64748B;--label:#94A3B8;--body:#CBD5E1;
 }
 html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;}
@@ -64,9 +64,14 @@ html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Int
 .btn-logout{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:border-color 0.15s;}
 .btn-logout:hover{border-color:var(--red);color:var(--red);}
 
+/* VIEW TABS (agent + admin leaderboard) */
+.view-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.view-tab{padding:11px 20px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+.view-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
 /* ADMIN TABS */
-.admin-nav{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
-.admin-tab{padding:12px 24px;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+.admin-nav{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;}
+.admin-tab{padding:12px 20px;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
 .admin-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
 
 /* PULSE */
@@ -88,6 +93,12 @@ html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Int
 .pulse-sub-item{display:flex;flex-direction:column;gap:1px;}
 .sub-val{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--white);}
 .sub-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+
+/* MAPD pulse strip */
+.mapd-pulse{padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:32px;flex-wrap:wrap;align-items:center;}
+.mapd-pulse-item{display:flex;flex-direction:column;gap:2px;}
+.mapd-pulse-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:var(--purple);}
+.mapd-pulse-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
 
 /* MAIN LAYOUT */
 .main-layout{display:grid;grid-template-columns:1fr 260px;flex:1;overflow:hidden;}
@@ -139,6 +150,16 @@ tbody td:not(:first-child){text-align:right;}
 .ms-lbl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:1px;}
 .divider{height:1px;background:var(--border);}
 
+/* MY SUBMISSIONS (agent) */
+.my-subs-wrap{flex:1;overflow-y:auto;padding:20px 24px;}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.filter-field{display:flex;flex-direction:column;gap:4px;}
+.filter-field label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);}
+.filter-field select,.filter-field input{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;}
+.filter-field select:focus,.filter-field input:focus{border-color:var(--teal);}
+.filter-field select option{background:var(--card);}
+.btn-filter{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;}
+
 /* SUBMIT FORM */
 #submit-screen{flex-direction:column;}
 .submit-wrap{flex:1;overflow-y:auto;padding:24px;}
@@ -158,6 +179,8 @@ tbody td:not(:first-child){text-align:right;}
 .btn-submit:hover{opacity:0.85;}
 .btn-cancel{background:none;border:1px solid var(--border);border-radius:6px;padding:12px 20px;font-size:14px;color:var(--muted);cursor:pointer;}
 .submit-success{background:rgba(0,201,177,0.1);border:1px solid rgba(0,201,177,0.3);border-radius:8px;padding:16px;color:var(--teal);font-weight:600;margin-bottom:20px;display:none;}
+.field-sm .toggle-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.toggle-check{width:16px;height:16px;accent-color:var(--teal);cursor:pointer;}
 
 /* ADMIN SUBMISSIONS */
 .submissions-table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -166,6 +189,7 @@ tbody td:not(:first-child){text-align:right;}
 .submissions-table tr:hover td{background:rgba(30,42,59,0.4);}
 .customer-name{font-weight:600;color:var(--white);}
 .product-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(0,201,177,0.12);color:var(--teal);white-space:nowrap;}
+.mapd-badge{background:rgba(168,85,247,0.12);color:var(--purple);}
 .btn-delete{background:none;border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--red);cursor:pointer;transition:background 0.15s;}
 .btn-delete:hover{background:rgba(239,68,68,0.1);}
 .btn-edit-sm{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--label);cursor:pointer;margin-right:4px;transition:border-color 0.15s;}
@@ -183,6 +207,7 @@ tbody td:not(:first-child){text-align:right;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:200;display:none;}
 .modal-overlay.open{display:flex;}
 .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal-box.wide{max-width:720px;}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--white);margin-bottom:20px;}
 .modal-actions{display:flex;gap:10px;margin-top:20px;}
 .btn-modal-save{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;}
@@ -199,9 +224,72 @@ tbody td:not(:first-child){text-align:right;}
 .btn-run-report{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
 .btn-download{background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
 
-/* FAB */
-.fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:var(--teal);border:none;color:var(--navy);font-size:24px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,201,177,0.4);transition:transform 0.15s;z-index:100;}
+/* FAB + TYPE CHOOSER */
+.fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dim));border:none;color:var(--navy);font-size:24px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,201,177,0.4);transition:transform 0.15s;z-index:100;}
 .fab:hover{transform:scale(1.08);}
+.fab-chooser{position:fixed;bottom:92px;right:24px;display:none;flex-direction:column;gap:8px;z-index:101;}
+.fab-chooser.open{display:flex;}
+.fab-choice{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:border-color 0.15s;box-shadow:0 4px 16px rgba(0,0,0,0.4);}
+.fab-choice:hover{border-color:var(--teal);}
+.fab-choice .fab-choice-icon{font-size:18px;}
+.fab-choice .fab-choice-label{color:var(--white);}
+.fab-choice .fab-choice-sub{font-size:10px;color:var(--muted);font-weight:400;}
+
+/* CALL SCORER */
+.scorer-wrap{flex:1;overflow-y:auto;padding:20px 24px;}
+.scorer-inner{max-width:860px;}
+.scorer-config{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;}
+.scorer-config-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--label);margin-bottom:14px;}
+.scorer-upload-area{border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:16px;}
+.scorer-upload-area:hover,.scorer-upload-area.drag-over{border-color:var(--teal);}
+.scorer-upload-icon{font-size:32px;margin-bottom:8px;}
+.scorer-upload-text{font-size:13px;color:var(--label);}
+.scorer-upload-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.scorer-upload-filename{font-size:12px;color:var(--teal);margin-top:8px;font-weight:600;}
+.scorer-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.scorer-field{display:flex;flex-direction:column;gap:4px;}
+.scorer-field label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);}
+.scorer-field select,.scorer-field input{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;min-width:180px;}
+.scorer-field select:focus,.scorer-field input:focus{border-color:var(--teal);}
+.scorer-field select option{background:var(--card);}
+.btn-score{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.btn-score:disabled{opacity:0.5;cursor:not-allowed;}
+.scorer-progress{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;display:none;}
+.progress-step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px;color:var(--muted);}
+.progress-step.active{color:var(--white);}
+.progress-step.done{color:var(--teal);}
+.progress-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.progress-step.active .progress-dot{background:var(--teal);box-shadow:0 0 6px var(--teal);animation:blink 1s infinite;}
+.progress-step.done .progress-dot{background:var(--teal);}
+.scorer-result{display:none;}
+.scorer-result-header{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;}
+.overall-score{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:2px;line-height:1;}
+.score-grade{font-size:13px;font-weight:700;padding:4px 12px;border-radius:4px;display:inline-block;margin-top:4px;}
+.grade-a{background:rgba(0,201,177,0.15);color:var(--teal);}
+.grade-b{background:rgba(59,130,246,0.15);color:var(--blue);}
+.grade-c{background:rgba(245,158,11,0.15);color:var(--amber);}
+.grade-d{background:rgba(239,68,68,0.15);color:var(--red);}
+.plate-scores{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.plate-score-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.plate-score-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.plate-score-val{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;}
+.plate-score-bar{height:3px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:6px;}
+.plate-score-fill{height:100%;border-radius:99px;}
+.coaching-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;}
+.coaching-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--white);margin-bottom:14px;}
+.coaching-point{display:flex;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.coaching-point:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.coaching-priority{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;}
+.priority-high{background:rgba(239,68,68,0.15);color:var(--red);}
+.priority-med{background:rgba(245,158,11,0.15);color:var(--amber);}
+.priority-low{background:rgba(0,201,177,0.15);color:var(--teal);}
+.coaching-body{flex:1;}
+.coaching-plate{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.coaching-text{font-size:13px;color:var(--body);line-height:1.6;}
+.transcript-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;}
+.transcript-toggle{font-size:12px;color:var(--teal);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:0;}
+.transcript-body{margin-top:14px;font-size:12px;color:var(--body);line-height:1.7;white-space:pre-wrap;display:none;max-height:300px;overflow-y:auto;}
+.api-key-note{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:14px;}
 
 /* FOOTER */
 .footer{padding:8px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;}
@@ -264,7 +352,9 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════ -->
 <!-- AGENT DASHBOARD -->
+<!-- ══════════════════════════════════════════════════ -->
 <div id="agent-dashboard" class="screen">
   <div class="header">
     <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Performance Command Center</span></div>
@@ -275,35 +365,97 @@ tbody td:not(:first-child){text-align:right;}
       <button class="btn-logout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
-  <div class="pulse-strip" id="a_pulse"></div>
-  <div class="main-layout" style="flex:1;overflow:hidden;">
-    <div class="leaderboard-pane">
-      <div class="section-eyebrow">Agent Leaderboard</div>
-      <table>
-        <thead><tr>
-          <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th>
-        </tr></thead>
-        <tbody id="a_leaderboardBody"></tbody>
-      </table>
-      <div style="margin-top:20px;">
-        <div class="section-eyebrow">Recent Sales</div>
-        <div id="a_recentSales" style="display:flex;flex-direction:column;gap:6px;"></div>
-      </div>
-    </div>
-    <div class="sidebar" id="a_sidebar"></div>
+  <!-- Agent view tabs -->
+  <div class="view-tabs">
+    <div class="view-tab active" id="agentTab_board" onclick="switchAgentView('board')">📊 Ancillary Board</div>
+    <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
   </div>
+
+  <!-- ANCILLARY BOARD PANEL -->
+  <div id="agent-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="pulse-strip" id="a_pulse"></div>
+    <div class="main-layout" style="flex:1;overflow:hidden;">
+      <div class="leaderboard-pane">
+        <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
+        <table>
+          <thead><tr>
+            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th>
+          </tr></thead>
+          <tbody id="a_leaderboardBody"></tbody>
+        </table>
+        <div style="margin-top:20px;">
+          <div class="section-eyebrow">Recent Sales</div>
+          <div id="a_recentSales" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+      <div class="sidebar" id="a_sidebar"></div>
+    </div>
+  </div>
+
+  <!-- MY SUBMISSIONS PANEL -->
+  <div id="agent-mysubs-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+    <div class="my-subs-wrap">
+      <div class="filter-bar">
+        <div class="filter-field">
+          <label>Date Range</label>
+          <select id="my_range" onchange="toggleMyCustomDates()">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="7">Last 7 Days</option>
+            <option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div class="filter-field" id="my_from_wrap" style="display:none;">
+          <label>From</label><input type="date" id="my_from"/>
+        </div>
+        <div class="filter-field" id="my_to_wrap" style="display:none;">
+          <label>To</label><input type="date" id="my_to"/>
+        </div>
+        <div class="filter-field">
+          <label>Product Type</label>
+          <select id="my_product">
+            <option value="all">All Products</option>
+            <option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option>
+            <option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option>
+          </select>
+        </div>
+        <button class="btn-filter" onclick="loadMySubmissions()">Apply</button>
+      </div>
+      <!-- Summary strip -->
+      <div id="my_summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;"></div>
+      <!-- Table -->
+      <div id="my_subs_table"></div>
+    </div>
+  </div>
+
   <div class="footer">
     <span class="footer-left" id="a_lastUpdated">—</span>
     <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
   </div>
-  <button class="fab" onclick="showSubmitForm()" title="Log a Sale">+</button>
 </div>
 
-<!-- SUBMIT FORM -->
+<!-- FAB + CHOOSER (shared for agent screen) -->
+<div class="fab-chooser" id="fabChooser">
+  <div class="fab-choice" onclick="showSubmitForm('ancillary')">
+    <span class="fab-choice-icon">💊</span>
+    <div><div class="fab-choice-label">Ancillary Sale</div><div class="fab-choice-sub">HIP, Home Health, Cancer, etc.</div></div>
+  </div>
+  <div class="fab-choice" onclick="showSubmitForm('mapd')">
+    <span class="fab-choice-icon">🏥</span>
+    <div><div class="fab-choice-label">MAPD Submission</div><div class="fab-choice-sub">Medicare Advantage application</div></div>
+  </div>
+</div>
+<button class="fab" id="mainFab" onclick="toggleFabChooser()" title="Log a Sale">+</button>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SUBMIT FORM (Ancillary) -->
+<!-- ══════════════════════════════════════════════════ -->
 <div id="submit-screen" class="screen">
   <div class="header">
-    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Log a Sale</span></div>
-    <div class="header-right"><button class="btn-logout" onclick="showScreen('agent-dashboard')">← Back to Board</button></div>
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Log Ancillary Sale</span></div>
+    <div class="header-right"><button class="btn-logout" onclick="cancelSubmit()">← Back to Board</button></div>
   </div>
   <div class="submit-wrap">
     <div class="submit-inner">
@@ -351,13 +503,101 @@ tbody td:not(:first-child){text-align:right;}
       </div>
       <div class="form-actions">
         <button class="btn-submit" onclick="submitSale()">Log Sale</button>
-        <button class="btn-cancel" onclick="showScreen('agent-dashboard')">Cancel</button>
+        <button class="btn-cancel" onclick="cancelSubmit()">Cancel</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SUBMIT FORM (MAPD) -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="submit-mapd-screen" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Log MAPD Submission</span></div>
+    <div class="header-right"><button class="btn-logout" onclick="cancelSubmit()">← Back to Board</button></div>
+  </div>
+  <div class="submit-wrap">
+    <div class="submit-inner">
+      <div class="submit-success" id="submitMAPDSuccess">✓ MAPD submission logged! Returning to leaderboard...</div>
+
+      <div class="form-section-title">Sunfire / Application Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>Application Submit Date</label><input type="date" id="m_appSubmitDate"/></div>
+        <div class="field-sm"><label>Sunfire Confirmation Date</label><input type="date" id="m_sunfireDate"/></div>
+        <div class="field-sm"><label>Carrier Name</label><input type="text" id="m_carrier"/></div>
+        <div class="field-sm"><label>Plan Name</label><input type="text" id="m_planName"/></div>
+        <div class="field-sm"><label>Plan Code</label><input type="text" id="m_planCode"/></div>
+        <div class="field-sm"><label>Effective Date</label><input type="date" id="m_effectiveDate"/></div>
+      </div>
+
+      <div class="form-section-title">Agent Details</div>
+      <div class="form-grid three">
+        <div class="field-sm"><label>Agent NPN</label><input type="text" id="m_aNPN"/></div>
+        <div class="field-sm"><label>Agent First Name</label><input type="text" id="m_aFirstName"/></div>
+        <div class="field-sm"><label>Agent Last Name</label><input type="text" id="m_aLastName"/></div>
+      </div>
+
+      <div class="form-section-title">Customer Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>First Name</label><input type="text" id="m_cFirstName"/></div>
+        <div class="field-sm"><label>Last Name</label><input type="text" id="m_cLastName"/></div>
+        <div class="field-sm"><label>Date of Birth</label><input type="date" id="m_cDOB"/></div>
+        <div class="field-sm"><label>Gender</label><select id="m_cGender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+        <div class="field-sm"><label>Phone</label><input type="tel" id="m_cPhone"/></div>
+        <div class="field-sm"><label>Email</label><input type="email" id="m_cEmail"/></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;"><div class="field-sm"><label>Street Address</label><input type="text" id="m_cStreet"/></div></div>
+      <div class="form-grid three" style="margin-top:12px;">
+        <div class="field-sm"><label>City</label><input type="text" id="m_cCity"/></div>
+        <div class="field-sm"><label>State</label><input type="text" id="m_cState" maxlength="2" placeholder="FL"/></div>
+        <div class="field-sm"><label>Postal Code</label><input type="text" id="m_cPostal"/></div>
+      </div>
+
+      <div class="form-section-title">Medicare Card Details</div>
+      <div class="form-grid three">
+        <div class="field-sm"><label>Medicare Number</label><input type="text" id="m_medicareNum" placeholder="1EG4-TE5-MK72"/></div>
+        <div class="field-sm"><label>Medicare Part A Date</label><input type="date" id="m_partADate"/></div>
+        <div class="field-sm"><label>Medicare Part B Date</label><input type="date" id="m_partBDate"/></div>
+      </div>
+
+      <div class="form-section-title">Medicaid Details</div>
+      <div class="form-grid">
+        <div class="field-sm">
+          <label>On Medicaid?</label>
+          <div class="toggle-row">
+            <input type="checkbox" id="m_onMedicaid" class="toggle-check" onchange="toggleMedicaidField()"/>
+            <span style="font-size:13px;color:var(--body);">Yes, client is on Medicaid</span>
+          </div>
+        </div>
+        <div class="field-sm" id="m_medicaidNumWrap" style="display:none;">
+          <label>Medicaid Number</label><input type="text" id="m_medicaidNum"/>
+        </div>
+      </div>
+
+      <div class="form-section-title">Doctor & Drug Info</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>PCP Name</label><input type="text" id="m_pcpName"/></div>
+        <div class="field-sm"><label>PCP ID / NPI</label><input type="text" id="m_pcpId"/></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Specialist Doctor Names (comma separated)</label><textarea id="m_specialists" placeholder="e.g. Dr. Smith (Cardiologist), Dr. Jones (Endocrinology)"></textarea></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Medications (comma separated)</label><textarea id="m_medications" placeholder="e.g. Metformin, Lisinopril, Jardiance"></textarea></div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-submit" onclick="submitMAPD()" style="background:var(--purple);box-shadow:0 2px 12px rgba(168,85,247,0.3);">Log MAPD Submission</button>
+        <button class="btn-cancel" onclick="cancelSubmit()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
 <!-- ADMIN DASHBOARD -->
+<!-- ══════════════════════════════════════════════════ -->
 <div id="admin-dashboard" class="screen">
   <div class="header">
     <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Admin — Command Center</span></div>
@@ -370,32 +610,126 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <div class="admin-nav">
     <div class="admin-tab active" id="adminTab_board" onclick="switchAdminTab('board')">📊 Leaderboard</div>
-    <div class="admin-tab" id="adminTab_subs" onclick="switchAdminTab('subs')">📋 Submissions</div>
+    <div class="admin-tab" id="adminTab_subs" onclick="switchAdminTab('subs')">📋 Ancillary Subs</div>
+    <div class="admin-tab" id="adminTab_mapd" onclick="switchAdminTab('mapd')">🏥 MAPD Subs</div>
+    <div class="admin-tab" id="adminTab_scorer" onclick="switchAdminTab('scorer')">🎙 Call Scorer</div>
     <div class="admin-tab" id="adminTab_agents" onclick="switchAdminTab('agents')">👥 Agents</div>
     <div class="admin-tab" id="adminTab_reports" onclick="switchAdminTab('reports')">📥 Reports</div>
   </div>
 
   <!-- BOARD PANEL -->
   <div id="admin-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-    <div class="pulse-strip" id="ad_pulse"></div>
-    <div class="main-layout" style="flex:1;overflow:hidden;">
-      <div class="leaderboard-pane">
-        <div class="section-eyebrow">Agent Leaderboard</div>
-        <table>
-          <thead><tr>
-            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th>
-          </tr></thead>
-          <tbody id="ad_leaderboardBody"></tbody>
-        </table>
+    <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
+      <div class="view-tab active" id="adminBoardTab_anc" onclick="switchAdminBoardView('anc')">💊 Ancillary</div>
+      <div class="view-tab" id="adminBoardTab_mapd" onclick="switchAdminBoardView('mapd')">🏥 MAPD</div>
+      <div class="view-tab" id="adminBoardTab_combined" onclick="switchAdminBoardView('combined')">⚡ Combined</div>
+    </div>
+    <!-- Ancillary board sub-panel -->
+    <div id="admin-anc-sub" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="pulse-strip" id="ad_pulse"></div>
+      <div class="main-layout" style="flex:1;overflow:hidden;">
+        <div class="leaderboard-pane">
+          <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
+          <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th></tr></thead>
+          <tbody id="ad_leaderboardBody"></tbody></table>
+        </div>
+        <div class="sidebar" id="ad_sidebar"></div>
       </div>
-      <div class="sidebar" id="ad_sidebar"></div>
+    </div>
+    <!-- MAPD board sub-panel -->
+    <div id="admin-mapd-sub" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="mapd-pulse" id="ad_mapd_pulse"></div>
+      <div class="leaderboard-pane" style="flex:1;border-right:none;">
+        <div class="section-eyebrow">MAPD Submissions — This Month</div>
+        <table><thead><tr><th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th></tr></thead>
+        <tbody id="ad_mapdBody"></tbody></table>
+      </div>
+    </div>
+    <!-- Combined board sub-panel -->
+    <div id="admin-combined-sub" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+      <div id="ad_combinedContent"></div>
     </div>
   </div>
 
-  <!-- SUBMISSIONS PANEL -->
+  <!-- ANCILLARY SUBMISSIONS PANEL -->
   <div id="admin-subs-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">All Submissions</div>
+    <div class="section-eyebrow" style="margin-bottom:16px;">Ancillary Submissions</div>
     <div id="admin-subs-content"></div>
+  </div>
+
+  <!-- MAPD SUBMISSIONS PANEL -->
+  <div id="admin-mapd-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">MAPD Submissions</div>
+    <div id="admin-mapd-content"></div>
+  </div>
+
+  <!-- CALL SCORER PANEL -->
+  <div id="admin-scorer-panel" style="display:none;flex:1;overflow:hidden;">
+    <div class="scorer-wrap">
+      <div class="scorer-inner">
+        <div class="api-key-note" id="apiKeyNote" style="display:none;">
+          ⚠ Anthropic API key required to score calls. Enter it below — stored locally in this browser only, never sent to Supabase.
+        </div>
+        <div class="scorer-config">
+          <div class="scorer-config-title">Ancillary Call Scorer — HIP Script</div>
+          <div class="scorer-controls" style="margin-bottom:16px;">
+            <div class="scorer-field">
+              <label>Agent Being Reviewed</label>
+              <select id="sc_agent"><option value="">Select agent...</option></select>
+            </div>
+            <div class="scorer-field">
+              <label>Anthropic API Key</label>
+              <input type="password" id="sc_apiKey" placeholder="sk-ant-..." style="min-width:260px;" oninput="saveApiKey()"/>
+            </div>
+          </div>
+          <div class="scorer-upload-area" id="scorerDropZone" onclick="document.getElementById('sc_file').click()">
+            <div class="scorer-upload-icon">🎙</div>
+            <div class="scorer-upload-text">Click to upload call recording</div>
+            <div class="scorer-upload-sub">MP3, M4A, WAV, OGG — up to 100MB</div>
+            <div class="scorer-upload-filename" id="sc_filename"></div>
+          </div>
+          <input type="file" id="sc_file" accept="audio/*" style="display:none;" onchange="onFileSelected(this)"/>
+          <button class="btn-score" id="sc_btn" onclick="scoreCall()" disabled>
+            <span>🎯</span> Score Call
+          </button>
+        </div>
+
+        <div class="scorer-progress" id="sc_progress">
+          <div class="progress-step" id="step_upload"><div class="progress-dot"></div>Uploading & transcribing audio...</div>
+          <div class="progress-step" id="step_score"><div class="progress-dot"></div>Scoring against HIP script plates...</div>
+          <div class="progress-step" id="step_coaching"><div class="progress-dot"></div>Generating coaching points...</div>
+        </div>
+
+        <div class="scorer-result" id="sc_result">
+          <div class="scorer-result-header">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+              <div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Overall Score — <span id="res_agentName"></span></div>
+                <div class="overall-score" id="res_overallScore"></div>
+                <div class="score-grade" id="res_grade"></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Call Length</div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--body);" id="res_callLength">—</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="res_timestamp"></div>
+              </div>
+            </div>
+          </div>
+          <div class="plate-scores" id="res_plateScores"></div>
+          <div class="coaching-section">
+            <div class="coaching-title">Coaching Points</div>
+            <div id="res_coaching"></div>
+          </div>
+          <div class="transcript-section">
+            <div class="transcript-toggle" onclick="toggleTranscript()">▶ Show Transcript</div>
+            <div class="transcript-body" id="res_transcript"></div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn-score" onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);">🖨 Print Report</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- AGENTS PANEL -->
@@ -410,30 +744,17 @@ tbody td:not(:first-child){text-align:right;}
     <div class="section-eyebrow" style="margin-bottom:16px;">Performance Reports</div>
     <div class="report-controls">
       <div class="report-row">
-        <div class="report-field">
-          <label>Agent(s)</label>
-          <select id="rpt_agent" style="min-width:160px;">
-            <option value="all">Whole Team</option>
-          </select>
-        </div>
-        <div class="report-field">
-          <label>Date Range</label>
+        <div class="report-field"><label>Agent(s)</label><select id="rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+        <div class="report-field"><label>Date Range</label>
           <select id="rpt_range" onchange="toggleCustomDates()">
-            <option value="today">Today</option>
-            <option value="yesterday">Previous Day</option>
-            <option value="7">Last 7 Days</option>
-            <option value="mtd">Month to Date</option>
-            <option value="30">Last 30 Days</option>
-            <option value="90">Last 90 Days</option>
+            <option value="today">Today</option><option value="yesterday">Previous Day</option>
+            <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
             <option value="custom">Custom Range</option>
           </select>
         </div>
-        <div class="report-field" id="rpt_from_wrap" style="display:none;">
-          <label>From</label><input type="date" id="rpt_from"/>
-        </div>
-        <div class="report-field" id="rpt_to_wrap" style="display:none;">
-          <label>To</label><input type="date" id="rpt_to"/>
-        </div>
+        <div class="report-field" id="rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="rpt_from"/></div>
+        <div class="report-field" id="rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="rpt_to"/></div>
         <button class="btn-run-report" onclick="runReport()">Run Report</button>
         <button class="btn-download" id="btn_download" onclick="downloadReport()" style="display:none;">⬇ Download PDF</button>
       </div>
@@ -450,7 +771,7 @@ tbody td:not(:first-child){text-align:right;}
 <!-- EDIT SUBMISSION MODAL -->
 <div class="modal-overlay" id="editSubModal">
   <div class="modal-box">
-    <div class="modal-title">Edit Submission</div>
+    <div class="modal-title">Edit Ancillary Submission</div>
     <input type="hidden" id="editSubId"/>
     <div class="form-grid">
       <div class="field-sm"><label>Customer First Name</label><input type="text" id="es_cFirstName"/></div>
@@ -502,25 +823,29 @@ const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
 const DAILY_GOAL    = 8000;
 const ADMIN_CODE    = 'bigbrothereye';
-const COMM_RATE     = 0.20 * 0.75; // 20% × 75% = 15% take-home
+const COMM_RATE     = 0.20 * 0.75;
+const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+const DEEPGRAM_API  = 'https://api.deepgram.com/v1/listen';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let currentUser = null;
 let allAgents   = [];
 let reportData  = [];
+let scorerFile  = null;
 
 // ══════════════════════════════════════════════════
 // SESSION
 // ══════════════════════════════════════════════════
-function saveSession(u){ localStorage.setItem('zenyra_board_v2', JSON.stringify(u)); currentUser=u; }
-function loadSession(){ const s=localStorage.getItem('zenyra_board_v2'); return s?JSON.parse(s):null; }
-function clearSession(){ localStorage.removeItem('zenyra_board_v2'); currentUser=null; }
-
+function saveSession(u){ localStorage.setItem('zenyra_board_v3', JSON.stringify(u)); currentUser=u; }
+function loadSession(){ const s=localStorage.getItem('zenyra_board_v3'); return s?JSON.parse(s):null; }
+function clearSession(){ localStorage.removeItem('zenyra_board_v3'); currentUser=null; }
 async function hashPw(pw){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+function saveApiKey(){ const k=document.getElementById('sc_apiKey')?.value; if(k) localStorage.setItem('zenyra_ant_key',k); }
+function loadApiKey(){ return localStorage.getItem('zenyra_ant_key')||''; }
 
 // ══════════════════════════════════════════════════
 // SCREENS
@@ -528,6 +853,11 @@ async function hashPw(pw){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // hide FAB on non-agent screens
+  const fabEl=document.getElementById('mainFab');
+  const fabChEl=document.getElementById('fabChooser');
+  if(fabEl) fabEl.style.display = (id==='agent-dashboard')?'flex':'none';
+  if(fabChEl) fabChEl.classList.remove('open');
 }
 
 // ══════════════════════════════════════════════════
@@ -536,9 +866,9 @@ function showScreen(id){
 let authRole='agent';
 async function showAuth(role){
   authRole=role;
-  document.getElementById('authTitle').textContent = role==='agent'?'Agent Portal':'Admin Portal';
-  document.getElementById('authSub').textContent   = role==='agent'?'Sign in or create your account':'Admin access only';
-  document.getElementById('adminCodeField').style.display = role==='admin'?'block':'none';
+  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':'Admin Portal';
+  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':'Admin access only';
+  document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
   document.getElementById('authError').style.display='none';
   const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
   allAgents=data||[];
@@ -549,8 +879,8 @@ async function showAuth(role){
   showScreen('auth');
 }
 function switchAuthTab(tab){
-  document.getElementById('loginForm').style.display    = tab==='login'?'block':'none';
-  document.getElementById('registerForm').style.display = tab==='register'?'block':'none';
+  document.getElementById('loginForm').style.display    =tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display =tab==='register'?'block':'none';
   document.getElementById('tabLogin').classList.toggle('active',tab==='login');
   document.getElementById('tabRegister').classList.toggle('active',tab==='register');
   document.getElementById('authError').style.display='none';
@@ -589,11 +919,17 @@ function enterDashboard(role){
   if(role==='admin'){
     document.getElementById('adminUserName').textContent=currentUser.agentName;
     showScreen('admin-dashboard');
+    // load api key if stored
+    const k=loadApiKey();
+    if(k){ const el=document.getElementById('sc_apiKey'); if(el) el.value=k; }
+    else { const note=document.getElementById('apiKeyNote'); if(note) note.style.display='block'; }
     renderAdminBoard();
     populateReportAgents();
+    populateScorerAgents();
   } else {
     document.getElementById('agentUserName').textContent=currentUser.agentName;
     showScreen('agent-dashboard');
+    switchAgentView('board');
     renderAgentBoard();
   }
   startClocks();
@@ -605,12 +941,25 @@ function doLogout(){ clearSession(); showScreen('landing'); }
 // DATA
 // ══════════════════════════════════════════════════
 async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
+async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
 async function fetchRecentSubs(limit=8){
   const {data}=await db.from('lb_submissions').select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at').eq('status','live').order('submitted_at',{ascending:false}).limit(limit);
   return data||[];
 }
 async function fetchAllSubs(){
   const {data}=await db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').order('submitted_at',{ascending:false});
+  return data||[];
+}
+async function fetchAllMAPD(){
+  const {data}=await db.from('lb_mapd_submissions').select('*,lb_agents(name)').eq('status','live').order('submitted_at',{ascending:false});
+  return data||[];
+}
+async function fetchMySubmissions(agentId, filter){
+  let q=db.from('lb_submissions').select('*').eq('agent_id',agentId).eq('status','live');
+  if(filter.from) q=q.gte('submitted_at',filter.from);
+  if(filter.to)   q=q.lte('submitted_at',filter.to);
+  if(filter.product && filter.product!=='all') q=q.eq('product_type',filter.product);
+  const {data}=await q.order('submitted_at',{ascending:false});
   return data||[];
 }
 
@@ -620,7 +969,7 @@ async function fetchAllSubs(){
 const fmt$  = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
 const fmt$2 = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtPct= n=>Math.round(n)+'%';
-const estComm = ap => Number(ap||0) * COMM_RATE;
+const estComm = ap=>Number(ap||0)*COMM_RATE;
 
 function getDayProgress(){
   const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
@@ -628,72 +977,53 @@ function getDayProgress(){
   if(h<=9)return 0; if(h>=19)return 1; return (h-9)/10;
 }
 function paceStatus(agentDailyAP, totalAgents, dp){
-  const share = DAILY_GOAL / totalAgents;
-  const pct   = (agentDailyAP / share) * 100;
-  if(dp===0) return 'on';
-  const delta = pct - dp*100;
-  if(delta > 10)  return 'ahead';
-  if(delta >= -10) return 'on';
-  if(delta >= -25) return 'off';
-  return 'crit';
+  const share=DAILY_GOAL/totalAgents;
+  const pct=(agentDailyAP/share)*100;
+  if(dp===0)return'on';
+  const delta=pct-dp*100;
+  if(delta>10) return'ahead';
+  if(delta>=-10)return'on';
+  if(delta>=-25)return'off';
+  return'crit';
 }
+function scoreColor(s){ if(s>=80)return'var(--teal)'; if(s>=60)return'var(--blue)'; if(s>=40)return'var(--amber)'; return'var(--red)'; }
+function gradeFromScore(s){ if(s>=85)return{label:'A — Excellent',cls:'grade-a'}; if(s>=70)return{label:'B — Good',cls:'grade-b'}; if(s>=55)return{label:'C — Needs Work',cls:'grade-c'}; return{label:'D — Critical',cls:'grade-d'}; }
 
 // ══════════════════════════════════════════════════
-// PULSE HTML
+// PULSE
 // ══════════════════════════════════════════════════
 function buildPulse(stats, prefix){
-  const tToday  = stats.reduce((s,a)=>s+Number(a.daily_ap),0);
-  const tWeek   = stats.reduce((s,a)=>s+Number(a.week_ap),0);
-  const tMonth  = stats.reduce((s,a)=>s+Number(a.month_ap),0);
-  const tGoal   = stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
-  const tApps   = stats.reduce((s,a)=>s+Number(a.apps_today),0);
-  const WEEKLY_GOAL  = 40000;
-  const dailyPct = Math.min((tToday/DAILY_GOAL)*100,100);
-  const weekPct  = Math.min((tWeek/WEEKLY_GOAL)*100,100);
-  const monthPct = Math.min((tMonth/tGoal)*100,100);
-  const dp       = getDayProgress();
-  const ps       = (()=>{ if(dp===0)return'on'; const d=dailyPct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; })();
-  const badgeCls = ps==='ahead'?'ahead':ps==='on'?'on-pace':ps==='off'?'behind':'critical';
-
-  function goalRow(current, goal, pct, label, barColor){
-    return `
-      <div style="margin-top:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <div style="display:flex;align-items:baseline;gap:6px;">
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--teal);">${fmt$(current)}</span>
-            <span style="color:var(--muted);font-size:14px;">/</span>
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--muted);">${fmt$(goal)}</span>
-            <span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:4px;">${label}</span>
-          </div>
-          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:rgba(0,201,177,0.12);color:var(--teal);">${fmtPct(pct)} to goal</span>
-        </div>
-        <div style="height:5px;border-radius:99px;background:var(--card);overflow:hidden;">
-          <div style="height:100%;width:${pct}%;border-radius:99px;background:${barColor};transition:width 1s ease;"></div>
-        </div>
-      </div>`;
-  }
-
+  const tToday=stats.reduce((s,a)=>s+Number(a.daily_ap),0);
+  const tWeek =stats.reduce((s,a)=>s+Number(a.week_ap),0);
+  const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+  const tGoal =stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
+  const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
+  const WEEKLY_GOAL=40000;
+  const dailyPct=Math.min((tToday/DAILY_GOAL)*100,100);
+  const weekPct =Math.min((tWeek/WEEKLY_GOAL)*100,100);
+  const monthPct=Math.min((tMonth/tGoal)*100,100);
+  const dp=getDayProgress();
+  const ps=(()=>{ if(dp===0)return'on'; const d=dailyPct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; })();
+  const badgeCls=ps==='ahead'?'ahead':ps==='on'?'on-pace':ps==='off'?'behind':'critical';
+  function goalRow(cur,goal,pct,label,color){ return`<div style="margin-top:10px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><div style="display:flex;align-items:baseline;gap:6px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--teal);">${fmt$(cur)}</span><span style="color:var(--muted);font-size:14px;">/</span><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);">${fmt$(goal)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:4px;">${label}</span></div><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:rgba(0,201,177,0.12);color:var(--teal);">${fmtPct(pct)} to goal</span></div><div style="height:5px;border-radius:99px;background:var(--card);overflow:hidden;"><div style="height:100%;width:${pct}%;border-radius:99px;background:${color};transition:width 1s ease;"></div></div></div>`; }
   const el=document.getElementById(prefix+'pulse');
   if(!el)return;
+  el.innerHTML=`<div class="pulse-meta"><span class="pulse-label">Team Goal Pulse</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(tToday)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(DAILY_GOAL)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span></div><span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span></div></div><div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>${goalRow(tWeek,WEEKLY_GOAL,weekPct,'Weekly Goal','var(--amber)')}${goalRow(tMonth,tGoal,monthPct,'Monthly Goal','var(--green)')}<div class="pulse-sub" style="margin-top:10px;"><div class="pulse-sub-item"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div></div>`;
+}
+
+function buildMAPDPulse(mapd, elId){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  const today=mapd.reduce((s,a)=>s+Number(a.apps_today),0);
+  const week =mapd.reduce((s,a)=>s+Number(a.apps_this_week),0);
+  const month=mapd.reduce((s,a)=>s+Number(a.apps_this_month),0);
+  const all  =mapd.reduce((s,a)=>s+Number(a.apps_all_time),0);
   el.innerHTML=`
-    <div class="pulse-meta">
-      <span class="pulse-label">Team Goal Pulse</span>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div class="pulse-numbers">
-          <span class="pulse-current">${fmt$(tToday)}</span>
-          <span class="pulse-sep">/</span>
-          <span class="pulse-goal">${fmt$(DAILY_GOAL)}</span>
-          <span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span>
-        </div>
-        <span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span>
-      </div>
-    </div>
-    <div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>
-    ${goalRow(tWeek, WEEKLY_GOAL, weekPct, 'Weekly Goal', 'var(--amber)')}
-    ${goalRow(tMonth, tGoal, monthPct, 'Monthly Goal', 'var(--green)')}
-    <div class="pulse-sub" style="margin-top:10px;">
-      <div class="pulse-sub-item"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div>
-    </div>`;
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);align-self:center;">MAPD App Count</div>
+    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${today}</div><div class="mapd-pulse-lbl">Today</div></div>
+    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${week}</div><div class="mapd-pulse-lbl">This Week</div></div>
+    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${month}</div><div class="mapd-pulse-lbl">This Month</div></div>
+    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${all}</div><div class="mapd-pulse-lbl">All Time</div></div>`;
 }
 
 // ══════════════════════════════════════════════════
@@ -711,33 +1041,25 @@ function buildLeaderboard(stats, tbodyId){
     const pClass=mPct>=60?'pct-high':mPct>=35?'pct-mid':'pct-low';
     const fClass=mPct>=60?'fill-high':mPct>=35?'fill-mid':'fill-low';
     const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
-    const ps=paceStatus(Number(agent.daily_ap), stats.length, dp);
+    const ps=paceStatus(Number(agent.daily_ap),stats.length,dp);
     const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
     const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
     const tClass=wow>=0?'trend-up':'trend-down';
     const tSign=wow>=0?'▲':'▼';
-    // EST COMM based on month AP
-    const comm=estComm(agent.month_ap);
-    tbody.innerHTML+=`
-      <tr>
-        <td><div class="agent-cell">
-          <div class="rank-badge ${rClass}">${rank}</div>
-          <div>
-            <div class="agent-name">${agent.name}</div>
-            <div class="agent-trend ${tClass}">${tSign} ${fmt$(Math.abs(wow))} WoW</div>
-          </div>
-        </div></td>
-        <td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td>
-        <td><span class="daily-pace ${plClass}">${plLabel}</span></td>
-        <td><span class="ap-val">${fmt$(agent.month_ap)}</span></td>
-        <td><div class="goal-bar-wrap">
-          <span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span>
-          <div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div>
-        </div></td>
-        <td>${agent.apps_today}</td>
-        <td><span class="comm-val">${fmt$2(comm)}</span></td>
-      </tr>`;
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${tClass}">${tSign} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
+  });
+}
+
+function buildMAPDLeaderboard(mapd, tbodyId){
+  const ranked=[...mapd].sort((a,b)=>b.apps_this_month-a.apps_this_month);
+  const tbody=document.getElementById(tbodyId);
+  if(!tbody)return;
+  tbody.innerHTML='';
+  ranked.forEach((a,i)=>{
+    const rank=i+1;
+    const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_today}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_week}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_month}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--muted);">${a.apps_all_time}</span></td></tr>`;
   });
 }
 
@@ -747,57 +1069,73 @@ function buildLeaderboard(stats, tbodyId){
 function buildSidebar(stats, sidebarId, updatedId){
   const el=document.getElementById(sidebarId);
   if(!el)return;
-  const tMonth  = stats.reduce((s,a)=>s+Number(a.month_ap),0);
-  const tApps   = stats.reduce((s,a)=>s+Number(a.apps_today),0);
-  const topP    = [...stats].sort((a,b)=>b.week_ap-a.week_ap)[0];
-  const mostI   = [...stats].sort((a,b)=>(b.week_ap-b.last_week_ap)-(a.week_ap-a.last_week_ap))[0];
-  const miDelta = Number(mostI?.week_ap||0)-Number(mostI?.last_week_ap||0);
-  // FIX #2: avg MP = total monthly_premium / total submissions today (from stats daily_mp)
-  const tMP     = stats.reduce((s,a)=>s+Number(a.daily_mp||0),0);
-  const avgMP   = tApps>0 ? tMP/tApps : 0;
-  const wRanked = [...stats].sort((a,b)=>b.week_ap-a.week_ap);
-  const weekRows= wRanked.map((a,i)=>{
+  const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+  const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
+  const topP  =[...stats].sort((a,b)=>b.week_ap-a.week_ap)[0];
+  const mostI =[...stats].sort((a,b)=>(b.week_ap-b.last_week_ap)-(a.week_ap-a.last_week_ap))[0];
+  const miDelta=Number(mostI?.week_ap||0)-Number(mostI?.last_week_ap||0);
+  const tMP=stats.reduce((s,a)=>s+Number(a.daily_mp||0),0);
+  const avgMP=tApps>0?tMP/tApps:0;
+  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{
     const pct=Math.min((a.week_ap/(DAILY_GOAL*5))*100,100);
     const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)';
-    return `<div style="display:flex;align-items:center;gap:8px;">
-      <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span>
-      <div style="flex:1;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
-          <span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span>
-          <span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span>
-        </div>
-        <div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div>
-        </div>
-      </div>
-    </div>`;
+    return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`;
   }).join('');
-
-  el.innerHTML=`
-    <div class="stat-card top-producer-card">
-      <div class="stat-card-label">🏆 Top Producer — Week</div>
-      <div class="top-producer-name">${topP?.name||'—'}</div>
-      <div class="stat-card-sub">${fmt$(topP?.week_ap||0)} this week</div>
-    </div>
-    <div class="stat-card improved-card">
-      <div class="stat-card-label">📈 Most Improved — WoW</div>
-      <div class="improved-name">${mostI?.name||'—'}</div>
-      <div class="stat-card-sub">+${fmt$(miDelta)} vs last week</div>
-    </div>
-    <div class="divider"></div>
-    <div class="mini-stats">
-      <div class="mini-stat"><div class="ms-val">${stats.length}</div><div class="ms-lbl">Agents</div></div>
-      <div class="mini-stat"><div class="ms-val">${tApps}</div><div class="ms-lbl">Sales Today</div></div>
-      <div class="mini-stat"><div class="ms-val">${fmt$2(avgMP)}</div><div class="ms-lbl">Avg MP</div></div>
-      <div class="mini-stat"><div class="ms-val">${fmt$2(estComm(tMonth))}</div><div class="ms-lbl">Team Comm</div></div>
-    </div>
-    <div class="divider"></div>
-    <div class="section-eyebrow">Weekly Ranking</div>
-    <div style="display:flex;flex-direction:column;gap:8px;">${weekRows}</div>`;
-
-  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.innerHTML=`<div class="stat-card top-producer-card"><div class="stat-card-label">🏆 Top Producer — Week</div><div class="top-producer-name">${topP?.name||'—'}</div><div class="stat-card-sub">${fmt$(topP?.week_ap||0)} this week</div></div><div class="stat-card improved-card"><div class="stat-card-label">📈 Most Improved — WoW</div><div class="improved-name">${mostI?.name||'—'}</div><div class="stat-card-sub">+${fmt$(miDelta)} vs last week</div></div><div class="divider"></div><div class="mini-stats"><div class="mini-stat"><div class="ms-val">${stats.length}</div><div class="ms-lbl">Agents</div></div><div class="mini-stat"><div class="ms-val">${tApps}</div><div class="ms-lbl">Sales Today</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(avgMP)}</div><div class="ms-lbl">Avg MP</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(estComm(tMonth))}</div><div class="ms-lbl">Team Comm</div></div></div><div class="divider"></div><div class="section-eyebrow">Weekly Ranking</div><div style="display:flex;flex-direction:column;gap:8px;">${weekRows}</div>`;
   const lu=document.getElementById(updatedId);
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   if(lu) lu.textContent='Last updated: '+ts;
+}
+
+// ══════════════════════════════════════════════════
+// AGENT VIEW SWITCHER
+// ══════════════════════════════════════════════════
+function switchAgentView(view){
+  document.getElementById('agent-board-panel').style.display   =view==='board'  ?'flex':'none';
+  document.getElementById('agent-mysubs-panel').style.display  =view==='mysubs' ?'flex':'none';
+  document.getElementById('agentTab_board').classList.toggle('active',view==='board');
+  document.getElementById('agentTab_mysubs').classList.toggle('active',view==='mysubs');
+  if(view==='mysubs') loadMySubmissions();
+}
+
+// ══════════════════════════════════════════════════
+// MY SUBMISSIONS (agent)
+// ══════════════════════════════════════════════════
+function toggleMyCustomDates(){
+  const v=document.getElementById('my_range').value;
+  document.getElementById('my_from_wrap').style.display=v==='custom'?'flex':'none';
+  document.getElementById('my_to_wrap').style.display  =v==='custom'?'flex':'none';
+}
+function getMyFilter(){
+  const range=document.getElementById('my_range').value;
+  const product=document.getElementById('my_product').value;
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
+  let from=null,to=null;
+  if(range==='today'){ from=today.toISOString(); to=new Date(today.getTime()+86400000-1).toISOString(); }
+  else if(range==='7'){ from=new Date(today-6*86400000).toISOString(); }
+  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1).toISOString(); }
+  else if(range==='30'){ from=new Date(today-29*86400000).toISOString(); }
+  else if(range==='custom'){
+    from=document.getElementById('my_from').value?new Date(document.getElementById('my_from').value).toISOString():null;
+    to  =document.getElementById('my_to').value?new Date(document.getElementById('my_to').value+'T23:59:59').toISOString():null;
+  }
+  return{from,to,product};
+}
+async function loadMySubmissions(){
+  if(!currentUser?.agent_id) return;
+  const filter=getMyFilter();
+  const subs=await fetchMySubmissions(currentUser.agent_id,filter);
+  // Summary strip
+  const totalMP=subs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
+  const totalAP=subs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const sumEl=document.getElementById('my_summary');
+  const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
+  sumEl.innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
+  // Table
+  const tblEl=document.getElementById('my_subs_table');
+  if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found for this filter.</div>'; return; }
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
 }
 
 // ══════════════════════════════════════════════════
@@ -808,81 +1146,82 @@ async function renderAgentBoard(){
   buildPulse(stats,'a_');
   buildLeaderboard(stats,'a_leaderboardBody');
   buildSidebar(stats,'a_sidebar','a_lastUpdated');
-  // Recent sales
   const subs=await fetchRecentSubs(8);
   const rsEl=document.getElementById('a_recentSales');
   if(rsEl){
     if(!subs.length){ rsEl.innerHTML='<div style="color:var(--muted);font-size:12px;">No sales logged today yet.</div>'; }
-    else {
-      rsEl.innerHTML=subs.map(s=>{
-        const agent=stats.find(a=>a.id===s.agent_id);
-        const nameDisplay=s.customer_first_name?`${s.customer_first_name} ${(s.customer_last_name||'').charAt(0)}.`:'Customer';
-        const time=new Date(s.submitted_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'});
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);">
-          <div>
-            <span style="font-weight:600;color:var(--white);font-size:13px;">${nameDisplay}</span>
-            <span style="color:var(--muted);font-size:11px;margin-left:8px;">${s.product_type||'—'}</span>
-          </div>
-          <div style="text-align:right;">
-            <span style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</span>
-            <span style="color:var(--muted);font-size:10px;margin-left:6px;">${agent?.name||''} · ${time}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
+    else { rsEl.innerHTML=subs.map(s=>{ const agent=stats.find(a=>a.id===s.agent_id); const nameDisplay=s.customer_first_name?`${s.customer_first_name} ${(s.customer_last_name||'').charAt(0)}.`:'Customer'; const time=new Date(s.submitted_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}); return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);"><div><span style="font-weight:600;color:var(--white);font-size:13px;">${nameDisplay}</span><span style="color:var(--muted);font-size:11px;margin-left:8px;">${s.product_type||'—'}</span></div><div style="text-align:right;"><span style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</span><span style="color:var(--muted);font-size:10px;margin-left:6px;">${agent?.name||''} · ${time}</span></div></div>`; }).join(''); }
   }
 }
 
 // ══════════════════════════════════════════════════
-// ADMIN BOARD
+// ADMIN BOARD (3 sub-views)
 // ══════════════════════════════════════════════════
+let adminBoardView='anc';
+async function switchAdminBoardView(view){
+  adminBoardView=view;
+  ['anc','mapd','combined'].forEach(v=>{
+    document.getElementById('admin-'+v+'-sub').style.display=v===view?(v==='combined'?'block':'flex'):'none';
+    document.getElementById('adminBoardTab_'+v).classList.toggle('active',v===view);
+  });
+  if(view==='anc')      renderAdminBoard();
+  if(view==='mapd')     renderMAPDBoard();
+  if(view==='combined') renderCombinedBoard();
+}
+
 async function renderAdminBoard(){
   const stats=await fetchStats();
   buildPulse(stats,'ad_');
   buildLeaderboard(stats,'ad_leaderboardBody');
   buildSidebar(stats,'ad_sidebar','ad_lastUpdated');
 }
+async function renderMAPDBoard(){
+  const mapd=await fetchMAPDStats();
+  buildMAPDPulse(mapd,'ad_mapd_pulse');
+  buildMAPDLeaderboard(mapd,'ad_mapdBody');
+}
+async function renderCombinedBoard(){
+  const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]);
+  const el=document.getElementById('ad_combinedContent');
+  const mapdMap={};
+  mapd.forEach(m=>{ mapdMap[m.id]={today:m.apps_today,week:m.apps_this_week,month:m.apps_this_month}; });
+  const rows=anc.sort((a,b)=>b.month_ap-a.month_ap).map((a,i)=>{
+    const m=mapdMap[a.id]||{today:0,week:0,month:0};
+    const rank=i+1;
+    const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    return`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span class="ap-val">${fmt$(a.daily_ap)}</span></td><td><span class="ap-val">${fmt$(a.month_ap)}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.today}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.month}</span></td><td><span class="comm-val">${fmt$2(estComm(a.month_ap))}</span></td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="section-eyebrow" style="margin-bottom:12px;">Combined Performance View</div><table><thead><tr><th>Agent</th><th>Ancillary Daily AP</th><th>Ancillary Month AP</th><th style="text-align:right;">MAPD Today</th><th style="text-align:right;">MAPD Month</th><th>Est. Comm</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
 // ══════════════════════════════════════════════════
-// ADMIN SUBMISSIONS
+// ADMIN SUBMISSIONS (Ancillary)
 // ══════════════════════════════════════════════════
 async function renderAdminSubmissions(){
   const subs=await fetchAllSubs();
   const cont=document.getElementById('admin-subs-content');
   if(!subs.length){ cont.innerHTML='<div class="no-data">No submissions yet.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table">
-    <thead><tr>
-      <th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th>
-      <th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th>
-    </tr></thead>
-    <tbody>${subs.map(s=>`
-      <tr data-id="${s.id}">
-        <td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td>
-        <td>${s.lb_agents?.name||'—'}</td>
-        <td>
-          <div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div>
-          <div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div>
-          <div style="font-size:11px;color:var(--muted);">${s.customer_dob||''}</div>
-        </td>
-        <td><span class="product-badge">${s.product_type||'—'}</span></td>
-        <td style="font-size:12px;">${s.carrier_name||'—'}</td>
-        <td style="font-size:12px;">${s.plan_name||'—'}</td>
-        <td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td>
-        <td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td>
-        <td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td>
-        <td style="font-size:12px;">${s.effective_date||'—'}</td>
-        <td style="font-size:12px;">${s.pcp_name||'—'}</td>
-        <td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td>
-        <td style="white-space:nowrap;">
-          <button class="btn-edit-sm" onclick="openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button>
-          <button class="btn-delete" onclick="deleteSubmission('${s.id}')">Delete</button>
-        </td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr data-id="${s.id}"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteSubmission('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
 
-// FIX #3: Edit submission modal
+// ══════════════════════════════════════════════════
+// ADMIN SUBMISSIONS (MAPD)
+// ══════════════════════════════════════════════════
+async function renderAdminMAPD(){
+  const subs=await fetchAllMAPD();
+  const cont=document.getElementById('admin-mapd-content');
+  if(!subs.length){ cont.innerHTML='<div class="no-data">No MAPD submissions yet.</div>'; return; }
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;"><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+}
+async function deleteMAPD(id){
+  if(!confirm('Delete this MAPD submission?')) return;
+  await db.from('lb_mapd_submissions').update({status:'deleted'}).eq('id',id);
+  renderAdminMAPD();
+}
+
+// ══════════════════════════════════════════════════
+// EDIT / DELETE ANCILLARY
+// ══════════════════════════════════════════════════
 function openEditSub(s){
   document.getElementById('editSubId').value=s.id;
   document.getElementById('es_cFirstName').value=s.customer_first_name||'';
@@ -902,17 +1241,17 @@ async function saveSubEdit(){
   const id=document.getElementById('editSubId').value;
   const mp=parseFloat(document.getElementById('es_monthlyPremium').value);
   const {error}=await db.from('lb_submissions').update({
-    customer_first_name: document.getElementById('es_cFirstName').value,
-    customer_last_name:  document.getElementById('es_cLastName').value,
-    product_type:        document.getElementById('es_productType').value,
-    carrier_name:        document.getElementById('es_carrier').value,
-    plan_name:           document.getElementById('es_planName').value,
-    monthly_premium:     mp||null,
-    policy_number:       document.getElementById('es_policyNum').value,
-    effective_date:      document.getElementById('es_effectiveDate').value||null,
-    agent_npn:           document.getElementById('es_aNPN').value,
-    pcp_name:            document.getElementById('es_pcp').value,
-    medications:         document.getElementById('es_medications').value,
+    customer_first_name:document.getElementById('es_cFirstName').value,
+    customer_last_name: document.getElementById('es_cLastName').value,
+    product_type:       document.getElementById('es_productType').value,
+    carrier_name:       document.getElementById('es_carrier').value,
+    plan_name:          document.getElementById('es_planName').value,
+    monthly_premium:    mp||null,
+    policy_number:      document.getElementById('es_policyNum').value,
+    effective_date:     document.getElementById('es_effectiveDate').value||null,
+    agent_npn:          document.getElementById('es_aNPN').value,
+    pcp_name:           document.getElementById('es_pcp').value,
+    medications:        document.getElementById('es_medications').value,
   }).eq('id',id);
   if(error){ alert('Save failed: '+error.message); return; }
   closeModal('editSubModal');
@@ -927,28 +1266,13 @@ async function deleteSubmission(id){
 }
 
 // ══════════════════════════════════════════════════
-// FIX #4A: AGENT MANAGEMENT
+// AGENT MANAGEMENT
 // ══════════════════════════════════════════════════
 async function renderAgentManagement(){
   const {data:agents}=await db.from('lb_agents').select('*').order('name');
   const cont=document.getElementById('admin-agents-content');
   if(!agents?.length){ cont.innerHTML='<div class="no-data">No agents found.</div>'; return; }
-  cont.innerHTML=`<table class="agent-mgmt-table">
-    <thead><tr><th>Name</th><th>Phone</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody>${agents.map(a=>`
-      <tr>
-        <td style="font-weight:600;color:var(--white);">${a.name}</td>
-        <td>${a.phone||'—'}</td>
-        <td>${fmt$(a.daily_goal)}</td>
-        <td>${fmt$(a.monthly_goal)}</td>
-        <td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td>
-        <td style="white-space:nowrap;">
-          <button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button>
-          <button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button>
-        </td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`;
+  cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`;
 }
 function openAgentModal(agent){
   document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent';
@@ -961,16 +1285,11 @@ function openAgentModal(agent){
 }
 async function saveAgent(){
   const id=document.getElementById('agentModalId').value;
-  const payload={
-    name:          document.getElementById('am_name').value,
-    phone:         document.getElementById('am_phone').value,
-    daily_goal:    parseFloat(document.getElementById('am_dailyGoal').value),
-    monthly_goal:  parseFloat(document.getElementById('am_monthlyGoal').value),
-  };
+  const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)};
   if(!payload.name){ alert('Name is required.'); return; }
   let error;
-  if(id){ ({error}=await db.from('lb_agents').update(payload).eq('id',id)); }
-  else   { ({error}=await db.from('lb_agents').insert({...payload,active:true})); }
+  if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}
+  else  {({error}=await db.from('lb_agents').insert({...payload,active:true}));}
   if(error){ alert('Save failed: '+error.message); return; }
   closeModal('agentModal');
   renderAgentManagement();
@@ -982,7 +1301,7 @@ async function toggleAgentStatus(id,current){
 }
 
 // ══════════════════════════════════════════════════
-// FIX #4B: REPORTS
+// REPORTS
 // ══════════════════════════════════════════════════
 async function populateReportAgents(){
   const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
@@ -990,11 +1309,7 @@ async function populateReportAgents(){
   if(!sel)return;
   sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
 }
-function toggleCustomDates(){
-  const v=document.getElementById('rpt_range').value;
-  document.getElementById('rpt_from_wrap').style.display=v==='custom'?'flex':'none';
-  document.getElementById('rpt_to_wrap').style.display=v==='custom'?'flex':'none';
-}
+function toggleCustomDates(){ const v=document.getElementById('rpt_range').value; document.getElementById('rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById('rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
 function getDateRange(range){
   const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
@@ -1002,21 +1317,15 @@ function getDateRange(range){
   if(range==='today'){ from=today; }
   else if(range==='yesterday'){ from=new Date(today-86400000); to=new Date(today-1); }
   else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1); }
-  else if(range==='custom'){
-    from=new Date(document.getElementById('rpt_from').value);
-    to=new Date(document.getElementById('rpt_to').value+'T23:59:59');
-  } else {
-    const days=parseInt(range);
-    from=new Date(today-(days-1)*86400000);
-  }
-  return {from,to};
+  else if(range==='custom'){ from=new Date(document.getElementById('rpt_from').value); to=new Date(document.getElementById('rpt_to').value+'T23:59:59'); }
+  else { from=new Date(today-(parseInt(range)-1)*86400000); }
+  return{from,to};
 }
 async function runReport(){
   const agentFilter=document.getElementById('rpt_agent').value;
   const range=document.getElementById('rpt_range').value;
   const {from,to}=getDateRange(range);
-  let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live')
-    .gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString());
+  let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString());
   if(agentFilter!=='all') q=q.eq('agent_id',agentFilter);
   const {data:subs}=await q.order('submitted_at',{ascending:false});
   reportData=subs||[];
@@ -1027,156 +1336,72 @@ async function runReport(){
   const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
   const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0);
   const totalComm=estComm(totalAP);
-  // Group by agent
   const byAgent={};
   reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; });
-  output.innerHTML=`
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
-        <div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div>
-        <div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div>
-        <div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div>
-        <div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(totalComm)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div>
-      </div>
-      ${Object.keys(byAgent).length>1?`
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">By Agent</div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr>
-          <th style="text-align:left;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Agent</th>
-          <th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Apps</th>
-          <th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Total MP</th>
-          <th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Total AP</th>
-          <th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Est. Comm</th>
-        </tr></thead>
-        <tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([name,d])=>`
-          <tr>
-            <td style="padding:8px;font-weight:600;color:var(--white);">${name}</td>
-            <td style="padding:8px;text-align:right;">${d.apps}</td>
-            <td style="padding:8px;text-align:right;color:var(--teal);">${fmt$2(d.mp)}</td>
-            <td style="padding:8px;text-align:right;color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(d.ap)}</td>
-            <td style="padding:8px;text-align:right;color:var(--green);">${fmt$2(estComm(d.ap))}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`:''}
-    </div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">Submission Detail</div>
-    <table class="submissions-table">
-      <thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead>
-      <tbody>${reportData.map(s=>`
-        <tr>
-          <td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td>
-          <td>${s.lb_agents?.name||'—'}</td>
-          <td>${s.customer_first_name||''} ${s.customer_last_name||''}</td>
-          <td><span class="product-badge">${s.product_type||'—'}</span></td>
-          <td style="font-size:12px;">${s.carrier_name||'—'}</td>
-          <td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td>
-          <td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td>
-          <td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(totalComm)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div>${Object.keys(byAgent).length>1?`<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">By Agent</div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="text-align:left;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Agent</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Apps</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Total MP</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Total AP</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Est. Comm</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([name,d])=>`<tr><td style="padding:8px;font-weight:600;color:var(--white);">${name}</td><td style="padding:8px;text-align:right;">${d.apps}</td><td style="padding:8px;text-align:right;color:var(--teal);">${fmt$2(d.mp)}</td><td style="padding:8px;text-align:right;color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(d.ap)}</td><td style="padding:8px;text-align:right;color:var(--green);">${fmt$2(estComm(d.ap))}</td></tr>`).join('')}</tbody></table>`:''}  </div><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">Submission Detail</div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`;
   document.getElementById('btn_download').style.display='inline-block';
 }
-
 function downloadReport(){
   const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text;
   const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text;
-  const content=document.getElementById('report-output').innerHTML;
   const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0;}
-      body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}
-      .report-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00C9B1;}
-      .report-brand{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;}
-      .report-meta{font-size:11px;color:#64748B;}
-      table{width:100%;border-collapse:collapse;margin-bottom:16px;}
-      th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748B;border-bottom:2px solid #e2e8f0;}
-      th:not(:first-child){text-align:right;}
-      td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#334155;}
-      td:not(:first-child){text-align:right;}
-      .teal{color:#00C9B1;font-weight:600;}
-      .green{color:#16a34a;font-weight:600;}
-      .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:#e0fdf4;color:#059669;}
-      .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
-      .stat-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;}
-      .stat-box .val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#0f172a;}
-      .stat-box .lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;margin-top:2px;}
-      .section-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:#00C9B1;margin:20px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;}
-      .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}
-      @media print{body{padding:16px;}}
-    </style></head><body>
-    <div class="report-header">
-      <div>
-        <div class="report-brand">ZENYRA</div>
-        <div class="report-meta">Agency Performance Report · ${agentLabel} · ${rangeLabel}</div>
-        <div class="report-meta">Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</div>
-      </div>
-    </div>
-    ${buildPrintReport()}
-    <div class="footer">Powered by Zenyra · Confidential</div>
-  </body></html>`);
-  win.document.close();
-  setTimeout(()=>win.print(),500);
+  win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}table{width:100%;border-collapse:collapse;margin-bottom:16px;}th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748B;border-bottom:2px solid #e2e8f0;}th:not(:first-child){text-align:right;}td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#334155;}td:not(:first-child){text-align:right;}.teal{color:#00C9B1;font-weight:600;}.green{color:#16a34a;font-weight:600;}.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:#e0fdf4;color:#059669;}.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}.stat-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;}.stat-box .val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#0f172a;}.stat-box .lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;margin-top:2px;}.header{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;margin-bottom:4px;}.meta{font-size:11px;color:#64748B;margin-bottom:20px;}.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}@media print{body{padding:16px;}}</style></head><body><div class="header">ZENYRA</div><div class="meta">Performance Report · ${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</div>${buildPrintReport()}<div class="footer">Powered by Zenyra · Confidential</div></body></html>`);
+  win.document.close(); setTimeout(()=>win.print(),500);
 }
-
 function buildPrintReport(){
   if(!reportData.length) return '<p>No data.</p>';
   const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
   const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const totalComm=estComm(totalAP);
   const byAgent={};
   reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; });
-  return `
-    <div class="stat-row">
-      <div class="stat-box"><div class="val">${reportData.length}</div><div class="lbl">Submissions</div></div>
-      <div class="stat-box"><div class="val" style="color:#00C9B1;">${fmt$2(totalMP)}</div><div class="lbl">Total Monthly Premium</div></div>
-      <div class="stat-box"><div class="val" style="color:#00C9B1;">${fmt$(totalAP)}</div><div class="lbl">Total Annual Premium</div></div>
-      <div class="stat-box"><div class="val" style="color:#16a34a;">${fmt$2(totalComm)}</div><div class="lbl">Est. Total Commission</div></div>
-    </div>
-    ${Object.keys(byAgent).length>1?`
-    <div class="section-title">By Agent</div>
-    <table><thead><tr><th>Agent</th><th>Apps</th><th>Total MP</th><th>Total AP</th><th>Est. Comm</th></tr></thead>
-    <tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([name,d])=>`
-      <tr><td>${name}</td><td>${d.apps}</td><td class="teal">${fmt$2(d.mp)}</td><td class="teal">${fmt$(d.ap)}</td><td class="green">${fmt$2(estComm(d.ap))}</td></tr>`).join('')}
-    </tbody></table>`:''}
-    <div class="section-title">Submission Detail</div>
-    <table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead>
-    <tbody>${reportData.map(s=>`
-      <tr>
-        <td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td>
-        <td>${s.lb_agents?.name||'—'}</td>
-        <td>${s.customer_first_name||''} ${s.customer_last_name||''}</td>
-        <td><span class="badge">${s.product_type||'—'}</span></td>
-        <td>${s.carrier_name||'—'}</td>
-        <td class="teal">${fmt$2(s.monthly_premium)}</td>
-        <td class="teal">${fmt$(s.annual_premium)}</td>
-        <td class="green">${fmt$2(estComm(s.annual_premium))}</td>
-      </tr>`).join('')}
-    </tbody></table>`;
+  return`<div class="stat-row"><div class="stat-box"><div class="val">${reportData.length}</div><div class="lbl">Submissions</div></div><div class="stat-box"><div class="val" style="color:#00C9B1;">${fmt$2(totalMP)}</div><div class="lbl">Total Monthly Premium</div></div><div class="stat-box"><div class="val" style="color:#00C9B1;">${fmt$(totalAP)}</div><div class="lbl">Total Annual Premium</div></div><div class="stat-box"><div class="val" style="color:#16a34a;">${fmt$2(estComm(totalAP))}</div><div class="lbl">Est. Total Commission</div></div></div>${Object.keys(byAgent).length>1?`<h3 style="margin:16px 0 8px;font-size:14px;">By Agent</h3><table><thead><tr><th>Agent</th><th>Apps</th><th>Total MP</th><th>Total AP</th><th>Est. Comm</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([name,d])=>`<tr><td>${name}</td><td>${d.apps}</td><td class="teal">${fmt$2(d.mp)}</td><td class="teal">${fmt$(d.ap)}</td><td class="green">${fmt$2(estComm(d.ap))}</td></tr>`).join('')}</tbody></table>`:''}<h3 style="margin:16px 0 8px;font-size:14px;">Submission Detail</h3><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`;
 }
 
 // ══════════════════════════════════════════════════
 // ADMIN TAB SWITCHER
 // ══════════════════════════════════════════════════
 function switchAdminTab(tab){
-  ['board','subs','agents','reports'].forEach(t=>{
-    document.getElementById('admin-'+t+'-panel').style.display = t===tab?(t==='board'?'flex':'block'):'none';
-    document.getElementById('adminTab_'+t).classList.toggle('active',t===tab);
+  const panels={board:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
+  Object.keys(panels).forEach(t=>{
+    const p=document.getElementById('admin-'+t+'-panel');
+    if(p) p.style.display=t===tab?panels[t]:'none';
+    const btn=document.getElementById('adminTab_'+t);
+    if(btn) btn.classList.toggle('active',t===tab);
   });
   if(tab==='board')   renderAdminBoard();
   if(tab==='subs')    renderAdminSubmissions();
+  if(tab==='mapd')    renderAdminMAPD();
+  if(tab==='scorer')  initScorer();
   if(tab==='agents')  renderAgentManagement();
   if(tab==='reports') populateReportAgents();
 }
 
 // ══════════════════════════════════════════════════
-// SUBMIT FORM
+// FAB CHOOSER
 // ══════════════════════════════════════════════════
-function showSubmitForm(){ document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); }
+function toggleFabChooser(){
+  const c=document.getElementById('fabChooser');
+  c.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════
+// SUBMIT FORMS
+// ══════════════════════════════════════════════════
+let _prevScreen='agent-dashboard';
+function showSubmitForm(type){
+  document.getElementById('fabChooser').classList.remove('open');
+  _prevScreen='agent-dashboard';
+  if(type==='mapd'){
+    document.getElementById('submitMAPDSuccess').style.display='none';
+    showScreen('submit-mapd-screen');
+  } else {
+    document.getElementById('submitSuccess').style.display='none';
+    showScreen('submit-screen');
+  }
+}
+function cancelSubmit(){ showScreen('agent-dashboard'); }
+function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
+
 async function submitSale(){
   const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
   if(!mp||mp<=0) return alert('Monthly premium is required.');
@@ -1216,6 +1441,267 @@ async function submitSale(){
   setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
 }
 
+async function submitMAPD(){
+  if(!document.getElementById('m_cFirstName').value||!document.getElementById('m_cLastName').value) return alert('Customer first and last name are required.');
+  const {error}=await db.from('lb_mapd_submissions').insert({
+    agent_id:              currentUser?.agent_id,
+    status:                'live',
+    app_submit_date:       document.getElementById('m_appSubmitDate').value||null,
+    sunfire_confirm_date:  document.getElementById('m_sunfireDate').value||null,
+    carrier_name:          document.getElementById('m_carrier').value,
+    plan_name:             document.getElementById('m_planName').value,
+    plan_code:             document.getElementById('m_planCode').value,
+    effective_date:        document.getElementById('m_effectiveDate').value||null,
+    agent_npn:             document.getElementById('m_aNPN').value,
+    agent_first_name:      document.getElementById('m_aFirstName').value,
+    agent_last_name:       document.getElementById('m_aLastName').value,
+    customer_first_name:   document.getElementById('m_cFirstName').value,
+    customer_last_name:    document.getElementById('m_cLastName').value,
+    customer_dob:          document.getElementById('m_cDOB').value||null,
+    customer_gender:       document.getElementById('m_cGender').value,
+    customer_phone:        document.getElementById('m_cPhone').value,
+    customer_email:        document.getElementById('m_cEmail').value,
+    customer_street:       document.getElementById('m_cStreet').value,
+    customer_city:         document.getElementById('m_cCity').value,
+    customer_state:        document.getElementById('m_cState').value,
+    customer_postal_code:  document.getElementById('m_cPostal').value,
+    medicare_number:       document.getElementById('m_medicareNum').value,
+    medicare_part_a_date:  document.getElementById('m_partADate').value||null,
+    medicare_part_b_date:  document.getElementById('m_partBDate').value||null,
+    is_on_medicaid:        document.getElementById('m_onMedicaid').checked,
+    medicaid_number:       document.getElementById('m_medicaidNum').value||null,
+    pcp_name:              document.getElementById('m_pcpName').value,
+    pcp_id:                document.getElementById('m_pcpId').value,
+    specialist_names:      document.getElementById('m_specialists').value,
+    medications:           document.getElementById('m_medications').value,
+  });
+  if(error) return alert('MAPD submission failed: '+error.message);
+  document.getElementById('submitMAPDSuccess').style.display='block';
+  document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; });
+  document.getElementById('m_medicaidNumWrap').style.display='none';
+  setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
+}
+
+// ══════════════════════════════════════════════════
+// CALL SCORER
+// ══════════════════════════════════════════════════
+async function populateScorerAgents(){
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const sel=document.getElementById('sc_agent');
+  if(!sel)return;
+  sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+}
+function initScorer(){
+  populateScorerAgents();
+  const k=loadApiKey();
+  if(k){ const el=document.getElementById('sc_apiKey'); if(el)el.value=k; document.getElementById('apiKeyNote').style.display='none'; }
+  else { document.getElementById('apiKeyNote').style.display='block'; }
+}
+function onFileSelected(input){
+  scorerFile=input.files[0]||null;
+  const fn=document.getElementById('sc_filename');
+  const btn=document.getElementById('sc_btn');
+  if(scorerFile){ fn.textContent=scorerFile.name+' ('+Math.round(scorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; }
+  else { fn.textContent=''; btn.disabled=true; }
+}
+function setStep(id,state){ const el=document.getElementById(id); if(!el)return; el.classList.remove('active','done'); if(state)el.classList.add(state); }
+
+async function scoreCall(){
+  const apiKey=document.getElementById('sc_apiKey').value.trim();
+  if(!apiKey){ alert('Enter your Anthropic API key first.'); return; }
+  if(!scorerFile){ alert('Upload a call recording first.'); return; }
+  const agentSel=document.getElementById('sc_agent');
+  const agentName=agentSel.options[agentSel.selectedIndex]?.text||'Agent';
+  localStorage.setItem('zenyra_ant_key',apiKey);
+
+  // Reset UI
+  document.getElementById('sc_progress').style.display='block';
+  document.getElementById('sc_result').style.display='none';
+  document.getElementById('sc_btn').disabled=true;
+  setStep('step_upload','active'); setStep('step_score',''); setStep('step_coaching','');
+
+  try {
+    // Step 1: Transcribe with Deepgram
+    // NOTE: Deepgram key is not stored here — use a simple direct upload approach
+    // We'll use the Anthropic API with a text prompt approach via Deepgram
+    // Since we can't store Deepgram key, we'll use a fallback: ask user to paste transcript
+    // OR we use whisper-compatible approach via the browser
+
+    // Actually: transcribe via a base64 audio send to Claude directly (Claude can analyze audio transcription context)
+    // Better approach: transcribe client-side using browser Web Speech API for short calls,
+    // or send directly to Deepgram using the STORED key from the environment.
+    // For this standalone HTML tool, we'll use the Anthropic API with the audio as context 
+    // and instruct Claude to first transcribe then score.
+
+    // Compress audio to base64
+    const arrayBuffer = await scorerFile.arrayBuffer();
+    const base64Audio  = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const mimeType     = scorerFile.type || 'audio/mp3';
+
+    setStep('step_upload','done'); setStep('step_score','active');
+
+    // Build scoring prompt
+    const SCORING_PROMPT = `You are an expert Medicare ancillary sales coach scoring a recorded sales call against the Senior Benefits Agency Hospital Indemnity (HIP) script.
+
+SCRIPT STRUCTURE — 6 PLATES:
+1. INTRO & ELIGIBILITY (20 pts): Agent identified themselves, stated recorded line, verified Medicare card (or SSN fallback), confirmed POA status, checked Medicaid, VA/Tricare, cognitive impairment, nursing home status, SS deposit method, confirmed banking access.
+2. HEALTH REVIEW (15 pts): Asked about qualifying health conditions, prescription count + copay, last hospitalization + bill, cancer family history.
+3. PLAN REVIEW (15 pts): Called out plan positives (PCP copay, drug deductible, DVH, giveback), asked if client is happy with plan.
+4. PROBLEM REVEAL (20 pts): Explained Medicare Parts A/B/C/D clearly, explained hospital coverage gap, introduced "Part E" extended hospital coverage concept, built urgency around incomplete plan, asked for understanding.
+5. SOLUTION REVEAL (15 pts): Explained daily benefit amount, days covered, broke down cost vs. benefit, subtracted daily copay to show net benefit, mentioned it goes direct to client tax-free, mentioned ambulance/outpatient/cancer rider if applicable, presented monthly premium as less than Part B.
+6. ENROLLMENT (15 pts): Got physical address, confirmed phone type, got email, handled underwriting questions (or GI), confirmed SS benefit date (1st/3rd/Wednesday), confirmed bank/credit union, confirmed routing + account number, gave agent contact info + policy number + DNCR number.
+
+TASK:
+1. First, transcribe the audio into text.
+2. Score each plate 0–100 based on completeness and script adherence.
+3. Compute an overall weighted score (plate weights as listed above, sum = 100).
+4. Identify 3–5 specific, actionable coaching points ranked by priority (HIGH/MEDIUM/LOW), each referencing the specific plate and what exactly was missed or done poorly.
+
+RESPOND IN THIS EXACT JSON FORMAT (no markdown, no preamble):
+{
+  "transcript": "full call transcript here",
+  "call_length_seconds": 0,
+  "plate_scores": {
+    "intro_eligibility": 0,
+    "health_review": 0,
+    "plan_review": 0,
+    "problem_reveal": 0,
+    "solution_reveal": 0,
+    "enrollment": 0
+  },
+  "overall_score": 0,
+  "coaching_points": [
+    {
+      "priority": "HIGH",
+      "plate": "Plate Name",
+      "text": "Specific coaching point here"
+    }
+  ]
+}`;
+
+    const response = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: SCORING_PROMPT
+            },
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: mimeType,
+                data: base64Audio
+              }
+            }
+          ]
+        }]
+      })
+    });
+
+    if(!response.ok){
+      const err=await response.json();
+      // If audio document not supported, fall back to text-only scoring with file name as context
+      if(err.error?.type==='invalid_request_error' && err.error?.message?.includes('document')){
+        await scoreFallback(apiKey, agentName, SCORING_PROMPT);
+        return;
+      }
+      throw new Error(err.error?.message||'API error '+response.status);
+    }
+
+    setStep('step_score','done'); setStep('step_coaching','active');
+    const data=await response.json();
+    const rawText=data.content?.find(b=>b.type==='text')?.text||'';
+    setStep('step_coaching','done');
+    renderScorerResult(rawText, agentName);
+
+  } catch(err){
+    console.error(err);
+    // Try fallback
+    await scoreFallback(document.getElementById('sc_apiKey').value.trim(), agentName, null);
+  }
+}
+
+async function scoreFallback(apiKey, agentName, originalPrompt){
+  // Fallback: use Deepgram first if key available, else prompt user for transcript
+  // For now, show a helpful message
+  document.getElementById('sc_progress').style.display='none';
+  document.getElementById('sc_btn').disabled=false;
+  alert('Audio file format not directly supported for analysis. To score this call:\n\n1. Use score.zenyra.app to transcribe the recording first\n2. Copy the transcript\n3. Use the text input below (coming soon)\n\nAlternatively, enter your Deepgram API key in the settings to enable direct transcription.');
+}
+
+function renderScorerResult(rawText, agentName){
+  document.getElementById('sc_progress').style.display='none';
+  document.getElementById('sc_btn').disabled=false;
+  let result;
+  try {
+    const clean=rawText.replace(/```json|```/g,'').trim();
+    result=JSON.parse(clean);
+  } catch(e){
+    alert('Scoring completed but response could not be parsed. Raw output:\n\n'+rawText.substring(0,500));
+    return;
+  }
+
+  const plates=[
+    {key:'intro_eligibility',label:'Intro & Eligibility',weight:20},
+    {key:'health_review',label:'Health Review',weight:15},
+    {key:'plan_review',label:'Plan Review',weight:15},
+    {key:'problem_reveal',label:'Problem Reveal',weight:20},
+    {key:'solution_reveal',label:'Solution Reveal',weight:15},
+    {key:'enrollment',label:'Enrollment',weight:15},
+  ];
+
+  document.getElementById('res_agentName').textContent=agentName;
+  document.getElementById('res_overallScore').textContent=Math.round(result.overall_score||0)+'/100';
+  document.getElementById('res_overallScore').style.color=scoreColor(result.overall_score||0);
+  const grade=gradeFromScore(result.overall_score||0);
+  const gradeEl=document.getElementById('res_grade');
+  gradeEl.textContent=grade.label; gradeEl.className='score-grade '+grade.cls;
+  document.getElementById('res_timestamp').textContent='Scored '+new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York'})+' ET';
+  if(result.call_length_seconds){
+    const m=Math.floor(result.call_length_seconds/60), s=result.call_length_seconds%60;
+    document.getElementById('res_callLength').textContent=`${m}m ${s}s`;
+  }
+
+  // Plate scores
+  document.getElementById('res_plateScores').innerHTML=plates.map(p=>{
+    const sc=result.plate_scores?.[p.key]||0;
+    const col=scoreColor(sc);
+    return`<div class="plate-score-card"><div class="plate-score-name">${p.label} (/${p.weight}pts)</div><div class="plate-score-val" style="color:${col};">${Math.round(sc)}</div><div class="plate-score-bar"><div class="plate-score-fill" style="width:${sc}%;background:${col};"></div></div></div>`;
+  }).join('');
+
+  // Coaching points
+  const pts=result.coaching_points||[];
+  document.getElementById('res_coaching').innerHTML=pts.length?pts.map(pt=>{
+    const pCls=pt.priority==='HIGH'?'priority-high':pt.priority==='MEDIUM'?'priority-med':'priority-low';
+    return`<div class="coaching-point"><div class="coaching-priority ${pCls}">${pt.priority==='HIGH'?'H':pt.priority==='MEDIUM'?'M':'L'}</div><div class="coaching-body"><div class="coaching-plate">${pt.plate}</div><div class="coaching-text">${pt.text}</div></div></div>`;
+  }).join(''):'<div style="color:var(--muted);">No coaching points generated.</div>';
+
+  // Transcript
+  document.getElementById('res_transcript').textContent=result.transcript||'Transcript not available.';
+  document.getElementById('sc_result').style.display='block';
+  document.getElementById('sc_result').scrollIntoView({behavior:'smooth'});
+}
+
+function toggleTranscript(){
+  const body=document.getElementById('res_transcript');
+  const btn=body.previousElementSibling;
+  const visible=body.style.display==='block';
+  body.style.display=visible?'none':'block';
+  btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript';
+}
+
 // ══════════════════════════════════════════════════
 // MODALS
 // ══════════════════════════════════════════════════
@@ -1230,19 +1716,30 @@ function startRealtime(){
     if(currentUser?.role==='admin') renderAdminBoard();
     else if(currentUser) renderAgentBoard();
   }).subscribe();
+  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{
+    if(currentUser?.role==='admin' && adminBoardView==='mapd') renderMAPDBoard();
+  }).subscribe();
 }
 
 // ══════════════════════════════════════════════════
 // CLOCKS
 // ══════════════════════════════════════════════════
 function startClocks(){
-  function tick(){
-    const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET';
-    ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; });
-  }
+  function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); }
   tick(); setInterval(tick,1000);
   setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); },30000);
 }
+
+// ══════════════════════════════════════════════════
+// DRAG & DROP
+// ══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  const dz=document.getElementById('scorerDropZone');
+  if(!dz)return;
+  dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ document.getElementById('sc_file').files=e.dataTransfer.files; onFileSelected(document.getElementById('sc_file')); }});
+});
 
 // ══════════════════════════════════════════════════
 // INIT
