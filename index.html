@@ -466,7 +466,7 @@ tbody td:not(:first-child){text-align:right;}
     <div><div class="fab-choice-label">MAPD Submission</div><div class="fab-choice-sub">Medicare Advantage application</div></div>
   </div>
 </div>
-<button class="fab" id="mainFab" onclick="toggleFabChooser()" title="Log a Sale">+</button>
+<button class="fab" id="mainFab" onclick="toggleFabChooser()" title="Log a Sale" style="display:none;">+</button>
 
 <!-- ══════════════════════════════════════════════════ -->
 <!-- SUBMIT FORM (Ancillary) -->
@@ -1220,26 +1220,49 @@ async function scoreCall(){
   setStep('step_upload','active'); setStep('step_transcribe',''); setStep('step_score',''); setStep('step_coaching','');
 
   try {
-    // Upload file via multipart form to /api/upload
-    const formData = new FormData();
-    formData.append('audio', scorerFile, scorerFile.name);
-    formData.append('agentName', agentName);
-    if(agentId) formData.append('agentId', agentId);
+    // Step 1: Create job record via lightweight API call (no file body)
+    const createRes = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentName, agentId, fileName: scorerFile.name, action: 'create-job' })
+    });
+    if(!createRes.ok){ const t=await createRes.text(); throw new Error(t||'Job creation failed'); }
+    const { jobId, uploadPath, uploadToken } = await createRes.json();
 
-    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-    if(!uploadRes.ok){ const e=await uploadRes.json(); throw new Error(e.error||'Upload failed'); }
-    const { jobId } = await uploadRes.json();
+    // Step 2: Upload file directly to Supabase Storage from browser (bypasses Vercel body limit)
+    const SUPA_URL = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
+    const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+    const storageRes = await fetch(
+      `${SUPA_URL}/storage/v1/object/lb-scorer-audio/${uploadPath}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPA_ANON}`,
+          'Content-Type': scorerFile.type || 'audio/mpeg',
+          'x-upsert': 'false'
+        },
+        body: scorerFile
+      }
+    );
+    if(!storageRes.ok){ const t=await storageRes.text(); throw new Error('Storage upload failed: '+t); }
 
     setStep('step_upload','done'); setStep('step_transcribe','active');
 
-    // Poll for completion
+    // Step 3: Trigger Inngest job now that file is in storage
+    const triggerRes = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, uploadPath, agentName, agentId, fileName: scorerFile.name, action: 'trigger-job' })
+    });
+    if(!triggerRes.ok){ const t=await triggerRes.text(); throw new Error('Job trigger failed: '+t); }
+
+    // Step 4: Poll for completion
     if(scorerPollInterval) clearInterval(scorerPollInterval);
     scorerPollInterval = setInterval(async ()=>{
       try {
         const statusRes = await fetch(`/api/job-status?jobId=${jobId}`);
         if(!statusRes.ok) return;
         const job = await statusRes.json();
-
         if(job.status==='transcribing'){
           setStep('step_transcribe','active'); setStep('step_score',''); setStep('step_coaching','');
         } else if(job.status==='scoring'){
