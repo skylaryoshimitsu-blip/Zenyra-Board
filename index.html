@@ -225,7 +225,7 @@ tbody td:not(:first-child){text-align:right;}
 .btn-download{background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
 
 /* FAB + TYPE CHOOSER */
-.fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dim));border:none;color:var(--navy);font-size:24px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,201,177,0.4);transition:transform 0.15s;z-index:100;}
+.fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dim));border:none;color:var(--navy);font-size:26px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,201,177,0.4);transition:transform 0.15s;z-index:100;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
 .fab:hover{transform:scale(1.08);}
 .fab-chooser{position:fixed;bottom:92px;right:24px;display:none;flex-direction:column;gap:8px;z-index:101;}
 .fab-chooser.open{display:flex;}
@@ -367,7 +367,9 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <!-- Agent view tabs -->
   <div class="view-tabs">
-    <div class="view-tab active" id="agentTab_board" onclick="switchAgentView('board')">📊 Ancillary Board</div>
+    <div class="view-tab active" id="agentTab_board" onclick="switchAgentView('board')">📊 Ancillary</div>
+    <div class="view-tab" id="agentTab_mapd" onclick="switchAgentView('mapd')">🏥 MAPD</div>
+    <div class="view-tab" id="agentTab_combined" onclick="switchAgentView('combined')">⚡ Combined</div>
     <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
   </div>
 
@@ -428,6 +430,23 @@ tbody td:not(:first-child){text-align:right;}
       <!-- Table -->
       <div id="my_subs_table"></div>
     </div>
+  </div>
+
+  <!-- AGENT MAPD PANEL -->
+  <div id="agent-mapd-panel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="mapd-pulse" id="a_mapd_pulse"></div>
+    <div class="leaderboard-pane" style="flex:1;border-right:none;overflow-y:auto;">
+      <div class="section-eyebrow">MAPD Submissions — This Month</div>
+      <table><thead><tr>
+        <th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th>
+      </tr></thead>
+      <tbody id="a_mapdBody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- AGENT COMBINED PANEL -->
+  <div id="agent-combined-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div id="a_combinedContent"></div>
   </div>
 
   <div class="footer">
@@ -667,24 +686,20 @@ tbody td:not(:first-child){text-align:right;}
   <div id="admin-scorer-panel" style="display:none;flex:1;overflow:hidden;">
     <div class="scorer-wrap">
       <div class="scorer-inner">
-        <div class="api-key-note" id="apiKeyNote" style="display:none;">
-          ⚠ Anthropic API key required to score calls. Enter it below — stored locally in this browser only, never sent to Supabase.
-        </div>
+
+        <!-- Upload area -->
         <div class="scorer-config">
-          <div class="scorer-config-title">Ancillary Call Scorer — HIP Script</div>
+          <div class="scorer-config-title">Ancillary HIP Call Scorer</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Upload a recorded call to score it against the SBA Hospital Indemnity script. Results appear in 60–90 seconds.</div>
           <div class="scorer-controls" style="margin-bottom:16px;">
             <div class="scorer-field">
               <label>Agent Being Reviewed</label>
               <select id="sc_agent"><option value="">Select agent...</option></select>
             </div>
-            <div class="scorer-field">
-              <label>Anthropic API Key</label>
-              <input type="password" id="sc_apiKey" placeholder="sk-ant-..." style="min-width:260px;" oninput="saveApiKey()"/>
-            </div>
           </div>
           <div class="scorer-upload-area" id="scorerDropZone" onclick="document.getElementById('sc_file').click()">
             <div class="scorer-upload-icon">🎙</div>
-            <div class="scorer-upload-text">Click to upload call recording</div>
+            <div class="scorer-upload-text">Click or drag to upload call recording</div>
             <div class="scorer-upload-sub">MP3, M4A, WAV, OGG — up to 100MB</div>
             <div class="scorer-upload-filename" id="sc_filename"></div>
           </div>
@@ -694,12 +709,18 @@ tbody td:not(:first-child){text-align:right;}
           </button>
         </div>
 
+        <!-- Progress -->
         <div class="scorer-progress" id="sc_progress">
-          <div class="progress-step" id="step_upload"><div class="progress-dot"></div>Uploading & transcribing audio...</div>
+          <div class="progress-step" id="step_upload"><div class="progress-dot"></div>Uploading audio...</div>
+          <div class="progress-step" id="step_transcribe"><div class="progress-dot"></div>Transcribing with Deepgram...</div>
           <div class="progress-step" id="step_score"><div class="progress-dot"></div>Scoring against HIP script plates...</div>
           <div class="progress-step" id="step_coaching"><div class="progress-dot"></div>Generating coaching points...</div>
         </div>
 
+        <!-- Error -->
+        <div id="sc_error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:14px;color:var(--red);font-size:13px;margin-bottom:16px;"></div>
+
+        <!-- Result -->
         <div class="scorer-result" id="sc_result">
           <div class="scorer-result-header">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
@@ -709,11 +730,12 @@ tbody td:not(:first-child){text-align:right;}
                 <div class="score-grade" id="res_grade"></div>
               </div>
               <div style="text-align:right;">
-                <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Call Length</div>
-                <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--body);" id="res_callLength">—</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">File</div>
+                <div style="font-size:13px;color:var(--body);" id="res_fileName">—</div>
                 <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="res_timestamp"></div>
               </div>
             </div>
+            <div id="res_summary" style="margin-top:12px;font-size:13px;color:var(--body);line-height:1.6;border-top:1px solid var(--border);padding-top:12px;"></div>
           </div>
           <div class="plate-scores" id="res_plateScores"></div>
           <div class="coaching-section">
@@ -724,14 +746,23 @@ tbody td:not(:first-child){text-align:right;}
             <div class="transcript-toggle" onclick="toggleTranscript()">▶ Show Transcript</div>
             <div class="transcript-body" id="res_transcript"></div>
           </div>
-          <div style="margin-top:16px;">
-            <button class="btn-score" onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);">🖨 Print Report</button>
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="btn-score" onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);font-size:12px;padding:8px 16px;">🖨 Print Report</button>
+            <button class="btn-score" onclick="resetScorer()" style="background:none;border:1px solid var(--border);color:var(--label);font-size:12px;padding:8px 16px;">↩ Score Another Call</button>
           </div>
         </div>
+
+        <!-- Recent scored calls -->
+        <div style="margin-top:28px;">
+          <div class="section-eyebrow" style="margin-bottom:12px;">Recent Scored Calls</div>
+          <div id="sc_recentCalls" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="color:var(--muted);font-size:12px;">Loading...</div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
-
   <!-- AGENTS PANEL -->
   <div id="admin-agents-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:8px;">Agent Management</div>
@@ -821,48 +852,34 @@ tbody td:not(:first-child){text-align:right;}
 // ══════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
-const DAILY_GOAL    = 8000;
-const ADMIN_CODE    = 'bigbrothereye';
-const COMM_RATE     = 0.20 * 0.75;
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
-const DEEPGRAM_API  = 'https://api.deepgram.com/v1/listen';
+const DAILY_GOAL = 8000;
+const ADMIN_CODE = 'bigbrothereye';
+const COMM_RATE  = 0.20 * 0.75;
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-let currentUser = null;
-let allAgents   = [];
-let reportData  = [];
-let scorerFile  = null;
+let currentUser   = null;
+let allAgents     = [];
+let reportData    = [];
+let scorerFile    = null;
+let scorerPollInterval = null;
 
-// ══════════════════════════════════════════════════
-// SESSION
-// ══════════════════════════════════════════════════
-function saveSession(u){ localStorage.setItem('zenyra_board_v3', JSON.stringify(u)); currentUser=u; }
-function loadSession(){ const s=localStorage.getItem('zenyra_board_v3'); return s?JSON.parse(s):null; }
-function clearSession(){ localStorage.removeItem('zenyra_board_v3'); currentUser=null; }
-async function hashPw(pw){
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-function saveApiKey(){ const k=document.getElementById('sc_apiKey')?.value; if(k) localStorage.setItem('zenyra_ant_key',k); }
-function loadApiKey(){ return localStorage.getItem('zenyra_ant_key')||''; }
+// ── Session ────────────────────────────────────────────────────────────────
+function saveSession(u){ localStorage.setItem('zenyra_board_v4', JSON.stringify(u)); currentUser=u; }
+function loadSession(){ const s=localStorage.getItem('zenyra_board_v4'); return s?JSON.parse(s):null; }
+function clearSession(){ localStorage.removeItem('zenyra_board_v4'); currentUser=null; }
+async function hashPw(pw){ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 
-// ══════════════════════════════════════════════════
-// SCREENS
-// ══════════════════════════════════════════════════
+// ── Screens ────────────────────────────────────────────────────────────────
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // hide FAB on non-agent screens
-  const fabEl=document.getElementById('mainFab');
-  const fabChEl=document.getElementById('fabChooser');
-  if(fabEl) fabEl.style.display = (id==='agent-dashboard')?'flex':'none';
-  if(fabChEl) fabChEl.classList.remove('open');
+  const fab=document.getElementById('mainFab'), fc=document.getElementById('fabChooser');
+  if(fab) fab.style.display=(id==='agent-dashboard')?'flex':'none';
+  if(fc)  fc.classList.remove('open');
 }
 
-// ══════════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════════
+// ── Auth ───────────────────────────────────────────────────────────────────
 let authRole='agent';
 async function showAuth(role){
   authRole=role;
@@ -873,8 +890,7 @@ async function showAuth(role){
   const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
   allAgents=data||[];
   const opts=allAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
-  document.getElementById('loginName').innerHTML=opts;
-  document.getElementById('registerName').innerHTML=opts;
+  ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
   switchAuthTab('login');
   showScreen('auth');
 }
@@ -886,7 +902,6 @@ function switchAuthTab(tab){
   document.getElementById('authError').style.display='none';
 }
 function showAuthError(m){ const e=document.getElementById('authError'); e.textContent=m; e.style.display='block'; }
-
 async function doLogin(){
   const agentId=document.getElementById('loginName').value;
   const pw=document.getElementById('loginPassword').value;
@@ -907,7 +922,7 @@ async function doRegister(){
   if(!pw||pw.length<6) return showAuthError('Password must be at least 6 characters.');
   if(pw!==confirm) return showAuthError('Passwords do not match.');
   const {data:existing}=await db.from('lb_users').select('id').eq('agent_id',agentId).eq('role',authRole).single();
-  if(existing) return showAuthError('Account already exists for this name. Sign in instead.');
+  if(existing) return showAuthError('Account already exists. Sign in instead.');
   const hash=await hashPw(pw);
   const agent=allAgents.find(a=>a.id===agentId);
   const {data,error}=await db.from('lb_users').insert({agent_id:agentId,display_name:agent?.name||'Agent',role:authRole,password_hash:hash}).select().single();
@@ -919,13 +934,10 @@ function enterDashboard(role){
   if(role==='admin'){
     document.getElementById('adminUserName').textContent=currentUser.agentName;
     showScreen('admin-dashboard');
-    // load api key if stored
-    const k=loadApiKey();
-    if(k){ const el=document.getElementById('sc_apiKey'); if(el) el.value=k; }
-    else { const note=document.getElementById('apiKeyNote'); if(note) note.style.display='block'; }
     renderAdminBoard();
     populateReportAgents();
     populateScorerAgents();
+    loadRecentScores();
   } else {
     document.getElementById('agentUserName').textContent=currentUser.agentName;
     showScreen('agent-dashboard');
@@ -937,9 +949,7 @@ function enterDashboard(role){
 }
 function doLogout(){ clearSession(); showScreen('landing'); }
 
-// ══════════════════════════════════════════════════
-// DATA
-// ══════════════════════════════════════════════════
+// ── Data fetchers ──────────────────────────────────────────────────────────
 async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
 async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
 async function fetchRecentSubs(limit=8){
@@ -954,45 +964,27 @@ async function fetchAllMAPD(){
   const {data}=await db.from('lb_mapd_submissions').select('*,lb_agents(name)').eq('status','live').order('submitted_at',{ascending:false});
   return data||[];
 }
-async function fetchMySubmissions(agentId, filter){
+async function fetchMySubmissions(agentId,filter){
   let q=db.from('lb_submissions').select('*').eq('agent_id',agentId).eq('status','live');
   if(filter.from) q=q.gte('submitted_at',filter.from);
   if(filter.to)   q=q.lte('submitted_at',filter.to);
-  if(filter.product && filter.product!=='all') q=q.eq('product_type',filter.product);
+  if(filter.product&&filter.product!=='all') q=q.eq('product_type',filter.product);
   const {data}=await q.order('submitted_at',{ascending:false});
   return data||[];
 }
 
-// ══════════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════════
+// ── Helpers ────────────────────────────────────────────────────────────────
 const fmt$  = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
 const fmt$2 = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtPct= n=>Math.round(n)+'%';
 const estComm = ap=>Number(ap||0)*COMM_RATE;
-
-function getDayProgress(){
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const h=et.getHours()+et.getMinutes()/60;
-  if(h<=9)return 0; if(h>=19)return 1; return (h-9)/10;
-}
-function paceStatus(agentDailyAP, totalAgents, dp){
-  const share=DAILY_GOAL/totalAgents;
-  const pct=(agentDailyAP/share)*100;
-  if(dp===0)return'on';
-  const delta=pct-dp*100;
-  if(delta>10) return'ahead';
-  if(delta>=-10)return'on';
-  if(delta>=-25)return'off';
-  return'crit';
-}
+function getDayProgress(){ const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const h=et.getHours()+et.getMinutes()/60; if(h<=9)return 0; if(h>=19)return 1; return(h-9)/10; }
+function paceStatus(agentDailyAP,totalAgents,dp){ const share=DAILY_GOAL/totalAgents; const pct=(agentDailyAP/share)*100; if(dp===0)return'on'; const d=pct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; }
 function scoreColor(s){ if(s>=80)return'var(--teal)'; if(s>=60)return'var(--blue)'; if(s>=40)return'var(--amber)'; return'var(--red)'; }
 function gradeFromScore(s){ if(s>=85)return{label:'A — Excellent',cls:'grade-a'}; if(s>=70)return{label:'B — Good',cls:'grade-b'}; if(s>=55)return{label:'C — Needs Work',cls:'grade-c'}; return{label:'D — Critical',cls:'grade-d'}; }
 
-// ══════════════════════════════════════════════════
-// PULSE
-// ══════════════════════════════════════════════════
-function buildPulse(stats, prefix){
+// ── Pulse ──────────────────────────────────────────────────────────────────
+function buildPulse(stats,prefix){
   const tToday=stats.reduce((s,a)=>s+Number(a.daily_ap),0);
   const tWeek =stats.reduce((s,a)=>s+Number(a.week_ap),0);
   const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
@@ -1010,34 +1002,23 @@ function buildPulse(stats, prefix){
   if(!el)return;
   el.innerHTML=`<div class="pulse-meta"><span class="pulse-label">Team Goal Pulse</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(tToday)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(DAILY_GOAL)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span></div><span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span></div></div><div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>${goalRow(tWeek,WEEKLY_GOAL,weekPct,'Weekly Goal','var(--amber)')}${goalRow(tMonth,tGoal,monthPct,'Monthly Goal','var(--green)')}<div class="pulse-sub" style="margin-top:10px;"><div class="pulse-sub-item"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div></div>`;
 }
-
-function buildMAPDPulse(mapd, elId){
-  const el=document.getElementById(elId);
-  if(!el)return;
+function buildMAPDPulse(mapd,elId){
+  const el=document.getElementById(elId); if(!el)return;
   const today=mapd.reduce((s,a)=>s+Number(a.apps_today),0);
   const week =mapd.reduce((s,a)=>s+Number(a.apps_this_week),0);
   const month=mapd.reduce((s,a)=>s+Number(a.apps_this_month),0);
   const all  =mapd.reduce((s,a)=>s+Number(a.apps_all_time),0);
-  el.innerHTML=`
-    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);align-self:center;">MAPD App Count</div>
-    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${today}</div><div class="mapd-pulse-lbl">Today</div></div>
-    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${week}</div><div class="mapd-pulse-lbl">This Week</div></div>
-    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${month}</div><div class="mapd-pulse-lbl">This Month</div></div>
-    <div class="mapd-pulse-item"><div class="mapd-pulse-val">${all}</div><div class="mapd-pulse-lbl">All Time</div></div>`;
+  el.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);align-self:center;">MAPD App Count</div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${today}</div><div class="mapd-pulse-lbl">Today</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${week}</div><div class="mapd-pulse-lbl">This Week</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${month}</div><div class="mapd-pulse-lbl">This Month</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${all}</div><div class="mapd-pulse-lbl">All Time</div></div>`;
 }
 
-// ══════════════════════════════════════════════════
-// LEADERBOARD
-// ══════════════════════════════════════════════════
-function buildLeaderboard(stats, tbodyId){
+// ── Leaderboards ───────────────────────────────────────────────────────────
+function buildLeaderboard(stats,tbodyId){
   const ranked=[...stats].sort((a,b)=>b.month_ap-a.month_ap);
   const dp=getDayProgress();
-  const tbody=document.getElementById(tbodyId);
-  if(!tbody)return;
+  const tbody=document.getElementById(tbodyId); if(!tbody)return;
   tbody.innerHTML='';
   ranked.forEach((agent,i)=>{
-    const rank=i+1;
-    const mPct=(agent.month_ap/agent.monthly_goal)*100;
+    const rank=i+1,mPct=(agent.month_ap/agent.monthly_goal)*100;
     const pClass=mPct>=60?'pct-high':mPct>=35?'pct-mid':'pct-low';
     const fClass=mPct>=60?'fill-high':mPct>=35?'fill-mid':'fill-low';
     const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
@@ -1045,30 +1026,32 @@ function buildLeaderboard(stats, tbodyId){
     const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
     const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
-    const tClass=wow>=0?'trend-up':'trend-down';
-    const tSign=wow>=0?'▲':'▼';
-    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${tClass}">${tSign} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'▲':'▼'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
   });
 }
-
-function buildMAPDLeaderboard(mapd, tbodyId){
+function buildMAPDLeaderboard(mapd,tbodyId){
   const ranked=[...mapd].sort((a,b)=>b.apps_this_month-a.apps_this_month);
-  const tbody=document.getElementById(tbodyId);
-  if(!tbody)return;
+  const tbody=document.getElementById(tbodyId); if(!tbody)return;
   tbody.innerHTML='';
   ranked.forEach((a,i)=>{
-    const rank=i+1;
-    const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    const rank=i+1,rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
     tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_today}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_week}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_month}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--muted);">${a.apps_all_time}</span></td></tr>`;
   });
 }
+function buildCombined(anc,mapd,elId){
+  const el=document.getElementById(elId); if(!el)return;
+  const mapdMap={}; mapd.forEach(m=>{ mapdMap[m.id]={today:m.apps_today,week:m.apps_this_week,month:m.apps_this_month}; });
+  const rows=anc.sort((a,b)=>b.month_ap-a.month_ap).map((a,i)=>{
+    const m=mapdMap[a.id]||{today:0,week:0,month:0};
+    const rank=i+1,rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    return`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span class="ap-val">${fmt$(a.daily_ap)}</span></td><td><span class="ap-val">${fmt$(a.month_ap)}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.today}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.month}</span></td><td><span class="comm-val">${fmt$2(estComm(a.month_ap))}</span></td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="section-eyebrow" style="margin-bottom:12px;">Combined Performance View</div><table><thead><tr><th>Agent</th><th>Ancillary Daily AP</th><th>Ancillary Month AP</th><th style="text-align:right;">MAPD Today</th><th style="text-align:right;">MAPD Month</th><th>Est. Comm</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
-// ══════════════════════════════════════════════════
-// SIDEBAR
-// ══════════════════════════════════════════════════
-function buildSidebar(stats, sidebarId, updatedId){
-  const el=document.getElementById(sidebarId);
-  if(!el)return;
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function buildSidebar(stats,sidebarId,updatedId){
+  const el=document.getElementById(sidebarId); if(!el)return;
   const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
   const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
   const topP  =[...stats].sort((a,b)=>b.week_ap-a.week_ap)[0];
@@ -1076,71 +1059,28 @@ function buildSidebar(stats, sidebarId, updatedId){
   const miDelta=Number(mostI?.week_ap||0)-Number(mostI?.last_week_ap||0);
   const tMP=stats.reduce((s,a)=>s+Number(a.daily_mp||0),0);
   const avgMP=tApps>0?tMP/tApps:0;
-  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{
-    const pct=Math.min((a.week_ap/(DAILY_GOAL*5))*100,100);
-    const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)';
-    return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`;
-  }).join('');
+  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{ const pct=Math.min((a.week_ap/(DAILY_GOAL*5))*100,100); const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)'; return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`; }).join('');
   el.innerHTML=`<div class="stat-card top-producer-card"><div class="stat-card-label">🏆 Top Producer — Week</div><div class="top-producer-name">${topP?.name||'—'}</div><div class="stat-card-sub">${fmt$(topP?.week_ap||0)} this week</div></div><div class="stat-card improved-card"><div class="stat-card-label">📈 Most Improved — WoW</div><div class="improved-name">${mostI?.name||'—'}</div><div class="stat-card-sub">+${fmt$(miDelta)} vs last week</div></div><div class="divider"></div><div class="mini-stats"><div class="mini-stat"><div class="ms-val">${stats.length}</div><div class="ms-lbl">Agents</div></div><div class="mini-stat"><div class="ms-val">${tApps}</div><div class="ms-lbl">Sales Today</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(avgMP)}</div><div class="ms-lbl">Avg MP</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(estComm(tMonth))}</div><div class="ms-lbl">Team Comm</div></div></div><div class="divider"></div><div class="section-eyebrow">Weekly Ranking</div><div style="display:flex;flex-direction:column;gap:8px;">${weekRows}</div>`;
   const lu=document.getElementById(updatedId);
-  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  if(lu) lu.textContent='Last updated: '+ts;
+  if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-// ══════════════════════════════════════════════════
-// AGENT VIEW SWITCHER
-// ══════════════════════════════════════════════════
+// ── Agent view switcher ────────────────────────────────────────────────────
+const agentViews=['board','mapd','combined','mysubs'];
 function switchAgentView(view){
-  document.getElementById('agent-board-panel').style.display   =view==='board'  ?'flex':'none';
-  document.getElementById('agent-mysubs-panel').style.display  =view==='mysubs' ?'flex':'none';
-  document.getElementById('agentTab_board').classList.toggle('active',view==='board');
-  document.getElementById('agentTab_mysubs').classList.toggle('active',view==='mysubs');
-  if(view==='mysubs') loadMySubmissions();
+  agentViews.forEach(v=>{
+    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':'mysubs')+'-panel');
+    if(panel) panel.style.display=v===view?(v==='mysubs'||v==='combined'?'flex':'flex'):'none';
+    const tab=document.getElementById('agentTab_'+v);
+    if(tab) tab.classList.toggle('active',v===view);
+  });
+  if(view==='board')    renderAgentBoard();
+  if(view==='mapd')     renderAgentMAPD();
+  if(view==='combined') renderAgentCombined();
+  if(view==='mysubs')   loadMySubmissions();
 }
 
-// ══════════════════════════════════════════════════
-// MY SUBMISSIONS (agent)
-// ══════════════════════════════════════════════════
-function toggleMyCustomDates(){
-  const v=document.getElementById('my_range').value;
-  document.getElementById('my_from_wrap').style.display=v==='custom'?'flex':'none';
-  document.getElementById('my_to_wrap').style.display  =v==='custom'?'flex':'none';
-}
-function getMyFilter(){
-  const range=document.getElementById('my_range').value;
-  const product=document.getElementById('my_product').value;
-  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
-  let from=null,to=null;
-  if(range==='today'){ from=today.toISOString(); to=new Date(today.getTime()+86400000-1).toISOString(); }
-  else if(range==='7'){ from=new Date(today-6*86400000).toISOString(); }
-  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1).toISOString(); }
-  else if(range==='30'){ from=new Date(today-29*86400000).toISOString(); }
-  else if(range==='custom'){
-    from=document.getElementById('my_from').value?new Date(document.getElementById('my_from').value).toISOString():null;
-    to  =document.getElementById('my_to').value?new Date(document.getElementById('my_to').value+'T23:59:59').toISOString():null;
-  }
-  return{from,to,product};
-}
-async function loadMySubmissions(){
-  if(!currentUser?.agent_id) return;
-  const filter=getMyFilter();
-  const subs=await fetchMySubmissions(currentUser.agent_id,filter);
-  // Summary strip
-  const totalMP=subs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
-  const totalAP=subs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const sumEl=document.getElementById('my_summary');
-  const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
-  sumEl.innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
-  // Table
-  const tblEl=document.getElementById('my_subs_table');
-  if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found for this filter.</div>'; return; }
-  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
-}
-
-// ══════════════════════════════════════════════════
-// AGENT BOARD
-// ══════════════════════════════════════════════════
+// ── Agent board ────────────────────────────────────────────────────────────
 async function renderAgentBoard(){
   const stats=await fetchStats();
   buildPulse(stats,'a_');
@@ -1149,601 +1089,264 @@ async function renderAgentBoard(){
   const subs=await fetchRecentSubs(8);
   const rsEl=document.getElementById('a_recentSales');
   if(rsEl){
-    if(!subs.length){ rsEl.innerHTML='<div style="color:var(--muted);font-size:12px;">No sales logged today yet.</div>'; }
-    else { rsEl.innerHTML=subs.map(s=>{ const agent=stats.find(a=>a.id===s.agent_id); const nameDisplay=s.customer_first_name?`${s.customer_first_name} ${(s.customer_last_name||'').charAt(0)}.`:'Customer'; const time=new Date(s.submitted_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}); return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);"><div><span style="font-weight:600;color:var(--white);font-size:13px;">${nameDisplay}</span><span style="color:var(--muted);font-size:11px;margin-left:8px;">${s.product_type||'—'}</span></div><div style="text-align:right;"><span style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</span><span style="color:var(--muted);font-size:10px;margin-left:6px;">${agent?.name||''} · ${time}</span></div></div>`; }).join(''); }
+    if(!subs.length){ rsEl.innerHTML='<div style="color:var(--muted);font-size:12px;">No sales logged today yet.</div>'; return; }
+    rsEl.innerHTML=subs.map(s=>{ const agent=stats.find(a=>a.id===s.agent_id); const nameDisplay=s.customer_first_name?`${s.customer_first_name} ${(s.customer_last_name||'').charAt(0)}.`:'Customer'; const time=new Date(s.submitted_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}); return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);"><div><span style="font-weight:600;color:var(--white);font-size:13px;">${nameDisplay}</span><span style="color:var(--muted);font-size:11px;margin-left:8px;">${s.product_type||'—'}</span></div><div style="text-align:right;"><span style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</span><span style="color:var(--muted);font-size:10px;margin-left:6px;">${agent?.name||''} · ${time}</span></div></div>`; }).join('');
   }
 }
+async function renderAgentMAPD(){
+  const mapd=await fetchMAPDStats();
+  buildMAPDPulse(mapd,'a_mapd_pulse');
+  buildMAPDLeaderboard(mapd,'a_mapdBody');
+}
+async function renderAgentCombined(){
+  const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]);
+  buildCombined(anc,mapd,'a_combinedContent');
+}
 
-// ══════════════════════════════════════════════════
-// ADMIN BOARD (3 sub-views)
-// ══════════════════════════════════════════════════
+// ── My Submissions ─────────────────────────────────────────────────────────
+function toggleMyCustomDates(){ const v=document.getElementById('my_range').value; ['my_from_wrap','my_to_wrap'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=v==='custom'?'flex':'none'; }); }
+function getMyFilter(){
+  const range=document.getElementById('my_range').value,product=document.getElementById('my_product').value;
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
+  let from=null,to=null;
+  if(range==='today'){ from=today.toISOString(); to=new Date(today.getTime()+86400000-1).toISOString(); }
+  else if(range==='7'){ from=new Date(today-6*86400000).toISOString(); }
+  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1).toISOString(); }
+  else if(range==='30'){ from=new Date(today-29*86400000).toISOString(); }
+  else if(range==='custom'){ from=document.getElementById('my_from').value?new Date(document.getElementById('my_from').value).toISOString():null; to=document.getElementById('my_to').value?new Date(document.getElementById('my_to').value+'T23:59:59').toISOString():null; }
+  return{from,to,product};
+}
+async function loadMySubmissions(){
+  if(!currentUser?.agent_id)return;
+  const filter=getMyFilter();
+  const subs=await fetchMySubmissions(currentUser.agent_id,filter);
+  const totalMP=subs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
+  const totalAP=subs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
+  document.getElementById('my_summary').innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
+  const tblEl=document.getElementById('my_subs_table');
+  if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── Admin board ────────────────────────────────────────────────────────────
 let adminBoardView='anc';
-async function switchAdminBoardView(view){
+function switchAdminBoardView(view){
   adminBoardView=view;
   ['anc','mapd','combined'].forEach(v=>{
-    document.getElementById('admin-'+v+'-sub').style.display=v===view?(v==='combined'?'block':'flex'):'none';
-    document.getElementById('adminBoardTab_'+v).classList.toggle('active',v===view);
+    const p=document.getElementById('admin-'+v+'-sub');
+    if(p) p.style.display=v===view?(v==='combined'?'block':'flex'):'none';
+    const t=document.getElementById('adminBoardTab_'+v);
+    if(t) t.classList.toggle('active',v===view);
   });
   if(view==='anc')      renderAdminBoard();
   if(view==='mapd')     renderMAPDBoard();
-  if(view==='combined') renderCombinedBoard();
+  if(view==='combined') renderAdminCombined();
 }
+async function renderAdminBoard(){ const stats=await fetchStats(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody'); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
+async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody'); }
+async function renderAdminCombined(){ const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]); buildCombined(anc,mapd,'ad_combinedContent'); }
 
-async function renderAdminBoard(){
-  const stats=await fetchStats();
-  buildPulse(stats,'ad_');
-  buildLeaderboard(stats,'ad_leaderboardBody');
-  buildSidebar(stats,'ad_sidebar','ad_lastUpdated');
-}
-async function renderMAPDBoard(){
-  const mapd=await fetchMAPDStats();
-  buildMAPDPulse(mapd,'ad_mapd_pulse');
-  buildMAPDLeaderboard(mapd,'ad_mapdBody');
-}
-async function renderCombinedBoard(){
-  const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]);
-  const el=document.getElementById('ad_combinedContent');
-  const mapdMap={};
-  mapd.forEach(m=>{ mapdMap[m.id]={today:m.apps_today,week:m.apps_this_week,month:m.apps_this_month}; });
-  const rows=anc.sort((a,b)=>b.month_ap-a.month_ap).map((a,i)=>{
-    const m=mapdMap[a.id]||{today:0,week:0,month:0};
-    const rank=i+1;
-    const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
-    return`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span class="ap-val">${fmt$(a.daily_ap)}</span></td><td><span class="ap-val">${fmt$(a.month_ap)}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.today}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.month}</span></td><td><span class="comm-val">${fmt$2(estComm(a.month_ap))}</span></td></tr>`;
-  }).join('');
-  el.innerHTML=`<div class="section-eyebrow" style="margin-bottom:12px;">Combined Performance View</div><table><thead><tr><th>Agent</th><th>Ancillary Daily AP</th><th>Ancillary Month AP</th><th style="text-align:right;">MAPD Today</th><th style="text-align:right;">MAPD Month</th><th>Est. Comm</th></tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-// ══════════════════════════════════════════════════
-// ADMIN SUBMISSIONS (Ancillary)
-// ══════════════════════════════════════════════════
+// ── Admin submissions ──────────────────────────────────────────────────────
 async function renderAdminSubmissions(){
   const subs=await fetchAllSubs();
   const cont=document.getElementById('admin-subs-content');
   if(!subs.length){ cont.innerHTML='<div class="no-data">No submissions yet.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr data-id="${s.id}"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteSubmission('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr data-id="${s.id}"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteSubmission('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
-
-// ══════════════════════════════════════════════════
-// ADMIN SUBMISSIONS (MAPD)
-// ══════════════════════════════════════════════════
 async function renderAdminMAPD(){
   const subs=await fetchAllMAPD();
   const cont=document.getElementById('admin-mapd-content');
   if(!subs.length){ cont.innerHTML='<div class="no-data">No MAPD submissions yet.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;"><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
-async function deleteMAPD(id){
-  if(!confirm('Delete this MAPD submission?')) return;
-  await db.from('lb_mapd_submissions').update({status:'deleted'}).eq('id',id);
-  renderAdminMAPD();
-}
+async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))return; await db.from('lb_mapd_submissions').update({status:'deleted'}).eq('id',id); renderAdminMAPD(); }
+function openEditSub(s){ document.getElementById('editSubId').value=s.id; document.getElementById('es_cFirstName').value=s.customer_first_name||''; document.getElementById('es_cLastName').value=s.customer_last_name||''; document.getElementById('es_productType').value=s.product_type||''; document.getElementById('es_carrier').value=s.carrier_name||''; document.getElementById('es_planName').value=s.plan_name||''; document.getElementById('es_monthlyPremium').value=s.monthly_premium||''; document.getElementById('es_policyNum').value=s.policy_number||''; document.getElementById('es_effectiveDate').value=s.effective_date||''; document.getElementById('es_aNPN').value=s.agent_npn||''; document.getElementById('es_pcp').value=s.pcp_name||''; document.getElementById('es_medications').value=s.medications||''; openModal('editSubModal'); }
+async function saveSubEdit(){ const id=document.getElementById('editSubId').value; const mp=parseFloat(document.getElementById('es_monthlyPremium').value); const {error}=await db.from('lb_submissions').update({customer_first_name:document.getElementById('es_cFirstName').value,customer_last_name:document.getElementById('es_cLastName').value,product_type:document.getElementById('es_productType').value,carrier_name:document.getElementById('es_carrier').value,plan_name:document.getElementById('es_planName').value,monthly_premium:mp||null,policy_number:document.getElementById('es_policyNum').value,effective_date:document.getElementById('es_effectiveDate').value||null,agent_npn:document.getElementById('es_aNPN').value,pcp_name:document.getElementById('es_pcp').value,medications:document.getElementById('es_medications').value}).eq('id',id); if(error){alert('Save failed: '+error.message);return;} closeModal('editSubModal'); renderAdminSubmissions(); renderAdminBoard(); }
+async function deleteSubmission(id){ if(!confirm('Delete this submission?'))return; await db.from('lb_submissions').update({status:'deleted'}).eq('id',id); renderAdminSubmissions(); renderAdminBoard(); }
 
-// ══════════════════════════════════════════════════
-// EDIT / DELETE ANCILLARY
-// ══════════════════════════════════════════════════
-function openEditSub(s){
-  document.getElementById('editSubId').value=s.id;
-  document.getElementById('es_cFirstName').value=s.customer_first_name||'';
-  document.getElementById('es_cLastName').value=s.customer_last_name||'';
-  document.getElementById('es_productType').value=s.product_type||'';
-  document.getElementById('es_carrier').value=s.carrier_name||'';
-  document.getElementById('es_planName').value=s.plan_name||'';
-  document.getElementById('es_monthlyPremium').value=s.monthly_premium||'';
-  document.getElementById('es_policyNum').value=s.policy_number||'';
-  document.getElementById('es_effectiveDate').value=s.effective_date||'';
-  document.getElementById('es_aNPN').value=s.agent_npn||'';
-  document.getElementById('es_pcp').value=s.pcp_name||'';
-  document.getElementById('es_medications').value=s.medications||'';
-  openModal('editSubModal');
-}
-async function saveSubEdit(){
-  const id=document.getElementById('editSubId').value;
-  const mp=parseFloat(document.getElementById('es_monthlyPremium').value);
-  const {error}=await db.from('lb_submissions').update({
-    customer_first_name:document.getElementById('es_cFirstName').value,
-    customer_last_name: document.getElementById('es_cLastName').value,
-    product_type:       document.getElementById('es_productType').value,
-    carrier_name:       document.getElementById('es_carrier').value,
-    plan_name:          document.getElementById('es_planName').value,
-    monthly_premium:    mp||null,
-    policy_number:      document.getElementById('es_policyNum').value,
-    effective_date:     document.getElementById('es_effectiveDate').value||null,
-    agent_npn:          document.getElementById('es_aNPN').value,
-    pcp_name:           document.getElementById('es_pcp').value,
-    medications:        document.getElementById('es_medications').value,
-  }).eq('id',id);
-  if(error){ alert('Save failed: '+error.message); return; }
-  closeModal('editSubModal');
-  renderAdminSubmissions();
-  renderAdminBoard();
-}
-async function deleteSubmission(id){
-  if(!confirm('Delete this submission? This cannot be undone.')) return;
-  await db.from('lb_submissions').update({status:'deleted'}).eq('id',id);
-  renderAdminSubmissions();
-  renderAdminBoard();
-}
+// ── Agent management ───────────────────────────────────────────────────────
+async function renderAgentManagement(){ const {data:agents}=await db.from('lb_agents').select('*').order('name'); const cont=document.getElementById('admin-agents-content'); if(!agents?.length){cont.innerHTML='<div class="no-data">No agents found.</div>';return;} cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`; }
+function openAgentModal(agent){ document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent'; document.getElementById('agentModalId').value=agent?.id||''; document.getElementById('am_name').value=agent?.name||''; document.getElementById('am_phone').value=agent?.phone||''; document.getElementById('am_dailyGoal').value=agent?.daily_goal||1600; document.getElementById('am_monthlyGoal').value=agent?.monthly_goal||160000; openModal('agentModal'); }
+async function saveAgent(){ const id=document.getElementById('agentModalId').value; const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)}; if(!payload.name){alert('Name is required.');return;} let error; if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}else{({error}=await db.from('lb_agents').insert({...payload,active:true}));} if(error){alert('Save failed: '+error.message);return;} closeModal('agentModal'); renderAgentManagement(); }
+async function toggleAgentStatus(id,current){ if(!confirm(`${current?'Deactivate':'Activate'} this agent?`))return; await db.from('lb_agents').update({active:!current}).eq('id',id); renderAgentManagement(); }
 
-// ══════════════════════════════════════════════════
-// AGENT MANAGEMENT
-// ══════════════════════════════════════════════════
-async function renderAgentManagement(){
-  const {data:agents}=await db.from('lb_agents').select('*').order('name');
-  const cont=document.getElementById('admin-agents-content');
-  if(!agents?.length){ cont.innerHTML='<div class="no-data">No agents found.</div>'; return; }
-  cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`;
-}
-function openAgentModal(agent){
-  document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent';
-  document.getElementById('agentModalId').value=agent?.id||'';
-  document.getElementById('am_name').value=agent?.name||'';
-  document.getElementById('am_phone').value=agent?.phone||'';
-  document.getElementById('am_dailyGoal').value=agent?.daily_goal||1600;
-  document.getElementById('am_monthlyGoal').value=agent?.monthly_goal||160000;
-  openModal('agentModal');
-}
-async function saveAgent(){
-  const id=document.getElementById('agentModalId').value;
-  const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)};
-  if(!payload.name){ alert('Name is required.'); return; }
-  let error;
-  if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}
-  else  {({error}=await db.from('lb_agents').insert({...payload,active:true}));}
-  if(error){ alert('Save failed: '+error.message); return; }
-  closeModal('agentModal');
-  renderAgentManagement();
-}
-async function toggleAgentStatus(id,current){
-  if(!confirm(`${current?'Deactivate':'Activate'} this agent?`)) return;
-  await db.from('lb_agents').update({active:!current}).eq('id',id);
-  renderAgentManagement();
-}
-
-// ══════════════════════════════════════════════════
-// REPORTS
-// ══════════════════════════════════════════════════
-async function populateReportAgents(){
-  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
-  const sel=document.getElementById('rpt_agent');
-  if(!sel)return;
-  sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
-}
+// ── Reports ────────────────────────────────────────────────────────────────
+async function populateReportAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('rpt_agent'); if(!sel)return; sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
 function toggleCustomDates(){ const v=document.getElementById('rpt_range').value; document.getElementById('rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById('rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
-function getDateRange(range){
-  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
-  let from,to=new Date(today.getTime()+86400000-1);
-  if(range==='today'){ from=today; }
-  else if(range==='yesterday'){ from=new Date(today-86400000); to=new Date(today-1); }
-  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1); }
-  else if(range==='custom'){ from=new Date(document.getElementById('rpt_from').value); to=new Date(document.getElementById('rpt_to').value+'T23:59:59'); }
-  else { from=new Date(today-(parseInt(range)-1)*86400000); }
-  return{from,to};
-}
-async function runReport(){
-  const agentFilter=document.getElementById('rpt_agent').value;
-  const range=document.getElementById('rpt_range').value;
-  const {from,to}=getDateRange(range);
-  let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString());
-  if(agentFilter!=='all') q=q.eq('agent_id',agentFilter);
-  const {data:subs}=await q.order('submitted_at',{ascending:false});
-  reportData=subs||[];
-  const output=document.getElementById('report-output');
-  const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text;
-  const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text;
-  if(!reportData.length){ output.innerHTML='<div class="no-data">No submissions found for this filter.</div>'; document.getElementById('btn_download').style.display='none'; return; }
-  const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
-  const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const totalComm=estComm(totalAP);
-  const byAgent={};
-  reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; });
-  output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(totalComm)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div>${Object.keys(byAgent).length>1?`<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">By Agent</div><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="text-align:left;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Agent</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Apps</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Total MP</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Total AP</th><th style="text-align:right;padding:6px 8px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Est. Comm</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([name,d])=>`<tr><td style="padding:8px;font-weight:600;color:var(--white);">${name}</td><td style="padding:8px;text-align:right;">${d.apps}</td><td style="padding:8px;text-align:right;color:var(--teal);">${fmt$2(d.mp)}</td><td style="padding:8px;text-align:right;color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(d.ap)}</td><td style="padding:8px;text-align:right;color:var(--green);">${fmt$2(estComm(d.ap))}</td></tr>`).join('')}</tbody></table>`:''}  </div><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">Submission Detail</div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`;
-  document.getElementById('btn_download').style.display='inline-block';
-}
-function downloadReport(){
-  const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text;
-  const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text;
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}table{width:100%;border-collapse:collapse;margin-bottom:16px;}th{padding:7px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748B;border-bottom:2px solid #e2e8f0;}th:not(:first-child){text-align:right;}td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#334155;}td:not(:first-child){text-align:right;}.teal{color:#00C9B1;font-weight:600;}.green{color:#16a34a;font-weight:600;}.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:#e0fdf4;color:#059669;}.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}.stat-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;}.stat-box .val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#0f172a;}.stat-box .lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;margin-top:2px;}.header{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;margin-bottom:4px;}.meta{font-size:11px;color:#64748B;margin-bottom:20px;}.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}@media print{body{padding:16px;}}</style></head><body><div class="header">ZENYRA</div><div class="meta">Performance Report · ${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</div>${buildPrintReport()}<div class="footer">Powered by Zenyra · Confidential</div></body></html>`);
-  win.document.close(); setTimeout(()=>win.print(),500);
-}
-function buildPrintReport(){
-  if(!reportData.length) return '<p>No data.</p>';
-  const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
-  const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const byAgent={};
-  reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; });
-  return`<div class="stat-row"><div class="stat-box"><div class="val">${reportData.length}</div><div class="lbl">Submissions</div></div><div class="stat-box"><div class="val" style="color:#00C9B1;">${fmt$2(totalMP)}</div><div class="lbl">Total Monthly Premium</div></div><div class="stat-box"><div class="val" style="color:#00C9B1;">${fmt$(totalAP)}</div><div class="lbl">Total Annual Premium</div></div><div class="stat-box"><div class="val" style="color:#16a34a;">${fmt$2(estComm(totalAP))}</div><div class="lbl">Est. Total Commission</div></div></div>${Object.keys(byAgent).length>1?`<h3 style="margin:16px 0 8px;font-size:14px;">By Agent</h3><table><thead><tr><th>Agent</th><th>Apps</th><th>Total MP</th><th>Total AP</th><th>Est. Comm</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([name,d])=>`<tr><td>${name}</td><td>${d.apps}</td><td class="teal">${fmt$2(d.mp)}</td><td class="teal">${fmt$(d.ap)}</td><td class="green">${fmt$2(estComm(d.ap))}</td></tr>`).join('')}</tbody></table>`:''}<h3 style="margin:16px 0 8px;font-size:14px;">Submission Detail</h3><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`;
-}
+function getDateRange(range){ const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate()); let from,to=new Date(today.getTime()+86400000-1); if(range==='today'){from=today;}else if(range==='yesterday'){from=new Date(today-86400000);to=new Date(today-1);}else if(range==='mtd'){from=new Date(today.getFullYear(),today.getMonth(),1);}else if(range==='custom'){from=new Date(document.getElementById('rpt_from').value);to=new Date(document.getElementById('rpt_to').value+'T23:59:59');}else{from=new Date(today-(parseInt(range)-1)*86400000);} return{from,to}; }
+async function runReport(){ const agentFilter=document.getElementById('rpt_agent').value; const range=document.getElementById('rpt_range').value; const {from,to}=getDateRange(range); let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString()); if(agentFilter!=='all') q=q.eq('agent_id',agentFilter); const {data:subs}=await q.order('submitted_at',{ascending:false}); reportData=subs||[]; const output=document.getElementById('report-output'); const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById('btn_download').style.display='none';return;} const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`; document.getElementById('btn_download').style.display='inline-block'; }
+function downloadReport(){ const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
-// ══════════════════════════════════════════════════
-// ADMIN TAB SWITCHER
-// ══════════════════════════════════════════════════
+// ── Admin tab switcher ─────────────────────────────────────────────────────
 function switchAdminTab(tab){
   const panels={board:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
-  Object.keys(panels).forEach(t=>{
-    const p=document.getElementById('admin-'+t+'-panel');
-    if(p) p.style.display=t===tab?panels[t]:'none';
-    const btn=document.getElementById('adminTab_'+t);
-    if(btn) btn.classList.toggle('active',t===tab);
-  });
+  Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='board')   renderAdminBoard();
   if(tab==='subs')    renderAdminSubmissions();
   if(tab==='mapd')    renderAdminMAPD();
-  if(tab==='scorer')  initScorer();
+  if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
   if(tab==='agents')  renderAgentManagement();
   if(tab==='reports') populateReportAgents();
 }
 
-// ══════════════════════════════════════════════════
-// FAB CHOOSER
-// ══════════════════════════════════════════════════
-function toggleFabChooser(){
-  const c=document.getElementById('fabChooser');
-  c.classList.toggle('open');
-}
+// ── FAB ────────────────────────────────────────────────────────────────────
+function toggleFabChooser(){ document.getElementById('fabChooser').classList.toggle('open'); }
 
-// ══════════════════════════════════════════════════
-// SUBMIT FORMS
-// ══════════════════════════════════════════════════
-let _prevScreen='agent-dashboard';
-function showSubmitForm(type){
-  document.getElementById('fabChooser').classList.remove('open');
-  _prevScreen='agent-dashboard';
-  if(type==='mapd'){
-    document.getElementById('submitMAPDSuccess').style.display='none';
-    showScreen('submit-mapd-screen');
-  } else {
-    document.getElementById('submitSuccess').style.display='none';
-    showScreen('submit-screen');
-  }
-}
+// ── Submit forms ───────────────────────────────────────────────────────────
+function showSubmitForm(type){ document.getElementById('fabChooser').classList.remove('open'); if(type==='mapd'){ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('submit-mapd-screen'); } else { document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); } }
 function cancelSubmit(){ showScreen('agent-dashboard'); }
 function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
+async function submitSale(){ const mp=parseFloat(document.getElementById('f_monthlyPremium').value); if(!mp||mp<=0)return alert('Monthly premium is required.'); if(!document.getElementById('f_productType').value)return alert('Product type is required.'); const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:document.getElementById('f_aEmail').value,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value}); if(error)return alert('Submission failed: '+error.message); document.getElementById('submitSuccess').style.display='block'; document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value=''); setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
+async function submitMAPD(){ if(!document.getElementById('m_cFirstName').value||!document.getElementById('m_cLastName').value)return alert('Customer first and last name are required.'); const {error}=await db.from('lb_mapd_submissions').insert({agent_id:currentUser?.agent_id,status:'live',app_submit_date:document.getElementById('m_appSubmitDate').value||null,sunfire_confirm_date:document.getElementById('m_sunfireDate').value||null,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,plan_code:document.getElementById('m_planCode').value,effective_date:document.getElementById('m_effectiveDate').value||null,agent_npn:document.getElementById('m_aNPN').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_dob:document.getElementById('m_cDOB').value||null,customer_gender:document.getElementById('m_cGender').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,medicare_number:document.getElementById('m_medicareNum').value,medicare_part_a_date:document.getElementById('m_partADate').value||null,medicare_part_b_date:document.getElementById('m_partBDate').value||null,is_on_medicaid:document.getElementById('m_onMedicaid').checked,medicaid_number:document.getElementById('m_medicaidNum').value||null,pcp_name:document.getElementById('m_pcpName').value,pcp_id:document.getElementById('m_pcpId').value,specialist_names:document.getElementById('m_specialists').value,medications:document.getElementById('m_medications').value}); if(error)return alert('MAPD submission failed: '+error.message); document.getElementById('submitMAPDSuccess').style.display='block'; document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; }); document.getElementById('m_medicaidNumWrap').style.display='none'; setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
 
-async function submitSale(){
-  const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
-  if(!mp||mp<=0) return alert('Monthly premium is required.');
-  if(!document.getElementById('f_productType').value) return alert('Product type is required.');
-  const {error}=await db.from('lb_submissions').insert({
-    agent_id:              currentUser?.agent_id,
-    status:                'live',
-    customer_first_name:   document.getElementById('f_cFirstName').value,
-    customer_last_name:    document.getElementById('f_cLastName').value,
-    customer_phone:        document.getElementById('f_cPhone').value,
-    customer_email:        document.getElementById('f_cEmail').value,
-    customer_dob:          document.getElementById('f_cDOB').value||null,
-    customer_gender:       document.getElementById('f_cGender').value,
-    customer_street:       document.getElementById('f_cStreet').value,
-    customer_city:         document.getElementById('f_cCity').value,
-    customer_state:        document.getElementById('f_cState').value,
-    customer_postal_code:  document.getElementById('f_cPostal').value,
-    product_type:          document.getElementById('f_productType').value,
-    policy_number:         document.getElementById('f_policyNum').value,
-    carrier_name:          document.getElementById('f_carrier').value,
-    plan_name:             document.getElementById('f_planName').value,
-    monthly_premium:       mp,
-    recurring_draft_day:   parseInt(document.getElementById('f_draftDay').value)||null,
-    effective_date:        document.getElementById('f_effectiveDate').value||null,
-    draft_date:            document.getElementById('f_draftDate').value||null,
-    agent_first_name:      document.getElementById('f_aFirstName').value,
-    agent_last_name:       document.getElementById('f_aLastName').value,
-    agent_email:           document.getElementById('f_aEmail').value,
-    agent_npn:             document.getElementById('f_aNPN').value,
-    pcp_name:              document.getElementById('f_pcp').value,
-    specialist_name:       document.getElementById('f_specialist').value,
-    medications:           document.getElementById('f_medications').value,
-  });
-  if(error) return alert('Submission failed: '+error.message);
-  document.getElementById('submitSuccess').style.display='block';
-  document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value='');
-  setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
-}
-
-async function submitMAPD(){
-  if(!document.getElementById('m_cFirstName').value||!document.getElementById('m_cLastName').value) return alert('Customer first and last name are required.');
-  const {error}=await db.from('lb_mapd_submissions').insert({
-    agent_id:              currentUser?.agent_id,
-    status:                'live',
-    app_submit_date:       document.getElementById('m_appSubmitDate').value||null,
-    sunfire_confirm_date:  document.getElementById('m_sunfireDate').value||null,
-    carrier_name:          document.getElementById('m_carrier').value,
-    plan_name:             document.getElementById('m_planName').value,
-    plan_code:             document.getElementById('m_planCode').value,
-    effective_date:        document.getElementById('m_effectiveDate').value||null,
-    agent_npn:             document.getElementById('m_aNPN').value,
-    agent_first_name:      document.getElementById('m_aFirstName').value,
-    agent_last_name:       document.getElementById('m_aLastName').value,
-    customer_first_name:   document.getElementById('m_cFirstName').value,
-    customer_last_name:    document.getElementById('m_cLastName').value,
-    customer_dob:          document.getElementById('m_cDOB').value||null,
-    customer_gender:       document.getElementById('m_cGender').value,
-    customer_phone:        document.getElementById('m_cPhone').value,
-    customer_email:        document.getElementById('m_cEmail').value,
-    customer_street:       document.getElementById('m_cStreet').value,
-    customer_city:         document.getElementById('m_cCity').value,
-    customer_state:        document.getElementById('m_cState').value,
-    customer_postal_code:  document.getElementById('m_cPostal').value,
-    medicare_number:       document.getElementById('m_medicareNum').value,
-    medicare_part_a_date:  document.getElementById('m_partADate').value||null,
-    medicare_part_b_date:  document.getElementById('m_partBDate').value||null,
-    is_on_medicaid:        document.getElementById('m_onMedicaid').checked,
-    medicaid_number:       document.getElementById('m_medicaidNum').value||null,
-    pcp_name:              document.getElementById('m_pcpName').value,
-    pcp_id:                document.getElementById('m_pcpId').value,
-    specialist_names:      document.getElementById('m_specialists').value,
-    medications:           document.getElementById('m_medications').value,
-  });
-  if(error) return alert('MAPD submission failed: '+error.message);
-  document.getElementById('submitMAPDSuccess').style.display='block';
-  document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; });
-  document.getElementById('m_medicaidNumWrap').style.display='none';
-  setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
-}
-
-// ══════════════════════════════════════════════════
-// CALL SCORER
-// ══════════════════════════════════════════════════
-async function populateScorerAgents(){
-  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
-  const sel=document.getElementById('sc_agent');
-  if(!sel)return;
-  sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
-}
-function initScorer(){
-  populateScorerAgents();
-  const k=loadApiKey();
-  if(k){ const el=document.getElementById('sc_apiKey'); if(el)el.value=k; document.getElementById('apiKeyNote').style.display='none'; }
-  else { document.getElementById('apiKeyNote').style.display='block'; }
-}
-function onFileSelected(input){
-  scorerFile=input.files[0]||null;
-  const fn=document.getElementById('sc_filename');
-  const btn=document.getElementById('sc_btn');
-  if(scorerFile){ fn.textContent=scorerFile.name+' ('+Math.round(scorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; }
-  else { fn.textContent=''; btn.disabled=true; }
-}
-function setStep(id,state){ const el=document.getElementById(id); if(!el)return; el.classList.remove('active','done'); if(state)el.classList.add(state); }
+// ── Call Scorer ────────────────────────────────────────────────────────────
+async function populateScorerAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('sc_agent'); if(!sel)return; sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
+function onFileSelected(input){ scorerFile=input.files[0]||null; const fn=document.getElementById('sc_filename'),btn=document.getElementById('sc_btn'); if(scorerFile){ fn.textContent=scorerFile.name+' ('+Math.round(scorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; } else { fn.textContent=''; btn.disabled=true; } }
+function setStep(id,state){ const el=document.getElementById(id); if(!el)return; el.classList.remove('active','done'); if(state) el.classList.add(state); }
+function showScorerError(msg){ const el=document.getElementById('sc_error'); if(el){ el.textContent=msg; el.style.display='block'; } document.getElementById('sc_progress').style.display='none'; document.getElementById('sc_btn').disabled=false; }
 
 async function scoreCall(){
-  const apiKey=document.getElementById('sc_apiKey').value.trim();
-  if(!apiKey){ alert('Enter your Anthropic API key first.'); return; }
-  if(!scorerFile){ alert('Upload a call recording first.'); return; }
+  if(!scorerFile)return alert('Upload a call recording first.');
   const agentSel=document.getElementById('sc_agent');
-  const agentName=agentSel.options[agentSel.selectedIndex]?.text||'Agent';
-  localStorage.setItem('zenyra_ant_key',apiKey);
+  const agentName=agentSel.options[agentSel.selectedIndex]?.text||'Unknown Agent';
+  const agentId=agentSel.value||null;
 
-  // Reset UI
-  document.getElementById('sc_progress').style.display='block';
+  document.getElementById('sc_error').style.display='none';
   document.getElementById('sc_result').style.display='none';
+  document.getElementById('sc_progress').style.display='block';
   document.getElementById('sc_btn').disabled=true;
-  setStep('step_upload','active'); setStep('step_score',''); setStep('step_coaching','');
+  setStep('step_upload','active'); setStep('step_transcribe',''); setStep('step_score',''); setStep('step_coaching','');
 
   try {
-    // Step 1: Transcribe with Deepgram
-    // NOTE: Deepgram key is not stored here — use a simple direct upload approach
-    // We'll use the Anthropic API with a text prompt approach via Deepgram
-    // Since we can't store Deepgram key, we'll use a fallback: ask user to paste transcript
-    // OR we use whisper-compatible approach via the browser
+    // Upload file via multipart form to /api/upload
+    const formData = new FormData();
+    formData.append('audio', scorerFile, scorerFile.name);
+    formData.append('agentName', agentName);
+    if(agentId) formData.append('agentId', agentId);
 
-    // Actually: transcribe via a base64 audio send to Claude directly (Claude can analyze audio transcription context)
-    // Better approach: transcribe client-side using browser Web Speech API for short calls,
-    // or send directly to Deepgram using the STORED key from the environment.
-    // For this standalone HTML tool, we'll use the Anthropic API with the audio as context 
-    // and instruct Claude to first transcribe then score.
+    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+    if(!uploadRes.ok){ const e=await uploadRes.json(); throw new Error(e.error||'Upload failed'); }
+    const { jobId } = await uploadRes.json();
 
-    // Compress audio to base64
-    const arrayBuffer = await scorerFile.arrayBuffer();
-    const base64Audio  = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-    const mimeType     = scorerFile.type || 'audio/mp3';
+    setStep('step_upload','done'); setStep('step_transcribe','active');
 
-    setStep('step_upload','done'); setStep('step_score','active');
+    // Poll for completion
+    if(scorerPollInterval) clearInterval(scorerPollInterval);
+    scorerPollInterval = setInterval(async ()=>{
+      try {
+        const statusRes = await fetch(`/api/job-status?jobId=${jobId}`);
+        if(!statusRes.ok) return;
+        const job = await statusRes.json();
 
-    // Build scoring prompt
-    const SCORING_PROMPT = `You are an expert Medicare ancillary sales coach scoring a recorded sales call against the Senior Benefits Agency Hospital Indemnity (HIP) script.
-
-SCRIPT STRUCTURE — 6 PLATES:
-1. INTRO & ELIGIBILITY (20 pts): Agent identified themselves, stated recorded line, verified Medicare card (or SSN fallback), confirmed POA status, checked Medicaid, VA/Tricare, cognitive impairment, nursing home status, SS deposit method, confirmed banking access.
-2. HEALTH REVIEW (15 pts): Asked about qualifying health conditions, prescription count + copay, last hospitalization + bill, cancer family history.
-3. PLAN REVIEW (15 pts): Called out plan positives (PCP copay, drug deductible, DVH, giveback), asked if client is happy with plan.
-4. PROBLEM REVEAL (20 pts): Explained Medicare Parts A/B/C/D clearly, explained hospital coverage gap, introduced "Part E" extended hospital coverage concept, built urgency around incomplete plan, asked for understanding.
-5. SOLUTION REVEAL (15 pts): Explained daily benefit amount, days covered, broke down cost vs. benefit, subtracted daily copay to show net benefit, mentioned it goes direct to client tax-free, mentioned ambulance/outpatient/cancer rider if applicable, presented monthly premium as less than Part B.
-6. ENROLLMENT (15 pts): Got physical address, confirmed phone type, got email, handled underwriting questions (or GI), confirmed SS benefit date (1st/3rd/Wednesday), confirmed bank/credit union, confirmed routing + account number, gave agent contact info + policy number + DNCR number.
-
-TASK:
-1. First, transcribe the audio into text.
-2. Score each plate 0–100 based on completeness and script adherence.
-3. Compute an overall weighted score (plate weights as listed above, sum = 100).
-4. Identify 3–5 specific, actionable coaching points ranked by priority (HIGH/MEDIUM/LOW), each referencing the specific plate and what exactly was missed or done poorly.
-
-RESPOND IN THIS EXACT JSON FORMAT (no markdown, no preamble):
-{
-  "transcript": "full call transcript here",
-  "call_length_seconds": 0,
-  "plate_scores": {
-    "intro_eligibility": 0,
-    "health_review": 0,
-    "plan_review": 0,
-    "problem_reveal": 0,
-    "solution_reveal": 0,
-    "enrollment": 0
-  },
-  "overall_score": 0,
-  "coaching_points": [
-    {
-      "priority": "HIGH",
-      "plate": "Plate Name",
-      "text": "Specific coaching point here"
-    }
-  ]
-}`;
-
-    const response = await fetch(ANTHROPIC_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: SCORING_PROMPT
-            },
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: base64Audio
-              }
-            }
-          ]
-        }]
-      })
-    });
-
-    if(!response.ok){
-      const err=await response.json();
-      // If audio document not supported, fall back to text-only scoring with file name as context
-      if(err.error?.type==='invalid_request_error' && err.error?.message?.includes('document')){
-        await scoreFallback(apiKey, agentName, SCORING_PROMPT);
-        return;
-      }
-      throw new Error(err.error?.message||'API error '+response.status);
-    }
-
-    setStep('step_score','done'); setStep('step_coaching','active');
-    const data=await response.json();
-    const rawText=data.content?.find(b=>b.type==='text')?.text||'';
-    setStep('step_coaching','done');
-    renderScorerResult(rawText, agentName);
+        if(job.status==='transcribing'){
+          setStep('step_transcribe','active'); setStep('step_score',''); setStep('step_coaching','');
+        } else if(job.status==='scoring'){
+          setStep('step_transcribe','done'); setStep('step_score','active'); setStep('step_coaching','');
+        } else if(job.status==='complete'){
+          clearInterval(scorerPollInterval);
+          setStep('step_transcribe','done'); setStep('step_score','done'); setStep('step_coaching','done');
+          setTimeout(()=>{ document.getElementById('sc_progress').style.display='none'; renderScorerResult(job); loadRecentScores(); },600);
+        } else if(job.status==='failed'||job.status==='error'){
+          clearInterval(scorerPollInterval);
+          showScorerError('Scoring failed. Check that the file is a valid audio recording and try again.');
+        }
+      } catch(e){ /* keep polling */ }
+    }, 3000);
 
   } catch(err){
-    console.error(err);
-    // Try fallback
-    await scoreFallback(document.getElementById('sc_apiKey').value.trim(), agentName, null);
+    showScorerError(err.message||'Upload failed. Try again.');
   }
 }
 
-async function scoreFallback(apiKey, agentName, originalPrompt){
-  // Fallback: use Deepgram first if key available, else prompt user for transcript
-  // For now, show a helpful message
-  document.getElementById('sc_progress').style.display='none';
-  document.getElementById('sc_btn').disabled=false;
-  alert('Audio file format not directly supported for analysis. To score this call:\n\n1. Use score.zenyra.app to transcribe the recording first\n2. Copy the transcript\n3. Use the text input below (coming soon)\n\nAlternatively, enter your Deepgram API key in the settings to enable direct transcription.');
-}
-
-function renderScorerResult(rawText, agentName){
-  document.getElementById('sc_progress').style.display='none';
-  document.getElementById('sc_btn').disabled=false;
-  let result;
-  try {
-    const clean=rawText.replace(/```json|```/g,'').trim();
-    result=JSON.parse(clean);
-  } catch(e){
-    alert('Scoring completed but response could not be parsed. Raw output:\n\n'+rawText.substring(0,500));
-    return;
-  }
-
+function renderScorerResult(job){
   const plates=[
-    {key:'intro_eligibility',label:'Intro & Eligibility',weight:20},
-    {key:'health_review',label:'Health Review',weight:15},
-    {key:'plan_review',label:'Plan Review',weight:15},
-    {key:'problem_reveal',label:'Problem Reveal',weight:20},
-    {key:'solution_reveal',label:'Solution Reveal',weight:15},
-    {key:'enrollment',label:'Enrollment',weight:15},
+    {key:'score_intro',   label:'Intro & Eligibility', weight:20},
+    {key:'score_health',  label:'Health Review',        weight:15},
+    {key:'score_plan',    label:'Plan Review',           weight:15},
+    {key:'score_problem', label:'Problem Reveal',        weight:20},
+    {key:'score_solution',label:'Solution Reveal',       weight:15},
+    {key:'score_enrollment',label:'Enrollment',          weight:15},
   ];
 
-  document.getElementById('res_agentName').textContent=agentName;
-  document.getElementById('res_overallScore').textContent=Math.round(result.overall_score||0)+'/100';
-  document.getElementById('res_overallScore').style.color=scoreColor(result.overall_score||0);
-  const grade=gradeFromScore(result.overall_score||0);
-  const gradeEl=document.getElementById('res_grade');
-  gradeEl.textContent=grade.label; gradeEl.className='score-grade '+grade.cls;
-  document.getElementById('res_timestamp').textContent='Scored '+new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York'})+' ET';
-  if(result.call_length_seconds){
-    const m=Math.floor(result.call_length_seconds/60), s=result.call_length_seconds%60;
-    document.getElementById('res_callLength').textContent=`${m}m ${s}s`;
-  }
+  document.getElementById('res_agentName').textContent=job.agent_name||'—';
+  document.getElementById('res_overallScore').textContent=Math.round(job.overall_score||0)+'/100';
+  document.getElementById('res_overallScore').style.color=scoreColor(job.overall_score||0);
+  const grade=gradeFromScore(job.overall_score||0);
+  const gradeEl=document.getElementById('res_grade'); gradeEl.textContent=grade.label; gradeEl.className='score-grade '+grade.cls;
+  document.getElementById('res_fileName').textContent=job.file_name||'—';
+  document.getElementById('res_timestamp').textContent=job.completed_at?new Date(job.completed_at).toLocaleString('en-US',{timeZone:'America/New_York'})+' ET':'';
+  document.getElementById('res_summary').textContent=job.call_summary||'';
 
-  // Plate scores
   document.getElementById('res_plateScores').innerHTML=plates.map(p=>{
-    const sc=result.plate_scores?.[p.key]||0;
-    const col=scoreColor(sc);
-    return`<div class="plate-score-card"><div class="plate-score-name">${p.label} (/${p.weight}pts)</div><div class="plate-score-val" style="color:${col};">${Math.round(sc)}</div><div class="plate-score-bar"><div class="plate-score-fill" style="width:${sc}%;background:${col};"></div></div></div>`;
+    const sc=job[p.key]||0, col=scoreColor(sc);
+    return`<div class="plate-score-card"><div class="plate-score-name">${p.label} (/${p.weight}pts)</div><div class="plate-score-val" style="color:${col};">${sc}</div><div class="plate-score-bar"><div class="plate-score-fill" style="width:${sc}%;background:${col};"></div></div></div>`;
   }).join('');
 
-  // Coaching points
-  const pts=result.coaching_points||[];
-  document.getElementById('res_coaching').innerHTML=pts.length?pts.map(pt=>{
-    const pCls=pt.priority==='HIGH'?'priority-high':pt.priority==='MEDIUM'?'priority-med':'priority-low';
-    return`<div class="coaching-point"><div class="coaching-priority ${pCls}">${pt.priority==='HIGH'?'H':pt.priority==='MEDIUM'?'M':'L'}</div><div class="coaching-body"><div class="coaching-plate">${pt.plate}</div><div class="coaching-text">${pt.text}</div></div></div>`;
-  }).join(''):'<div style="color:var(--muted);">No coaching points generated.</div>';
+  let pts=[];
+  try{ pts=JSON.parse(job.coaching_points||'[]'); } catch(e){}
+  document.getElementById('res_coaching').innerHTML=pts.length?pts.map(pt=>{ const pCls=pt.priority==='HIGH'?'priority-high':pt.priority==='MEDIUM'?'priority-med':'priority-low'; return`<div class="coaching-point"><div class="coaching-priority ${pCls}">${pt.priority==='HIGH'?'H':pt.priority==='MEDIUM'?'M':'L'}</div><div class="coaching-body"><div class="coaching-plate">${pt.plate}</div><div class="coaching-text">${pt.text}</div></div></div>`; }).join(''):'<div style="color:var(--muted);">No coaching points available.</div>';
 
-  // Transcript
-  document.getElementById('res_transcript').textContent=result.transcript||'Transcript not available.';
+  document.getElementById('res_transcript').textContent=job.transcript||'Transcript not available.';
   document.getElementById('sc_result').style.display='block';
+  document.getElementById('sc_btn').disabled=false;
   document.getElementById('sc_result').scrollIntoView({behavior:'smooth'});
 }
 
-function toggleTranscript(){
-  const body=document.getElementById('res_transcript');
-  const btn=body.previousElementSibling;
-  const visible=body.style.display==='block';
-  body.style.display=visible?'none':'block';
-  btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript';
+async function loadRecentScores(){
+  const el=document.getElementById('sc_recentCalls'); if(!el)return;
+  try {
+    const res=await fetch('/api/recent-scores');
+    if(!res.ok){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; return; }
+    const scores=await res.json();
+    if(!scores.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">No scored calls yet.</div>'; return; }
+    el.innerHTML=scores.map(s=>{
+      const col=scoreColor(s.overall_score||0);
+      const grade=gradeFromScore(s.overall_score||0);
+      const ts=s.completed_at?new Date(s.completed_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}):'';
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-weight:600;color:var(--white);font-size:13px;">${s.agent_name||'Unknown'}</div>
+            <div style="font-size:11px;color:var(--muted);">${s.file_name||''} · ${ts}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};">${s.overall_score||0}</div>
+            <div style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;" class="score-grade ${grade.cls}">${grade.label.split('—')[0].trim()}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--body);margin-top:8px;line-height:1.5;">${s.call_summary||''}</div>
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
 }
+function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth'}); }
+function resetScorer(){ scorerFile=null; document.getElementById('sc_file').value=''; document.getElementById('sc_filename').textContent=''; document.getElementById('sc_btn').disabled=true; document.getElementById('sc_result').style.display='none'; document.getElementById('sc_progress').style.display='none'; document.getElementById('sc_error').style.display='none'; }
+function toggleTranscript(){ const body=document.getElementById('res_transcript'),btn=body.previousElementSibling; const visible=body.style.display==='block'; body.style.display=visible?'none':'block'; btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript'; }
 
-// ══════════════════════════════════════════════════
-// MODALS
-// ══════════════════════════════════════════════════
+// ── Modals ─────────────────────────────────────────────────────────────────
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
-// ══════════════════════════════════════════════════
-// REALTIME
-// ══════════════════════════════════════════════════
+// ── Realtime ───────────────────────────────────────────────────────────────
 function startRealtime(){
-  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{
-    if(currentUser?.role==='admin') renderAdminBoard();
-    else if(currentUser) renderAgentBoard();
-  }).subscribe();
-  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{
-    if(currentUser?.role==='admin' && adminBoardView==='mapd') renderMAPDBoard();
-  }).subscribe();
+  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); }).subscribe();
+  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); }).subscribe();
 }
 
-// ══════════════════════════════════════════════════
-// CLOCKS
-// ══════════════════════════════════════════════════
-function startClocks(){
-  function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); }
-  tick(); setInterval(tick,1000);
-  setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); },30000);
-}
+// ── Clocks ─────────────────────────────────────────────────────────────────
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); },30000); }
 
-// ══════════════════════════════════════════════════
-// DRAG & DROP
-// ══════════════════════════════════════════════════
+// ── Drag & drop on scorer ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
-  const dz=document.getElementById('scorerDropZone');
-  if(!dz)return;
+  const dz=document.getElementById('scorerDropZone'); if(!dz)return;
   dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
-  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ document.getElementById('sc_file').files=e.dataTransfer.files; onFileSelected(document.getElementById('sc_file')); }});
+  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }});
 });
 
-// ══════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════
+// ── Init ───────────────────────────────────────────────────────────────────
 (async function init(){
   const session=loadSession();
   if(session){
