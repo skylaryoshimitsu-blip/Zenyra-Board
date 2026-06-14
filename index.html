@@ -1405,7 +1405,7 @@ function downloadScorerPDF(){
   });
 
   const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Call Score — ${agentName}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>Call Score — ${agentName}<\/title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
@@ -1420,33 +1420,33 @@ function downloadScorerPDF(){
     .transcript{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;font-size:11px;color:#64748b;line-height:1.7;white-space:pre-wrap;max-height:400px;overflow:hidden;}
     .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}
     @media print{body{padding:16px;}@page{margin:1cm;}}
-  </style></head><body>
+  <\/style><\/head><body>
   <div class="header">
     <div>
-      <div class="brand">ZENYRA</div>
-      <div style="font-size:11px;color:#64748b;margin-top:2px;">Ancillary HIP Call Score Report</div>
-      <div style="font-size:11px;color:#64748b;">${fileName}</div>
-      <div style="font-size:11px;color:#64748b;">${timestamp}</div>
-    </div>
+      <div class="brand">ZENYRA<\/div>
+      <div style="font-size:11px;color:#64748b;margin-top:2px;">Ancillary HIP Call Score Report<\/div>
+      <div style="font-size:11px;color:#64748b;">${fileName}<\/div>
+      <div style="font-size:11px;color:#64748b;">${timestamp}<\/div>
+    <\/div>
     <div style="text-align:right;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Agent</div>
-      <div style="font-size:18px;font-weight:700;color:#0f172a;">${agentName}</div>
-      <div class="score-big" style="color:#00C9B1;">${overallScore}</div>
-      <div class="grade" style="background:#e0fdf4;color:#059669;">${grade}</div>
-    </div>
-  </div>
-  <div class="section-title">Call Summary</div>
-  <div class="summary">${summary}</div>
-  <div class="section-title">Plate Scores</div>
-  <div class="plates">${platesHTML}</div>
-  <div class="section-title">Coaching Points</div>
-  <div style="margin-bottom:20px;">${coachingHTML}</div>
-  <div class="section-title">Transcript</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Agent<\/div>
+      <div style="font-size:18px;font-weight:700;color:#0f172a;">${agentName}<\/div>
+      <div class="score-big" style="color:#00C9B1;">${overallScore}<\/div>
+      <div class="grade" style="background:#e0fdf4;color:#059669;">${grade}<\/div>
+    <\/div>
+  <\/div>
+  <div class="section-title">Call Summary<\/div>
+  <div class="summary">${summary}<\/div>
+  <div class="section-title">Plate Scores<\/div>
+  <div class="plates">${platesHTML}<\/div>
+  <div class="section-title">Coaching Points<\/div>
+  <div style="margin-bottom:20px;">${coachingHTML}<\/div>
+  <div class="section-title">Transcript<\/div>
   <div class="transcript">${transcript.substring(0,3000)}${transcript.length>3000?'
 
-[Transcript truncated for PDF — full version in system]':''}</div>
-  <div class="footer">Powered by Zenyra · Confidential · ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</div>
-  </body></html>`);
+[Transcript truncated for PDF — full version in system]':''}<\/div>
+  <div class="footer">Powered by Zenyra · Confidential · ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET<\/div>
+  <\/body><\/html>`);
   win.document.close();
   setTimeout(()=>win.print(),800);
 }
