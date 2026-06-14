@@ -1323,82 +1323,8 @@ async function loadRecentScores(){
   } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
 }
 function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth'}); }
-function resetScorer(){
-  scorerFile=null;
-  document.getElementById('sc_file').value='';
-  document.getElementById('sc_filename').textContent='';
-  document.getElementById('sc_btn').disabled=true;
-  document.getElementById('sc_result').style.display='none';
-  document.getElementById('sc_progress').style.display='none';
-  document.getElementById('sc_error').style.display='none';
-  var wrap=document.querySelector('.scorer-wrap');
-  if(wrap) wrap.scrollTop=0;
-}
-
-function downloadScorerPDF(){
-  var agentName=document.getElementById('res_agentName')?document.getElementById('res_agentName').textContent:'Agent';
-  var overallScore=document.getElementById('res_overallScore')?document.getElementById('res_overallScore').textContent:'--';
-  var grade=document.getElementById('res_grade')?document.getElementById('res_grade').textContent:'';
-  var summary=document.getElementById('res_summary')?document.getElementById('res_summary').textContent:'';
-  var fileName=document.getElementById('res_fileName')?document.getElementById('res_fileName').textContent:'';
-  var timestamp=document.getElementById('res_timestamp')?document.getElementById('res_timestamp').textContent:'';
-  var transcript=document.getElementById('res_transcript')?document.getElementById('res_transcript').textContent:'';
-  var platesHTML='';
-  document.querySelectorAll('.plate-score-card').forEach(function(card){
-    var name=card.querySelector('.plate-score-name')?card.querySelector('.plate-score-name').textContent:'';
-    var val=card.querySelector('.plate-score-val')?card.querySelector('.plate-score-val').textContent:'';
-    var fillEl=card.querySelector('.plate-score-fill');
-    var color=fillEl?fillEl.style.background:'#00C9B1';
-    var width=fillEl?fillEl.style.width:'0%';
-    platesHTML+='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;">'+name+'</div><div style="font-size:28px;font-weight:700;color:'+color+';">'+val+'</div><div style="height:3px;background:#e2e8f0;border-radius:99px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:'+width+';background:'+color+';border-radius:99px;"></div></div></div>';
-  });
-  var coachingHTML='';
-  document.querySelectorAll('.coaching-point').forEach(function(pt){
-    var priority=pt.querySelector('.coaching-priority')?pt.querySelector('.coaching-priority').textContent:'';
-    var plate=pt.querySelector('.coaching-plate')?pt.querySelector('.coaching-plate').textContent:'';
-    var text=pt.querySelector('.coaching-text')?pt.querySelector('.coaching-text').textContent:'';
-    var bgColor=priority==='H'?'#fef2f2':priority==='M'?'#fffbeb':'#f0fdf4';
-    var txtColor=priority==='H'?'#dc2626':priority==='M'?'#d97706':'#16a34a';
-    coachingHTML+='<div style="display:flex;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;"><div style="width:28px;height:28px;border-radius:6px;background:'+bgColor+';color:'+txtColor+';font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+priority+'</div><div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:3px;">'+plate+'</div><div style="font-size:13px;color:#334155;line-height:1.6;">'+text+'</div></div></div>';
-  });
-  var shortTranscript=transcript.length>3000?transcript.substring(0,3000)+'\n\n[Transcript truncated]':transcript;
-  var html='<!DOCTYPE html><html><head><title>Call Score - '+agentName+'</title>'
-    +'<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
-    +'<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Inter,sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}'
-    +'.brand{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;}'
-    +'.score-big{font-family:"Bebas Neue",sans-serif;font-size:56px;letter-spacing:2px;line-height:1;color:#00C9B1;}'
-    +'.section-title{font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:2px;color:#00C9B1;margin:20px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;}'
-    +'.plates{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}'
-    +'.summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin-bottom:20px;line-height:1.6;}'
-    +'.transcript{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;font-size:11px;color:#64748b;line-height:1.7;white-space:pre-wrap;}'
-    +'.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}'
-    +'@media print{body{padding:16px;}}</style></head><body>'
-    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00C9B1;">'
-    +'<div><div class="brand">ZENYRA</div>'
-    +'<div style="font-size:11px;color:#64748b;margin-top:2px;">Ancillary HIP Call Score Report</div>'
-    +'<div style="font-size:11px;color:#64748b;">'+fileName+'</div>'
-    +'<div style="font-size:11px;color:#64748b;">'+timestamp+'</div></div>'
-    +'<div style="text-align:right;">'
-    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Agent</div>'
-    +'<div style="font-size:18px;font-weight:700;color:#0f172a;">'+agentName+'</div>'
-    +'<div class="score-big">'+overallScore+'</div>'
-    +'<div style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;background:#e0fdf4;color:#059669;display:inline-block;margin-top:4px;">'+grade+'</div>'
-    +'</div></div>'
-    +'<div class="section-title">Call Summary</div>'
-    +'<div class="summary">'+summary+'</div>'
-    +'<div class="section-title">Plate Scores</div>'
-    +'<div class="plates">'+platesHTML+'</div>'
-    +'<div class="section-title">Coaching Points</div>'
-    +'<div style="margin-bottom:20px;">'+coachingHTML+'</div>'
-    +'<div class="section-title">Transcript</div>'
-    +'<div class="transcript">'+shortTranscript+'</div>'
-    +'<div class="footer">Powered by Zenyra | Confidential | Generated '+new Date().toLocaleString('en-US',{timeZone:'America/New_York'})+' ET</div>'
-    +'</body></html>';
-  var win=window.open('','_blank');
-  win.document.write(html);
-  win.document.close();
-  setTimeout(function(){ win.print(); },800);
-}
+function resetScorer(){scorerFile=null;document.getElementById('sc_file').value='';document.getElementById('sc_filename').textContent='';document.getElementById('sc_btn').disabled=true;document.getElementById('sc_result').style.display='none';document.getElementById('sc_progress').style.display='none';document.getElementById('sc_error').style.display='none';var wrap=document.querySelector('.scorer-wrap');if(wrap)wrap.scrollTop=0;}
+function downloadScorerPDF(){var a=document.getElementById('res_agentName'),o=document.getElementById('res_overallScore'),g=document.getElementById('res_grade'),su=document.getElementById('res_summary'),fn=document.getElementById('res_fileName'),ts=document.getElementById('res_timestamp'),tr=document.getElementById('res_transcript');var agentName=a?a.textContent:'Agent',overallScore=o?o.textContent:'--',grade=g?g.textContent:'',summary=su?su.textContent:'',fileName=fn?fn.textContent:'',timestamp=ts?ts.textContent:'',transcript=tr?tr.textContent:'';var platesHTML='';document.querySelectorAll('.plate-score-card').forEach(function(card){var nm=card.querySelector('.plate-score-name')?card.querySelector('.plate-score-name').textContent:'';var vl=card.querySelector('.plate-score-val')?card.querySelector('.plate-score-val').textContent:'';var fl=card.querySelector('.plate-score-fill');var co=fl?fl.style.background:'#00C9B1',wi=fl?fl.style.width:'0%';platesHTML+='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;">'+'<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;">'+nm+'</div>'+'<div style="font-size:26px;font-weight:700;color:'+co+';">'+vl+'</div>'+'<div style="height:3px;background:#e2e8f0;border-radius:99px;margin-top:6px;overflow:hidden;">'+'<div style="height:100%;width:'+wi+';background:'+co+';border-radius:99px;"></div></div></div>';});var coachingHTML='';document.querySelectorAll('.coaching-point').forEach(function(pt){var pr=pt.querySelector('.coaching-priority')?pt.querySelector('.coaching-priority').textContent:'';var pl=pt.querySelector('.coaching-plate')?pt.querySelector('.coaching-plate').textContent:'';var tx=pt.querySelector('.coaching-text')?pt.querySelector('.coaching-text').textContent:'';var bg=pr==='H'?'#fef2f2':pr==='M'?'#fffbeb':'#f0fdf4';var tc=pr==='H'?'#dc2626':pr==='M'?'#d97706':'#16a34a';coachingHTML+='<div style="display:flex;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">'+'<div style="width:24px;height:24px;border-radius:4px;background:'+bg+';color:'+tc+';font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+pr+'</div>'+'<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:2px;">'+pl+'</div>'+'<div style="font-size:12px;color:#334155;line-height:1.5;">'+tx+'</div></div></div>';});var sT=transcript.length>2000?transcript.substring(0,2000)+'\n[Truncated]':transcript;var h='<!DOCTYPE html><html><head><title>Call Score - '+agentName+'</title>'+'<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'+'<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Inter,sans-serif;padding:28px;font-size:13px;color:#111;}'+'.brand{font-family:Bebas Neue,sans-serif;font-size:24px;letter-spacing:3px;color:#00C9B1;}'+'.sec{font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:2px;color:#00C9B1;margin:16px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;}'+'.plates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}'+'.summ{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;margin-bottom:16px;line-height:1.6;}'+'.tr{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:11px;color:#64748b;line-height:1.6;white-space:pre-wrap;}'+'.foot{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;}'+'@media print{body{padding:12px;}}</style></head><body>'+'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #00C9B1;">'+'<div><div class="brand">ZENYRA</div>'+'<div style="font-size:11px;color:#64748b;">Ancillary HIP Call Score Report</div>'+'<div style="font-size:11px;color:#64748b;">'+fileName+'</div>'+'<div style="font-size:11px;color:#64748b;">'+timestamp+'</div></div>'+'<div style="text-align:right;">'+'<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;">Agent</div>'+'<div style="font-size:16px;font-weight:700;">'+agentName+'</div>'+'<div style="font-family:Bebas Neue,sans-serif;font-size:48px;color:#00C9B1;line-height:1;">'+overallScore+'</div>'+'<div style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e0fdf4;color:#059669;display:inline-block;">'+grade+'</div>'+'</div></div>'+'<div class="sec">Call Summary</div><div class="summ">'+summary+'</div>'+'<div class="sec">Plate Scores</div><div class="plates">'+platesHTML+'</div>'+'<div class="sec">Coaching Points</div><div style="margin-bottom:16px;">'+coachingHTML+'</div>'+'<div class="sec">Transcript</div><div class="tr">'+sT+'</div>'+'<div class="foot">Powered by Zenyra | Confidential | '+new Date().toLocaleString('en-US',{timeZone:'America/New_York'})+' ET</div>'+'</body></html>';var w=window.open('','_blank');w.document.write(h);w.document.close();setTimeout(function(){w.print();},800);}
 function toggleTranscript(){ const body=document.getElementById('res_transcript'),btn=body.previousElementSibling; const visible=body.style.display==='block'; body.style.display=visible?'none':'block'; btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript'; }
 
 // ── Modals ─────────────────────────────────────────────────────────────────
