@@ -747,9 +747,9 @@ tbody td:not(:first-child){text-align:right;}
             <div class="transcript-body" id="res_transcript"></div>
           </div>
           <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-            <button onclick="downloadScorerPDF()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">⬇ Download PDF</button>
-            <button onclick="resetScorer()" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">↩ Score Another Call</button>
-            <button onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer;">🖨 Print</button>
+            <button onclick="downloadScorerPDF()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">&#x2B07; Download PDF</button>
+            <button onclick="resetScorer()" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">&#x21A9; Score Another Call</button>
+            <button onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer;">&#x1F5A8; Print</button>
           </div>
         </div>
 
@@ -1221,49 +1221,26 @@ async function scoreCall(){
   setStep('step_upload','active'); setStep('step_transcribe',''); setStep('step_score',''); setStep('step_coaching','');
 
   try {
-    // Step 1: Create job record via lightweight API call (no file body)
-    const createRes = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agentName, agentId, fileName: scorerFile.name, action: 'create-job' })
-    });
-    if(!createRes.ok){ const t=await createRes.text(); throw new Error(t||'Job creation failed'); }
-    const { jobId, uploadPath, uploadToken } = await createRes.json();
+    // Upload file via multipart form to /api/upload
+    const formData = new FormData();
+    formData.append('audio', scorerFile, scorerFile.name);
+    formData.append('agentName', agentName);
+    if(agentId) formData.append('agentId', agentId);
 
-    // Step 2: Upload file directly to Supabase Storage from browser (bypasses Vercel body limit)
-    const SUPA_URL = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
-    const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
-    const storageRes = await fetch(
-      `${SUPA_URL}/storage/v1/object/lb-scorer-audio/${uploadPath}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPA_ANON}`,
-          'Content-Type': scorerFile.type || 'audio/mpeg',
-          'x-upsert': 'false'
-        },
-        body: scorerFile
-      }
-    );
-    if(!storageRes.ok){ const t=await storageRes.text(); throw new Error('Storage upload failed: '+t); }
+    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+    if(!uploadRes.ok){ const e=await uploadRes.json(); throw new Error(e.error||'Upload failed'); }
+    const { jobId } = await uploadRes.json();
 
     setStep('step_upload','done'); setStep('step_transcribe','active');
 
-    // Step 3: Trigger Inngest job now that file is in storage
-    const triggerRes = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, uploadPath, agentName, agentId, fileName: scorerFile.name, action: 'trigger-job' })
-    });
-    if(!triggerRes.ok){ const t=await triggerRes.text(); throw new Error('Job trigger failed: '+t); }
-
-    // Step 4: Poll for completion
+    // Poll for completion
     if(scorerPollInterval) clearInterval(scorerPollInterval);
     scorerPollInterval = setInterval(async ()=>{
       try {
         const statusRes = await fetch(`/api/job-status?jobId=${jobId}`);
         if(!statusRes.ok) return;
         const job = await statusRes.json();
+
         if(job.status==='transcribing'){
           setStep('step_transcribe','active'); setStep('step_score',''); setStep('step_coaching','');
         } else if(job.status==='scoring'){
@@ -1354,101 +1331,73 @@ function resetScorer(){
   document.getElementById('sc_result').style.display='none';
   document.getElementById('sc_progress').style.display='none';
   document.getElementById('sc_error').style.display='none';
-  // Scroll back to top of scorer panel
-  const wrap=document.querySelector('.scorer-wrap');
+  var wrap=document.querySelector('.scorer-wrap');
   if(wrap) wrap.scrollTop=0;
 }
 
 function downloadScorerPDF(){
-  const agentName=document.getElementById('res_agentName')?.textContent||'Agent';
-  const overallScore=document.getElementById('res_overallScore')?.textContent||'—';
-  const grade=document.getElementById('res_grade')?.textContent||'';
-  const summary=document.getElementById('res_summary')?.textContent||'';
-  const fileName=document.getElementById('res_fileName')?.textContent||'';
-  const timestamp=document.getElementById('res_timestamp')?.textContent||'';
-  const transcript=document.getElementById('res_transcript')?.textContent||'';
-
-  // Collect plate scores
-  const plateCards=document.querySelectorAll('.plate-score-card');
-  let platesHTML='';
-  plateCards.forEach(card=>{
-    const name=card.querySelector('.plate-score-name')?.textContent||'';
-    const val=card.querySelector('.plate-score-val')?.textContent||'';
-    const fillEl=card.querySelector('.plate-score-fill');
-    const color=fillEl?.style.background||'#00C9B1';
-    const width=fillEl?.style.width||'0%';
-    platesHTML+=`<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">${name}</div>
-      <div style="font-size:28px;font-weight:700;color:${color};">${val}</div>
-      <div style="height:3px;background:#e2e8f0;border-radius:99px;margin-top:6px;overflow:hidden;">
-        <div style="height:100%;width:${width};background:${color};border-radius:99px;"></div>
-      </div>
-    </div>`;
+  var agentName=document.getElementById('res_agentName')?document.getElementById('res_agentName').textContent:'Agent';
+  var overallScore=document.getElementById('res_overallScore')?document.getElementById('res_overallScore').textContent:'--';
+  var grade=document.getElementById('res_grade')?document.getElementById('res_grade').textContent:'';
+  var summary=document.getElementById('res_summary')?document.getElementById('res_summary').textContent:'';
+  var fileName=document.getElementById('res_fileName')?document.getElementById('res_fileName').textContent:'';
+  var timestamp=document.getElementById('res_timestamp')?document.getElementById('res_timestamp').textContent:'';
+  var transcript=document.getElementById('res_transcript')?document.getElementById('res_transcript').textContent:'';
+  var platesHTML='';
+  document.querySelectorAll('.plate-score-card').forEach(function(card){
+    var name=card.querySelector('.plate-score-name')?card.querySelector('.plate-score-name').textContent:'';
+    var val=card.querySelector('.plate-score-val')?card.querySelector('.plate-score-val').textContent:'';
+    var fillEl=card.querySelector('.plate-score-fill');
+    var color=fillEl?fillEl.style.background:'#00C9B1';
+    var width=fillEl?fillEl.style.width:'0%';
+    platesHTML+='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;">'+name+'</div><div style="font-size:28px;font-weight:700;color:'+color+';">'+val+'</div><div style="height:3px;background:#e2e8f0;border-radius:99px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:'+width+';background:'+color+';border-radius:99px;"></div></div></div>';
   });
-
-  // Collect coaching points
-  const coachingPoints=document.querySelectorAll('.coaching-point');
-  let coachingHTML='';
-  coachingPoints.forEach(pt=>{
-    const priority=pt.querySelector('.coaching-priority')?.textContent||'';
-    const plate=pt.querySelector('.coaching-plate')?.textContent||'';
-    const text=pt.querySelector('.coaching-text')?.textContent||'';
-    const bgColor=priority==='H'?'#fef2f2':priority==='M'?'#fffbeb':'#f0fdf4';
-    const txtColor=priority==='H'?'#dc2626':priority==='M'?'#d97706':'#16a34a';
-    coachingHTML+=`<div style="display:flex;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;">
-      <div style="width:28px;height:28px;border-radius:6px;background:${bgColor};color:${txtColor};font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${priority}</div>
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:3px;">${plate}</div>
-        <div style="font-size:13px;color:#334155;line-height:1.6;">${text}</div>
-      </div>
-    </div>`;
+  var coachingHTML='';
+  document.querySelectorAll('.coaching-point').forEach(function(pt){
+    var priority=pt.querySelector('.coaching-priority')?pt.querySelector('.coaching-priority').textContent:'';
+    var plate=pt.querySelector('.coaching-plate')?pt.querySelector('.coaching-plate').textContent:'';
+    var text=pt.querySelector('.coaching-text')?pt.querySelector('.coaching-text').textContent:'';
+    var bgColor=priority==='H'?'#fef2f2':priority==='M'?'#fffbeb':'#f0fdf4';
+    var txtColor=priority==='H'?'#dc2626':priority==='M'?'#d97706':'#16a34a';
+    coachingHTML+='<div style="display:flex;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;"><div style="width:28px;height:28px;border-radius:6px;background:'+bgColor+';color:'+txtColor+';font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+priority+'</div><div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:3px;">'+plate+'</div><div style="font-size:13px;color:#334155;line-height:1.6;">'+text+'</div></div></div>';
   });
-
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Call Score — ${agentName}<\/title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}
-    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00C9B1;}
-    .brand{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;}
-    .score-big{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:2px;line-height:1;}
-    .grade{font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;display:inline-block;margin-top:4px;}
-    .section-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:#00C9B1;margin:20px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;}
-    .plates{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
-    .summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin-bottom:20px;font-size:13px;color:#334155;line-height:1.6;}
-    .transcript{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;font-size:11px;color:#64748b;line-height:1.7;white-space:pre-wrap;max-height:400px;overflow:hidden;}
-    .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}
-    @media print{body{padding:16px;}@page{margin:1cm;}}
-  <\/style><\/head><body>
-  <div class="header">
-    <div>
-      <div class="brand">ZENYRA<\/div>
-      <div style="font-size:11px;color:#64748b;margin-top:2px;">Ancillary HIP Call Score Report<\/div>
-      <div style="font-size:11px;color:#64748b;">${fileName}<\/div>
-      <div style="font-size:11px;color:#64748b;">${timestamp}<\/div>
-    <\/div>
-    <div style="text-align:right;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Agent<\/div>
-      <div style="font-size:18px;font-weight:700;color:#0f172a;">${agentName}<\/div>
-      <div class="score-big" style="color:#00C9B1;">${overallScore}<\/div>
-      <div class="grade" style="background:#e0fdf4;color:#059669;">${grade}<\/div>
-    <\/div>
-  <\/div>
-  <div class="section-title">Call Summary<\/div>
-  <div class="summary">${summary}<\/div>
-  <div class="section-title">Plate Scores<\/div>
-  <div class="plates">${platesHTML}<\/div>
-  <div class="section-title">Coaching Points<\/div>
-  <div style="margin-bottom:20px;">${coachingHTML}<\/div>
-  <div class="section-title">Transcript<\/div>
-  <div class="transcript">${transcript.substring(0,3000)}${transcript.length>3000?'
-
-[Transcript truncated for PDF — full version in system]':''}<\/div>
-  <div class="footer">Powered by Zenyra · Confidential · ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET<\/div>
-  <\/body><\/html>`);
+  var shortTranscript=transcript.length>3000?transcript.substring(0,3000)+'\n\n[Transcript truncated]':transcript;
+  var html='<!DOCTYPE html><html><head><title>Call Score - '+agentName+'</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Inter,sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}'
+    +'.brand{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;}'
+    +'.score-big{font-family:"Bebas Neue",sans-serif;font-size:56px;letter-spacing:2px;line-height:1;color:#00C9B1;}'
+    +'.section-title{font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:2px;color:#00C9B1;margin:20px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;}'
+    +'.plates{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}'
+    +'.summary{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin-bottom:20px;line-height:1.6;}'
+    +'.transcript{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;font-size:11px;color:#64748b;line-height:1.7;white-space:pre-wrap;}'
+    +'.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}'
+    +'@media print{body{padding:16px;}}</style></head><body>'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00C9B1;">'
+    +'<div><div class="brand">ZENYRA</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-top:2px;">Ancillary HIP Call Score Report</div>'
+    +'<div style="font-size:11px;color:#64748b;">'+fileName+'</div>'
+    +'<div style="font-size:11px;color:#64748b;">'+timestamp+'</div></div>'
+    +'<div style="text-align:right;">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Agent</div>'
+    +'<div style="font-size:18px;font-weight:700;color:#0f172a;">'+agentName+'</div>'
+    +'<div class="score-big">'+overallScore+'</div>'
+    +'<div style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;background:#e0fdf4;color:#059669;display:inline-block;margin-top:4px;">'+grade+'</div>'
+    +'</div></div>'
+    +'<div class="section-title">Call Summary</div>'
+    +'<div class="summary">'+summary+'</div>'
+    +'<div class="section-title">Plate Scores</div>'
+    +'<div class="plates">'+platesHTML+'</div>'
+    +'<div class="section-title">Coaching Points</div>'
+    +'<div style="margin-bottom:20px;">'+coachingHTML+'</div>'
+    +'<div class="section-title">Transcript</div>'
+    +'<div class="transcript">'+shortTranscript+'</div>'
+    +'<div class="footer">Powered by Zenyra | Confidential | Generated '+new Date().toLocaleString('en-US',{timeZone:'America/New_York'})+' ET</div>'
+    +'</body></html>';
+  var win=window.open('','_blank');
+  win.document.write(html);
   win.document.close();
-  setTimeout(()=>win.print(),800);
+  setTimeout(function(){ win.print(); },800);
 }
 function toggleTranscript(){ const body=document.getElementById('res_transcript'),btn=body.previousElementSibling; const visible=body.style.display==='block'; body.style.display=visible?'none':'block'; btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript'; }
 
