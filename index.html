@@ -953,11 +953,20 @@ function doLogout(){ clearSession(); showScreen('landing'); }
 // ── Data fetchers ──────────────────────────────────────────────────────────
 async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
 async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
+function startOfTodayET_ISO(){
+  // Returns the UTC ISO timestamp for midnight Eastern today, correct from any browser timezone
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const y=parts.find(p=>p.type==='year').value;
+  const m=parts.find(p=>p.type==='month').value;
+  const d=parts.find(p=>p.type==='day').value;
+  const testDate=new Date(y+'-'+m+'-'+d+'T12:00:00Z');
+  const etHour=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(testDate));
+  let offset=12-etHour; if(offset<0) offset+=24;
+  return y+'-'+m+'-'+d+'T'+String(offset).padStart(2,'0')+':00:00.000Z';
+}
 async function fetchRecentSubs(limit=8){
-  // Only show sales from the current work day (Eastern Time) — list resets each morning
-  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const startOfDayET=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
-  const {data}=await db.from('lb_submissions').select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at').eq('status','live').gte('submitted_at',startOfDayET.toISOString()).order('submitted_at',{ascending:false}).limit(limit);
+  // Only show sales from the current work day (Eastern Time) — list resets each morning at midnight ET
+  const {data}=await db.from('lb_submissions').select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at').eq('status','live').gte('submitted_at',startOfTodayET_ISO()).order('submitted_at',{ascending:false}).limit(limit);
   return data||[];
 }
 async function fetchAllSubs(){
