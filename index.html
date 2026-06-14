@@ -381,7 +381,7 @@ tbody td:not(:first-child){text-align:right;}
         <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
         <table>
           <thead><tr>
-            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th>
+            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th>
           </tr></thead>
           <tbody id="a_leaderboardBody"></tbody>
         </table>
@@ -438,7 +438,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="leaderboard-pane" style="flex:1;border-right:none;overflow-y:auto;">
       <div class="section-eyebrow">MAPD Submissions — This Month</div>
       <table><thead><tr>
-        <th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th>
+        <th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th><th>Top State</th><th>Top Carrier</th>
       </tr></thead>
       <tbody id="a_mapdBody"></tbody></table>
     </div>
@@ -649,7 +649,7 @@ tbody td:not(:first-child){text-align:right;}
       <div class="main-layout" style="flex:1;overflow:hidden;">
         <div class="leaderboard-pane">
           <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
-          <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th></tr></thead>
+          <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th></tr></thead>
           <tbody id="ad_leaderboardBody"></tbody></table>
         </div>
         <div class="sidebar" id="ad_sidebar"></div>
@@ -660,7 +660,7 @@ tbody td:not(:first-child){text-align:right;}
       <div class="mapd-pulse" id="ad_mapd_pulse"></div>
       <div class="leaderboard-pane" style="flex:1;border-right:none;">
         <div class="section-eyebrow">MAPD Submissions — This Month</div>
-        <table><thead><tr><th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th></tr></thead>
+        <table><thead><tr><th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th><th>Top State</th><th>Top Carrier</th></tr></thead>
         <tbody id="ad_mapdBody"></tbody></table>
       </div>
     </div>
@@ -953,6 +953,41 @@ function doLogout(){ clearSession(); showScreen('landing'); }
 // ── Data fetchers ──────────────────────────────────────────────────────────
 async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
 async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
+
+// ── Top State / Top Carrier (this week, Eastern) ──────────────────────────
+function startOfWeekET_ISO(){
+  // Sunday 00:00 ET of the current week, as a UTC ISO string (timezone-independent)
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(new Date());
+  const y=+parts.find(p=>p.type==='year').value;
+  const m=+parts.find(p=>p.type==='month').value;
+  const d=+parts.find(p=>p.type==='day').value;
+  const wd=parts.find(p=>p.type==='weekday').value; // Sun, Mon, ...
+  const idx=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(wd);
+  // Build a UTC date for today's ET calendar date at noon, then step back idx days to Sunday
+  const base=new Date(Date.UTC(y,m-1,d,12,0,0));
+  base.setUTCDate(base.getUTCDate()-idx);
+  // Determine ET offset to place midnight ET correctly
+  const testHour=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(base));
+  let offset=12-testHour; if(offset<0) offset+=24;
+  const yy=base.getUTCFullYear(), mm=String(base.getUTCMonth()+1).padStart(2,'0'), dd=String(base.getUTCDate()).padStart(2,'0');
+  return yy+'-'+mm+'-'+dd+'T'+String(offset).padStart(2,'0')+':00:00.000Z';
+}
+function modeOf(arr){
+  // returns most frequent non-empty value, or null
+  const counts={}; let best=null,bestN=0;
+  arr.forEach(v=>{ if(!v) return; const k=String(v).trim(); if(!k) return; counts[k]=(counts[k]||0)+1; if(counts[k]>bestN){bestN=counts[k];best=k;} });
+  return best;
+}
+async function fetchTopStateCarrier(table){
+  // Returns { agentId: {state, carrier} } computed from this week's submissions
+  const since=startOfWeekET_ISO();
+  const {data}=await db.from(table).select('agent_id,customer_state,carrier_name,submitted_at').eq('status','live').gte('submitted_at',since);
+  const byAgent={};
+  (data||[]).forEach(r=>{ if(!r.agent_id) return; (byAgent[r.agent_id]=byAgent[r.agent_id]||{states:[],carriers:[]}); byAgent[r.agent_id].states.push(r.customer_state); byAgent[r.agent_id].carriers.push(r.carrier_name); });
+  const out={};
+  Object.keys(byAgent).forEach(id=>{ out[id]={ state: modeOf(byAgent[id].states), carrier: modeOf(byAgent[id].carriers) }; });
+  return out;
+}
 function startOfTodayET_ISO(){
   // Returns the UTC ISO timestamp for midnight Eastern today, correct from any browser timezone
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
@@ -1025,7 +1060,8 @@ function buildMAPDPulse(mapd,elId){
 }
 
 // ── Leaderboards ───────────────────────────────────────────────────────────
-function buildLeaderboard(stats,tbodyId){
+function buildLeaderboard(stats,tbodyId,topMap){
+  topMap=topMap||{};
   const ranked=[...stats].sort((a,b)=>b.month_ap-a.month_ap);
   const dp=getDayProgress();
   const tbody=document.getElementById(tbodyId); if(!tbody)return;
@@ -1039,16 +1075,18 @@ function buildLeaderboard(stats,tbodyId){
     const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
     const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
-    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'▲':'▼'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'▲':'▼'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).state||'—'}</span></td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).carrier||'—'}</span></td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
   });
 }
-function buildMAPDLeaderboard(mapd,tbodyId){
+function buildMAPDLeaderboard(mapd,tbodyId,topMap){
+  topMap=topMap||{};
   const ranked=[...mapd].sort((a,b)=>b.apps_this_month-a.apps_this_month);
   const tbody=document.getElementById(tbodyId); if(!tbody)return;
   tbody.innerHTML='';
   ranked.forEach((a,i)=>{
     const rank=i+1,rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
-    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_today}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_week}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_month}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--muted);">${a.apps_all_time}</span></td></tr>`;
+    const t=topMap[a.id]||{}; const ts=t.state||'—'; const tc=t.carrier||'—';
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_today}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_week}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_month}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--muted);">${a.apps_all_time}</span></td><td><span style="font-size:12px;color:var(--label);">${ts}</span></td><td><span style="font-size:12px;color:var(--label);">${tc}</span></td></tr>`;
   });
 }
 function buildCombined(anc,mapd,elId){
@@ -1096,8 +1134,9 @@ function switchAgentView(view){
 // ── Agent board ────────────────────────────────────────────────────────────
 async function renderAgentBoard(){
   const stats=await fetchStats();
+  const topMap=await fetchTopStateCarrier('lb_submissions');
   buildPulse(stats,'a_');
-  buildLeaderboard(stats,'a_leaderboardBody');
+  buildLeaderboard(stats,'a_leaderboardBody',topMap);
   buildSidebar(stats,'a_sidebar','a_lastUpdated');
   const subs=await fetchRecentSubs(8);
   const rsEl=document.getElementById('a_recentSales');
@@ -1108,8 +1147,9 @@ async function renderAgentBoard(){
 }
 async function renderAgentMAPD(){
   const mapd=await fetchMAPDStats();
+  const topMap=await fetchTopStateCarrier('lb_mapd_submissions');
   buildMAPDPulse(mapd,'a_mapd_pulse');
-  buildMAPDLeaderboard(mapd,'a_mapdBody');
+  buildMAPDLeaderboard(mapd,'a_mapdBody',topMap);
 }
 async function renderAgentCombined(){
   const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]);
@@ -1157,8 +1197,8 @@ function switchAdminBoardView(view){
   if(view==='mapd')     renderMAPDBoard();
   if(view==='combined') renderAdminCombined();
 }
-async function renderAdminBoard(){ const stats=await fetchStats(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody'); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
-async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody'); }
+async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
+async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); const topMap=await fetchTopStateCarrier('lb_mapd_submissions'); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody',topMap); }
 async function renderAdminCombined(){ const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]); buildCombined(anc,mapd,'ad_combinedContent'); }
 
 // ── Admin submissions ──────────────────────────────────────────────────────
