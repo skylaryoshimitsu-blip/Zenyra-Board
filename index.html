@@ -236,7 +236,7 @@ tbody td:not(:first-child){text-align:right;}
 .fab-choice .fab-choice-sub{font-size:10px;color:var(--muted);font-weight:400;}
 
 /* CALL SCORER */
-.scorer-wrap{flex:1;overflow-y:auto;padding:20px 24px;}
+.scorer-wrap{padding:20px 24px 60px 24px;}
 .scorer-inner{max-width:860px;}
 .scorer-config{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;}
 .scorer-config-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--label);margin-bottom:14px;}
@@ -683,7 +683,7 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 
   <!-- CALL SCORER PANEL -->
-  <div id="admin-scorer-panel" style="display:none;flex:1;overflow:hidden;">
+  <div id="admin-scorer-panel" style="display:none;flex:1;overflow-y:auto;min-height:0;">
     <div class="scorer-wrap">
       <div class="scorer-inner">
 
@@ -1274,7 +1274,7 @@ function renderScorerResult(job){
   document.getElementById('res_transcript').textContent=job.transcript||'Transcript not available.';
   document.getElementById('sc_result').style.display='block';
   document.getElementById('sc_btn').disabled=false;
-  document.getElementById('sc_result').scrollIntoView({behavior:'smooth'});
+  document.getElementById('sc_result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 async function loadRecentScores(){
@@ -1304,7 +1304,7 @@ async function loadRecentScores(){
     }).join('');
   } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
 }
-function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth'}); }
+function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth',block:'start'}); }
 function resetScorer(){
   scorerFile=null;
   document.getElementById('sc_file').value='';
@@ -1313,7 +1313,7 @@ function resetScorer(){
   document.getElementById('sc_result').style.display='none';
   document.getElementById('sc_progress').style.display='none';
   document.getElementById('sc_error').style.display='none';
-  var wrap=document.querySelector('.scorer-wrap'); if(wrap) wrap.scrollTop=0;
+  var panel=document.getElementById('admin-scorer-panel'); if(panel) panel.scrollTop=0;
 }
 function downloadScorerPDF(){
   var gv=function(id){var e=document.getElementById(id);return e?e.textContent:'';};
