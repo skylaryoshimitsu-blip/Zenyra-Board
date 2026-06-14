@@ -1,70 +1,4 @@
-async function scoreCall(){
-  if(!scorerFile)return alert('Upload a call recording first.');
-  const agentSel=document.getElementById('sc_agent');
-  const agentName=agentSel.options[agentSel.selectedIndex]?.text||'Unknown Agent';
-  const agentId=agentSel.value||null;
-
-  document.getElementById('sc_error').style.display='none';
-  document.getElementById('sc_result').style.display='none';
-  document.getElementById('sc_progress').style.display='block';
-  document.getElementById('sc_btn').disabled=true;
-  setStep('step_upload','active'); setStep('step_transcribe',''); setStep('step_score',''); setStep('step_coaching','');
-
-  try {
-    // Step 1: Create job record (JSON body — tiny, no file)
-    const createRes = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create-job', agentName, agentId, fileName: scorerFile.name })
-    });
-    if(!createRes.ok){ const t=await createRes.text(); throw new Error('Job creation failed: '+t); }
-    const { jobId, uploadPath } = await createRes.json();
-
-    // Step 2: Upload file directly to Supabase Storage from browser (bypasses Vercel body limit)
-    const SUPA_URL = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
-    const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
-    const storageRes = await fetch(
-      SUPA_URL+'/storage/v1/object/lb-scorer-audio/'+uploadPath,
-      { method: 'POST', headers: { 'Authorization': 'Bearer '+SUPA_ANON, 'Content-Type': scorerFile.type||'audio/mpeg', 'x-upsert': 'false' }, body: scorerFile }
-    );
-    if(!storageRes.ok){ const t=await storageRes.text(); throw new Error('Storage upload failed: '+t); }
-
-    setStep('step_upload','done'); setStep('step_transcribe','active');
-
-    // Step 3: Trigger Inngest job (JSON body — tiny)
-    const triggerRes = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'trigger-job', jobId, uploadPath, agentName, agentId })
-    });
-    if(!triggerRes.ok){ const t=await triggerRes.text(); throw new Error('Job trigger failed: '+t); }
-
-    // Step 4: Poll for completion
-    if(scorerPollInterval) clearInterval(scorerPollInterval);
-    scorerPollInterval = setInterval(async ()=>{
-      try {
-        const statusRes = await fetch('/api/job-status?jobId='+jobId);
-        if(!statusRes.ok) return;
-        const job = await statusRes.json();
-        if(job.status==='transcribing'){
-          setStep('step_transcribe','active'); setStep('step_score',''); setStep('step_coaching','');
-        } else if(job.status==='scoring'){
-          setStep('step_transcribe','done'); setStep('step_score','active'); setStep('step_coaching','');
-        } else if(job.status==='complete'){
-          clearInterval(scorerPollInterval);
-          setStep('step_transcribe','done'); setStep('step_score','done'); setStep('step_coaching','done');
-          setTimeout(()=>{ document.getElementById('sc_progress').style.display='none'; renderScorerResult(job); loadRecentScores(); },600);
-        } else if(job.status==='failed'||job.status==='error'){
-          clearInterval(scorerPollInterval);
-          showScorerError('Scoring failed. Check that the file is a valid audio recording and try again.');
-        }
-      } catch(e){ /* keep polling */ }
-    }, 3000);
-
-  } catch(err){
-    showScorerError(err.message||'Upload failed. Try again.');
-  }
-}<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -1274,8 +1208,169 @@ function onFileSelected(input){ scorerFile=input.files[0]||null; const fn=docume
 function setStep(id,state){ const el=document.getElementById(id); if(!el)return; el.classList.remove('active','done'); if(state) el.classList.add(state); }
 function showScorerError(msg){ const el=document.getElementById('sc_error'); if(el){ el.textContent=msg; el.style.display='block'; } document.getElementById('sc_progress').style.display='none'; document.getElementById('sc_btn').disabled=false; }
 
+async function scoreCall(){
+  if(!scorerFile)return alert('Upload a call recording first.');
+  const agentSel=document.getElementById('sc_agent');
+  const agentName=agentSel.options[agentSel.selectedIndex]?.text||'Unknown Agent';
+  const agentId=agentSel.value||null;
+  document.getElementById('sc_error').style.display='none';
+  document.getElementById('sc_result').style.display='none';
+  document.getElementById('sc_progress').style.display='block';
+  document.getElementById('sc_btn').disabled=true;
+  setStep('step_upload','active'); setStep('step_transcribe',''); setStep('step_score',''); setStep('step_coaching','');
+  try {
+    const createRes = await fetch('/api/upload', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'create-job', agentName, agentId, fileName: scorerFile.name }) });
+    if(!createRes.ok){ const t=await createRes.text(); throw new Error('Job creation failed: '+t); }
+    const { jobId, uploadPath } = await createRes.json();
+    const SUPA_URL='https://fodkldiqwbnmzdmgrfmr.supabase.co';
+    const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+    const storageRes = await fetch(SUPA_URL+'/storage/v1/object/lb-scorer-audio/'+uploadPath, { method:'POST', headers:{ 'Authorization':'Bearer '+SUPA_ANON, 'Content-Type': scorerFile.type||'audio/mpeg', 'x-upsert':'false' }, body: scorerFile });
+    if(!storageRes.ok){ const t=await storageRes.text(); throw new Error('Storage upload failed: '+t); }
+    setStep('step_upload','done'); setStep('step_transcribe','active');
+    const triggerRes = await fetch('/api/upload', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'trigger-job', jobId, uploadPath, agentName, agentId }) });
+    if(!triggerRes.ok){ const t=await triggerRes.text(); throw new Error('Job trigger failed: '+t); }
+    if(scorerPollInterval) clearInterval(scorerPollInterval);
+    scorerPollInterval = setInterval(async ()=>{
+      try {
+        const statusRes = await fetch('/api/job-status?jobId='+jobId);
+        if(!statusRes.ok) return;
+        const job = await statusRes.json();
+        if(job.status==='transcribing'){ setStep('step_transcribe','active'); setStep('step_score',''); setStep('step_coaching',''); }
+        else if(job.status==='scoring'){ setStep('step_transcribe','done'); setStep('step_score','active'); setStep('step_coaching',''); }
+        else if(job.status==='complete'){ clearInterval(scorerPollInterval); setStep('step_transcribe','done'); setStep('step_score','done'); setStep('step_coaching','done'); setTimeout(()=>{ document.getElementById('sc_progress').style.display='none'; renderScorerResult(job); loadRecentScores(); },600); }
+        else if(job.status==='failed'||job.status==='error'){ clearInterval(scorerPollInterval); showScorerError('Scoring failed. Check that the file is a valid audio recording and try again.'); }
+      } catch(e){}
+    }, 3000);
+  } catch(err){ showScorerError(err.message||'Upload failed. Try again.'); }
+}
+function renderScorerResult(job){
+  const plates=[
+    {key:'score_intro',   label:'Intro & Eligibility', weight:20},
+    {key:'score_health',  label:'Health Review',        weight:15},
+    {key:'score_plan',    label:'Plan Review',           weight:15},
+    {key:'score_problem', label:'Problem Reveal',        weight:20},
+    {key:'score_solution',label:'Solution Reveal',       weight:15},
+    {key:'score_enrollment',label:'Enrollment',          weight:15},
+  ];
 
+  document.getElementById('res_agentName').textContent=job.agent_name||'—';
+  document.getElementById('res_overallScore').textContent=Math.round(job.overall_score||0)+'/100';
+  document.getElementById('res_overallScore').style.color=scoreColor(job.overall_score||0);
+  const grade=gradeFromScore(job.overall_score||0);
+  const gradeEl=document.getElementById('res_grade'); gradeEl.textContent=grade.label; gradeEl.className='score-grade '+grade.cls;
+  document.getElementById('res_fileName').textContent=job.file_name||'—';
+  document.getElementById('res_timestamp').textContent=job.completed_at?new Date(job.completed_at).toLocaleString('en-US',{timeZone:'America/New_York'})+' ET':'';
+  document.getElementById('res_summary').textContent=job.call_summary||'';
 
+  document.getElementById('res_plateScores').innerHTML=plates.map(p=>{
+    const sc=job[p.key]||0, col=scoreColor(sc);
+    return`<div class="plate-score-card"><div class="plate-score-name">${p.label} (/${p.weight}pts)</div><div class="plate-score-val" style="color:${col};">${sc}</div><div class="plate-score-bar"><div class="plate-score-fill" style="width:${sc}%;background:${col};"></div></div></div>`;
+  }).join('');
+
+  let pts=[];
+  try{ pts=JSON.parse(job.coaching_points||'[]'); } catch(e){}
+  document.getElementById('res_coaching').innerHTML=pts.length?pts.map(pt=>{ const pCls=pt.priority==='HIGH'?'priority-high':pt.priority==='MEDIUM'?'priority-med':'priority-low'; return`<div class="coaching-point"><div class="coaching-priority ${pCls}">${pt.priority==='HIGH'?'H':pt.priority==='MEDIUM'?'M':'L'}</div><div class="coaching-body"><div class="coaching-plate">${pt.plate}</div><div class="coaching-text">${pt.text}</div></div></div>`; }).join(''):'<div style="color:var(--muted);">No coaching points available.</div>';
+
+  document.getElementById('res_transcript').textContent=job.transcript||'Transcript not available.';
+  document.getElementById('sc_result').style.display='block';
+  document.getElementById('sc_btn').disabled=false;
+  document.getElementById('sc_result').scrollIntoView({behavior:'smooth'});
+}
+
+async function loadRecentScores(){
+  const el=document.getElementById('sc_recentCalls'); if(!el)return;
+  try {
+    const res=await fetch('/api/recent-scores');
+    if(!res.ok){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; return; }
+    const scores=await res.json();
+    if(!scores.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">No scored calls yet.</div>'; return; }
+    el.innerHTML=scores.map(s=>{
+      const col=scoreColor(s.overall_score||0);
+      const grade=gradeFromScore(s.overall_score||0);
+      const ts=s.completed_at?new Date(s.completed_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}):'';
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-weight:600;color:var(--white);font-size:13px;">${s.agent_name||'Unknown'}</div>
+            <div style="font-size:11px;color:var(--muted);">${s.file_name||''} · ${ts}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};">${s.overall_score||0}</div>
+            <div style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;" class="score-grade ${grade.cls}">${grade.label.split('—')[0].trim()}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--body);margin-top:8px;line-height:1.5;">${s.call_summary||''}</div>
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
+}
+function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth'}); }
+function resetScorer(){
+  scorerFile=null;
+  document.getElementById('sc_file').value='';
+  document.getElementById('sc_filename').textContent='';
+  document.getElementById('sc_btn').disabled=true;
+  document.getElementById('sc_result').style.display='none';
+  document.getElementById('sc_progress').style.display='none';
+  document.getElementById('sc_error').style.display='none';
+  var wrap=document.querySelector('.scorer-wrap'); if(wrap) wrap.scrollTop=0;
+}
+function downloadScorerPDF(){
+  var gv=function(id){var e=document.getElementById(id);return e?e.textContent:'';};
+  var agentName=gv('res_agentName')||'Agent', overallScore=gv('res_overallScore'), grade=gv('res_grade'), summary=gv('res_summary'), fileName=gv('res_fileName'), timestamp=gv('res_timestamp'), transcript=gv('res_transcript');
+  var q=String.fromCharCode(39);
+  var platesHTML='';
+  document.querySelectorAll('.plate-score-card').forEach(function(card){
+    var nm=card.querySelector('.plate-score-name'), vl=card.querySelector('.plate-score-val'), fl=card.querySelector('.plate-score-fill');
+    var co=fl?fl.style.background:'#00C9B1', wi=fl?fl.style.width:'0%';
+    platesHTML+='<div style='+q+'background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;'+q+'><div style='+q+'font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;'+q+'>'+(nm?nm.textContent:'')+'</div><div style='+q+'font-size:26px;font-weight:700;color:'+co+';'+q+'>'+(vl?vl.textContent:'')+'</div><div style='+q+'height:3px;background:#e2e8f0;border-radius:99px;margin-top:6px;overflow:hidden;'+q+'><div style='+q+'height:100%;width:'+wi+';background:'+co+';border-radius:99px;'+q+'></div></div></div>';
+  });
+  var coachingHTML='';
+  document.querySelectorAll('.coaching-point').forEach(function(pt){
+    var pr=pt.querySelector('.coaching-priority'), pl=pt.querySelector('.coaching-plate'), tx=pt.querySelector('.coaching-text');
+    var prt=pr?pr.textContent:'', bg=prt==='H'?'#fef2f2':prt==='M'?'#fffbeb':'#f0fdf4', tc=prt==='H'?'#dc2626':prt==='M'?'#d97706':'#16a34a';
+    coachingHTML+='<div style='+q+'display:flex;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;'+q+'><div style='+q+'width:24px;height:24px;border-radius:4px;background:'+bg+';color:'+tc+';font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;'+q+'>'+prt+'</div><div><div style='+q+'font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:2px;'+q+'>'+(pl?pl.textContent:'')+'</div><div style='+q+'font-size:12px;color:#334155;line-height:1.5;'+q+'>'+(tx?tx.textContent:'')+'</div></div></div>';
+  });
+  var sT=transcript.length>2000?transcript.substring(0,2000)+' [truncated]':transcript;
+  var st='*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Inter,sans-serif;padding:28px;font-size:13px;color:#111;}.brand{font-family:Bebas Neue,sans-serif;font-size:24px;letter-spacing:3px;color:#00C9B1;}.sec{font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:2px;color:#00C9B1;margin:16px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;}.plates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}.summ{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;margin-bottom:16px;line-height:1.6;}.tr{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:11px;color:#64748b;line-height:1.6;white-space:pre-wrap;}.foot{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;}';
+  var h='<!DOCTYPE html><html><head><title>Call Score</title><link href='+q+'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap'+q+' rel='+q+'stylesheet'+q+'><'+'style>'+st+'<'+'/style></head><body>';
+  h+='<div style='+q+'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #00C9B1;'+q+'><div><div class='+q+'brand'+q+'>ZENYRA</div><div style='+q+'font-size:11px;color:#64748b;'+q+'>Ancillary HIP Call Score Report</div><div style='+q+'font-size:11px;color:#64748b;'+q+'>'+fileName+'</div><div style='+q+'font-size:11px;color:#64748b;'+q+'>'+timestamp+'</div></div><div style='+q+'text-align:right;'+q+'><div style='+q+'font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;'+q+'>Agent</div><div style='+q+'font-size:16px;font-weight:700;'+q+'>'+agentName+'</div><div style='+q+'font-family:Bebas Neue,sans-serif;font-size:48px;color:#00C9B1;line-height:1;'+q+'>'+overallScore+'</div><div style='+q+'font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e0fdf4;color:#059669;display:inline-block;'+q+'>'+grade+'</div></div></div>';
+  h+='<div class='+q+'sec'+q+'>Call Summary</div><div class='+q+'summ'+q+'>'+summary+'</div><div class='+q+'sec'+q+'>Plate Scores</div><div class='+q+'plates'+q+'>'+platesHTML+'</div><div class='+q+'sec'+q+'>Coaching Points</div><div style='+q+'margin-bottom:16px;'+q+'>'+coachingHTML+'</div><div class='+q+'sec'+q+'>Transcript</div><div class='+q+'tr'+q+'>'+sT+'</div><div class='+q+'foot'+q+'>Powered by Zenyra | Confidential</div></body></html>';
+  var w=window.open('','_blank'); w.document.write(h); w.document.close(); setTimeout(function(){ w.print(); },800);
+}
+function toggleTranscript(){ const body=document.getElementById('res_transcript'),btn=body.previousElementSibling; const visible=body.style.display==='block'; body.style.display=visible?'none':'block'; btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript'; }
+
+// ── Modals ─────────────────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── Realtime ───────────────────────────────────────────────────────────────
+function startRealtime(){
+  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); }).subscribe();
+  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); }).subscribe();
+}
+
+// ── Clocks ─────────────────────────────────────────────────────────────────
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); },30000); }
+
+// ── Drag & drop on scorer ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const dz=document.getElementById('scorerDropZone'); if(!dz)return;
+  dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }});
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+(async function init(){
+  const session=loadSession();
+  if(session){
+    currentUser=session;
+    const {data}=await db.from('lb_agents').select('id,name').eq('active',true);
+    allAgents=data||[];
+    enterDashboard(session.role);
+  }
+})();
 </script>
 </body>
 </html>
