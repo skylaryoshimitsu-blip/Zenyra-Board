@@ -954,7 +954,10 @@ function doLogout(){ clearSession(); showScreen('landing'); }
 async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
 async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
 async function fetchRecentSubs(limit=8){
-  const {data}=await db.from('lb_submissions').select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at').eq('status','live').order('submitted_at',{ascending:false}).limit(limit);
+  // Only show sales from the current work day (Eastern Time) — list resets each morning
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const startOfDayET=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
+  const {data}=await db.from('lb_submissions').select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at').eq('status','live').gte('submitted_at',startOfDayET.toISOString()).order('submitted_at',{ascending:false}).limit(limit);
   return data||[];
 }
 async function fetchAllSubs(){
