@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agency Performance Command Center — Zenyra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A0F1E;--surface:#111827;--card:#1E2A3B;--border:#263348;
+  --teal:#00C9B1;--teal-dim:#007A6B;--amber:#F59E0B;--red:#EF4444;--green:#22C55E;--blue:#3B82F6;--purple:#A855F7;
+  --white:#F8FAFC;--muted:#64748B;--label:#94A3B8;--body:#CBD5E1;
+}
+html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;}
+.screen{display:none;height:100vh;overflow:hidden;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* LANDING */
+#landing{align-items:center;justify-content:center;}
+.landing-inner{text-align:center;max-width:480px;width:90%;}
+.landing-brand{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;color:var(--teal);margin-bottom:4px;}
+.landing-sub{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:48px;}
+.portal-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.portal-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 20px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;}
+.portal-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+.portal-icon{font-size:28px;margin-bottom:12px;}
+.portal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px;}
+.portal-desc{font-size:11px;color:var(--muted);}
+
+/* AUTH */
+#auth{align-items:center;justify-content:center;}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;width:90%;max-width:420px;}
+.auth-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--white);margin-bottom:4px;}
+.auth-sub{font-size:12px;color:var(--muted);margin-bottom:28px;}
+.auth-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--card);padding:4px;border-radius:8px;}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted);transition:all 0.15s;}
+.auth-tab.active{background:var(--teal);color:var(--navy);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin-bottom:6px;}
+.field input,.field select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--white);font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:var(--teal);}
+.field select option{background:var(--card);}
+.btn-primary{width:100%;background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;margin-top:4px;}
+.btn-primary:hover{opacity:0.85;}
+.btn-ghost{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;text-decoration:underline;}
+.auth-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.header-left{display:flex;align-items:baseline;gap:10px;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--teal);}
+.page-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);}
+.header-right{display:flex;align-items:center;gap:16px;}
+.live-dot{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 6px var(--teal);animation:blink 1.8s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--teal);}50%{opacity:0.4;box-shadow:0 0 2px var(--teal);}}
+.clock{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--body);}
+.user-badge{font-size:11px;color:var(--label);display:flex;align-items:center;gap:6px;}
+.user-badge span{color:var(--teal);font-weight:600;}
+.btn-logout{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:border-color 0.15s;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+/* VIEW TABS (agent + admin leaderboard) */
+.view-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.view-tab{padding:11px 20px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+.view-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* ADMIN TABS */
+.admin-nav{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;}
+.admin-tab{padding:12px 20px;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.admin-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* PULSE */
+.pulse-strip{padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.pulse-meta{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;}
+.pulse-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);}
+.pulse-numbers{display:flex;align-items:baseline;gap:6px;}
+.pulse-current{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;color:var(--teal);}
+.pulse-sep{color:var(--muted);font-size:18px;}
+.pulse-goal{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--muted);}
+.pulse-pct{margin-left:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;}
+.pulse-pct.on-pace{background:rgba(0,201,177,0.15);color:var(--teal);}
+.pulse-pct.ahead{background:rgba(59,130,246,0.15);color:var(--blue);}
+.pulse-pct.behind{background:rgba(245,158,11,0.15);color:var(--amber);}
+.pulse-pct.critical{background:rgba(239,68,68,0.15);color:var(--red);}
+.pulse-bar-track{height:8px;border-radius:99px;background:var(--card);overflow:hidden;}
+.pulse-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal-dim),var(--teal));box-shadow:0 0 10px rgba(0,201,177,0.4);transition:width 1s ease;}
+.pulse-sub{display:flex;gap:24px;margin-top:10px;flex-wrap:wrap;}
+.pulse-sub-item{display:flex;flex-direction:column;gap:1px;}
+.sub-val{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--white);}
+.sub-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+
+/* MAPD pulse strip */
+.mapd-pulse{padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:32px;flex-wrap:wrap;align-items:center;}
+.mapd-pulse-item{display:flex;flex-direction:column;gap:2px;}
+.mapd-pulse-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:var(--purple);}
+.mapd-pulse-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+
+/* MAIN LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr 260px;flex:1;overflow:hidden;}
+.leaderboard-pane{padding:20px 24px;overflow-y:auto;border-right:1px solid var(--border);}
+.section-eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+thead th:not(:first-child){text-align:right;}
+tbody tr{border-bottom:1px solid rgba(38,51,72,0.5);transition:background 0.15s;}
+tbody tr:hover{background:rgba(30,42,59,0.5);}
+tbody td{padding:11px 10px;color:var(--body);vertical-align:middle;}
+tbody td:not(:first-child){text-align:right;}
+.agent-cell{display:flex;align-items:center;gap:8px;}
+.rank-badge{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;flex-shrink:0;}
+.rank-1{background:rgba(245,158,11,0.2);color:var(--amber);}
+.rank-2{background:rgba(148,163,184,0.15);color:#94A3B8;}
+.rank-3{background:rgba(180,120,80,0.15);color:#B47850;}
+.rank-n{background:rgba(38,51,72,0.8);color:var(--muted);}
+.agent-name{font-weight:600;color:var(--white);font-size:13px;}
+.agent-trend{font-size:10px;color:var(--muted);}
+.trend-up{color:var(--teal)}.trend-down{color:var(--red);}
+.ap-val{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.5px;color:var(--white);}
+.comm-val{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.5px;color:var(--green);}
+.goal-bar-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
+.goal-pct-label{font-size:11px;font-weight:700;min-width:36px;text-align:right;}
+.pct-high{color:var(--teal)}.pct-mid{color:var(--amber)}.pct-low{color:var(--red);}
+.mini-bar-track{width:50px;height:4px;border-radius:99px;background:var(--card);overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:99px;}
+.fill-high{background:var(--teal)}.fill-mid{background:var(--amber)}.fill-low{background:var(--red);}
+.daily-pace{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;}
+.pace-on{background:rgba(0,201,177,0.12);color:var(--teal);}
+.pace-off{background:rgba(245,158,11,0.12);color:var(--amber);}
+.pace-crit{background:rgba(239,68,68,0.12);color:var(--red);}
+.pace-ahead{background:rgba(59,130,246,0.12);color:var(--blue);}
+
+/* SIDEBAR */
+.sidebar{padding:20px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.stat-card-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-card-val{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);}
+.stat-card-sub{font-size:11px;color:var(--label);margin-top:2px;}
+.top-producer-card{background:linear-gradient(135deg,rgba(0,201,177,0.08),rgba(0,201,177,0.02));border:1px solid rgba(0,201,177,0.2);}
+.top-producer-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--teal);}
+.improved-card{background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.2);}
+.improved-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--amber);}
+.mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mini-stat{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px;}
+.ms-val{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.5px;color:var(--white);}
+.ms-lbl{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:1px;}
+.divider{height:1px;background:var(--border);}
+
+/* MY SUBMISSIONS (agent) */
+.my-subs-wrap{flex:1;overflow-y:auto;padding:20px 24px;}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.filter-field{display:flex;flex-direction:column;gap:4px;}
+.filter-field label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);}
+.filter-field select,.filter-field input{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;}
+.filter-field select:focus,.filter-field input:focus{border-color:var(--teal);}
+.filter-field select option{background:var(--card);}
+.btn-filter{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;}
+
+/* SUBMIT FORM */
+#submit-screen{flex-direction:column;}
+.submit-wrap{flex:1;overflow-y:auto;padding:24px;}
+.submit-inner{max-width:760px;margin:0 auto;}
+.form-section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--teal);margin:24px 0 14px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+.form-section-title:first-child{margin-top:0;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr;}
+.form-grid.full{grid-template-columns:1fr;}
+.field-sm label{display:block;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin-bottom:5px;}
+.field-sm input,.field-sm select,.field-sm textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;}
+.field-sm input:focus,.field-sm select:focus,.field-sm textarea:focus{border-color:var(--teal);}
+.field-sm select option{background:var(--card);}
+.field-sm textarea{resize:vertical;min-height:70px;}
+.form-actions{display:flex;gap:12px;margin-top:24px;padding-bottom:24px;}
+.btn-submit{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;}
+.btn-submit:hover{opacity:0.85;}
+.btn-cancel{background:none;border:1px solid var(--border);border-radius:6px;padding:12px 20px;font-size:14px;color:var(--muted);cursor:pointer;}
+.submit-success{background:rgba(0,201,177,0.1);border:1px solid rgba(0,201,177,0.3);border-radius:8px;padding:16px;color:var(--teal);font-weight:600;margin-bottom:20px;display:none;}
+.field-sm .toggle-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.toggle-check{width:16px;height:16px;accent-color:var(--teal);cursor:pointer;}
+
+/* ADMIN SUBMISSIONS */
+.submissions-table{width:100%;border-collapse:collapse;font-size:13px;}
+.submissions-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+.submissions-table td{padding:10px 10px;border-bottom:1px solid rgba(38,51,72,0.4);vertical-align:top;color:var(--body);}
+.submissions-table tr:hover td{background:rgba(30,42,59,0.4);}
+.customer-name{font-weight:600;color:var(--white);}
+.product-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(0,201,177,0.12);color:var(--teal);white-space:nowrap;}
+.mapd-badge{background:rgba(168,85,247,0.12);color:var(--purple);}
+.btn-delete{background:none;border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--red);cursor:pointer;transition:background 0.15s;}
+.btn-delete:hover{background:rgba(239,68,68,0.1);}
+.btn-edit-sm{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--label);cursor:pointer;margin-right:4px;transition:border-color 0.15s;}
+.btn-edit-sm:hover{border-color:var(--teal);color:var(--teal);}
+.no-data{text-align:center;padding:40px;color:var(--muted);}
+
+/* AGENT MANAGEMENT */
+.agent-mgmt-table{width:100%;border-collapse:collapse;font-size:13px;}
+.agent-mgmt-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.agent-mgmt-table td{padding:10px;border-bottom:1px solid rgba(38,51,72,0.4);color:var(--body);}
+.agent-mgmt-table tr:hover td{background:rgba(30,42,59,0.4);}
+.btn-add-agent{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:200;display:none;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal-box.wide{max-width:720px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--white);margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.btn-modal-save{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-modal-cancel{background:none;border:1px solid var(--border);border-radius:6px;padding:10px 16px;font-size:13px;color:var(--muted);cursor:pointer;}
+
+/* REPORT CONTROLS */
+.report-controls{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;}
+.report-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.report-field{display:flex;flex-direction:column;gap:5px;}
+.report-field label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);}
+.report-field select,.report-field input{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;}
+.report-field select:focus,.report-field input:focus{border-color:var(--teal);}
+.report-field select option{background:var(--card);}
+.btn-run-report{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-download{background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+
+/* FAB + TYPE CHOOSER */
+.fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dim));border:none;color:var(--navy);font-size:26px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,201,177,0.4);transition:transform 0.15s;z-index:100;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.fab:hover{transform:scale(1.08);}
+.fab-chooser{position:fixed;bottom:92px;right:24px;display:none;flex-direction:column;gap:8px;z-index:101;}
+.fab-chooser.open{display:flex;}
+.fab-choice{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:border-color 0.15s;box-shadow:0 4px 16px rgba(0,0,0,0.4);}
+.fab-choice:hover{border-color:var(--teal);}
+.fab-choice .fab-choice-icon{font-size:18px;}
+.fab-choice .fab-choice-label{color:var(--white);}
+.fab-choice .fab-choice-sub{font-size:10px;color:var(--muted);font-weight:400;}
+
+/* CALL SCORER */
+.scorer-wrap{flex:1;overflow-y:auto;padding:20px 24px;}
+.scorer-inner{max-width:860px;}
+.scorer-config{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;}
+.scorer-config-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--label);margin-bottom:14px;}
+.scorer-upload-area{border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:16px;}
+.scorer-upload-area:hover,.scorer-upload-area.drag-over{border-color:var(--teal);}
+.scorer-upload-icon{font-size:32px;margin-bottom:8px;}
+.scorer-upload-text{font-size:13px;color:var(--label);}
+.scorer-upload-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.scorer-upload-filename{font-size:12px;color:var(--teal);margin-top:8px;font-weight:600;}
+.scorer-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.scorer-field{display:flex;flex-direction:column;gap:4px;}
+.scorer-field label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);}
+.scorer-field select,.scorer-field input{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;min-width:180px;}
+.scorer-field select:focus,.scorer-field input:focus{border-color:var(--teal);}
+.scorer-field select option{background:var(--card);}
+.btn-score{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.btn-score:disabled{opacity:0.5;cursor:not-allowed;}
+.scorer-progress{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;display:none;}
+.progress-step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px;color:var(--muted);}
+.progress-step.active{color:var(--white);}
+.progress-step.done{color:var(--teal);}
+.progress-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.progress-step.active .progress-dot{background:var(--teal);box-shadow:0 0 6px var(--teal);animation:blink 1s infinite;}
+.progress-step.done .progress-dot{background:var(--teal);}
+.scorer-result{display:none;}
+.scorer-result-header{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;}
+.overall-score{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:2px;line-height:1;}
+.score-grade{font-size:13px;font-weight:700;padding:4px 12px;border-radius:4px;display:inline-block;margin-top:4px;}
+.grade-a{background:rgba(0,201,177,0.15);color:var(--teal);}
+.grade-b{background:rgba(59,130,246,0.15);color:var(--blue);}
+.grade-c{background:rgba(245,158,11,0.15);color:var(--amber);}
+.grade-d{background:rgba(239,68,68,0.15);color:var(--red);}
+.plate-scores{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.plate-score-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.plate-score-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.plate-score-val{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;}
+.plate-score-bar{height:3px;border-radius:99px;background:var(--border);overflow:hidden;margin-top:6px;}
+.plate-score-fill{height:100%;border-radius:99px;}
+.coaching-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;}
+.coaching-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--white);margin-bottom:14px;}
+.coaching-point{display:flex;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.coaching-point:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.coaching-priority{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;}
+.priority-high{background:rgba(239,68,68,0.15);color:var(--red);}
+.priority-med{background:rgba(245,158,11,0.15);color:var(--amber);}
+.priority-low{background:rgba(0,201,177,0.15);color:var(--teal);}
+.coaching-body{flex:1;}
+.coaching-plate{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.coaching-text{font-size:13px;color:var(--body);line-height:1.6;}
+.transcript-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;}
+.transcript-toggle{font-size:12px;color:var(--teal);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:0;}
+.transcript-body{margin-top:14px;font-size:12px;color:var(--body);line-height:1.7;white-space:pre-wrap;display:none;max-height:300px;overflow-y:auto;}
+.api-key-note{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:14px;}
+
+/* FOOTER */
+.footer{padding:8px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;}
+.footer-left{font-size:11px;color:var(--muted);}
+.powered-by{color:var(--teal);font-weight:600;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing" class="screen active">
+  <div class="landing-inner">
+    <div class="landing-brand">ZENYRA</div>
+    <div class="landing-sub">Agency Performance Command Center</div>
+    <div class="portal-cards">
+      <div class="portal-card" onclick="showAuth('agent')">
+        <div class="portal-icon">📊</div>
+        <div class="portal-title">Agent Portal</div>
+        <div class="portal-desc">Leaderboard & log a sale</div>
+      </div>
+      <div class="portal-card" onclick="showAuth('admin')">
+        <div class="portal-icon">🛡️</div>
+        <div class="portal-title">Admin Portal</div>
+        <div class="portal-desc">Full submissions & management</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth" class="screen">
+  <div class="auth-box">
+    <div class="auth-title" id="authTitle">Agent Portal</div>
+    <div class="auth-sub" id="authSub">Sign in or create your account</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">First Time? Register</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div id="loginForm">
+      <div class="field"><label>Your Name</label><select id="loginName"></select></div>
+      <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"/></div>
+      <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    </div>
+    <div id="registerForm" style="display:none;">
+      <div class="field" id="adminCodeField" style="display:none;">
+        <label>Admin Access Code</label>
+        <input type="password" id="adminCode" placeholder="Enter admin access code"/>
+      </div>
+      <div class="field"><label>Select Your Name</label><select id="registerName"></select></div>
+      <div class="field"><label>Create Password</label><input type="password" id="registerPassword" placeholder="Min 6 characters"/></div>
+      <div class="field"><label>Confirm Password</label><input type="password" id="registerConfirm" placeholder="Confirm password"/></div>
+      <button class="btn-primary" onclick="doRegister()">Create Account</button>
+    </div>
+    <div style="text-align:center;"><button class="btn-ghost" onclick="showScreen('landing')">← Back</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- AGENT DASHBOARD -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="agent-dashboard" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Performance Command Center</span></div>
+    <div class="header-right">
+      <span class="live-dot">Live</span>
+      <span class="clock" id="agentClock"></span>
+      <span class="user-badge">Signed in as <span id="agentUserName">—</span></span>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <!-- Agent view tabs -->
+  <div class="view-tabs">
+    <div class="view-tab active" id="agentTab_board" onclick="switchAgentView('board')">📊 Ancillary</div>
+    <div class="view-tab" id="agentTab_mapd" onclick="switchAgentView('mapd')">🏥 MAPD</div>
+    <div class="view-tab" id="agentTab_combined" onclick="switchAgentView('combined')">⚡ Combined</div>
+    <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
+  </div>
+
+  <!-- ANCILLARY BOARD PANEL -->
+  <div id="agent-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="pulse-strip" id="a_pulse"></div>
+    <div class="main-layout" style="flex:1;overflow:hidden;">
+      <div class="leaderboard-pane">
+        <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
+        <table>
+          <thead><tr>
+            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th>
+          </tr></thead>
+          <tbody id="a_leaderboardBody"></tbody>
+        </table>
+        <div style="margin-top:20px;">
+          <div class="section-eyebrow">Recent Sales</div>
+          <div id="a_recentSales" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+      <div class="sidebar" id="a_sidebar"></div>
+    </div>
+  </div>
+
+  <!-- MY SUBMISSIONS PANEL -->
+  <div id="agent-mysubs-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+    <div class="my-subs-wrap">
+      <div class="filter-bar">
+        <div class="filter-field">
+          <label>Date Range</label>
+          <select id="my_range" onchange="toggleMyCustomDates()">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="7">Last 7 Days</option>
+            <option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div class="filter-field" id="my_from_wrap" style="display:none;">
+          <label>From</label><input type="date" id="my_from"/>
+        </div>
+        <div class="filter-field" id="my_to_wrap" style="display:none;">
+          <label>To</label><input type="date" id="my_to"/>
+        </div>
+        <div class="filter-field">
+          <label>Product Type</label>
+          <select id="my_product">
+            <option value="all">All Products</option>
+            <option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option>
+            <option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option>
+          </select>
+        </div>
+        <button class="btn-filter" onclick="loadMySubmissions()">Apply</button>
+      </div>
+      <!-- Summary strip -->
+      <div id="my_summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;"></div>
+      <!-- Table -->
+      <div id="my_subs_table"></div>
+    </div>
+  </div>
+
+  <!-- AGENT MAPD PANEL -->
+  <div id="agent-mapd-panel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="mapd-pulse" id="a_mapd_pulse"></div>
+    <div class="leaderboard-pane" style="flex:1;border-right:none;overflow-y:auto;">
+      <div class="section-eyebrow">MAPD Submissions — This Month</div>
+      <table><thead><tr>
+        <th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th>
+      </tr></thead>
+      <tbody id="a_mapdBody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- AGENT COMBINED PANEL -->
+  <div id="agent-combined-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div id="a_combinedContent"></div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-left" id="a_lastUpdated">—</span>
+    <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
+  </div>
+</div>
+
+<!-- FAB + CHOOSER (shared for agent screen) -->
+<div class="fab-chooser" id="fabChooser">
+  <div class="fab-choice" onclick="showSubmitForm('ancillary')">
+    <span class="fab-choice-icon">💊</span>
+    <div><div class="fab-choice-label">Ancillary Sale</div><div class="fab-choice-sub">HIP, Home Health, Cancer, etc.</div></div>
+  </div>
+  <div class="fab-choice" onclick="showSubmitForm('mapd')">
+    <span class="fab-choice-icon">🏥</span>
+    <div><div class="fab-choice-label">MAPD Submission</div><div class="fab-choice-sub">Medicare Advantage application</div></div>
+  </div>
+</div>
+<button class="fab" id="mainFab" onclick="toggleFabChooser()" title="Log a Sale" style="display:none;">+</button>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SUBMIT FORM (Ancillary) -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="submit-screen" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Log Ancillary Sale</span></div>
+    <div class="header-right"><button class="btn-logout" onclick="cancelSubmit()">← Back to Board</button></div>
+  </div>
+  <div class="submit-wrap">
+    <div class="submit-inner">
+      <div class="submit-success" id="submitSuccess">✓ Sale logged successfully! Returning to leaderboard...</div>
+      <div class="form-section-title">Customer Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>First Name</label><input type="text" id="f_cFirstName"/></div>
+        <div class="field-sm"><label>Last Name</label><input type="text" id="f_cLastName"/></div>
+        <div class="field-sm"><label>Phone</label><input type="tel" id="f_cPhone"/></div>
+        <div class="field-sm"><label>Email</label><input type="email" id="f_cEmail"/></div>
+        <div class="field-sm"><label>Date of Birth</label><input type="date" id="f_cDOB"/></div>
+        <div class="field-sm"><label>Gender</label><select id="f_cGender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;"><div class="field-sm"><label>Street Address</label><input type="text" id="f_cStreet"/></div></div>
+      <div class="form-grid three" style="margin-top:12px;">
+        <div class="field-sm"><label>City</label><input type="text" id="f_cCity"/></div>
+        <div class="field-sm"><label>State</label><input type="text" id="f_cState" maxlength="2" placeholder="FL"/></div>
+        <div class="field-sm"><label>Postal Code</label><input type="text" id="f_cPostal"/></div>
+      </div>
+      <div class="form-section-title">Ancillary Policy Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>Product Type</label><select id="f_productType"><option value="">Select...</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select></div>
+        <div class="field-sm"><label>Policy Number</label><input type="text" id="f_policyNum"/></div>
+        <div class="field-sm"><label>Carrier Name</label><input type="text" id="f_carrier"/></div>
+        <div class="field-sm"><label>Plan Name</label><input type="text" id="f_planName"/></div>
+        <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="f_monthlyPremium" step="0.01" min="0"/></div>
+        <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="f_draftDay" min="1" max="31"/></div>
+        <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
+        <div class="field-sm"><label>Draft Date</label><input type="date" id="f_draftDate"/></div>
+      </div>
+      <div class="form-section-title">Submitting Agent Info</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>Agent First Name</label><input type="text" id="f_aFirstName"/></div>
+        <div class="field-sm"><label>Agent Last Name</label><input type="text" id="f_aLastName"/></div>
+        <div class="field-sm"><label>Agent Email</label><input type="email" id="f_aEmail"/></div>
+        <div class="field-sm"><label>Agent NPN</label><input type="text" id="f_aNPN"/></div>
+      </div>
+      <div class="form-section-title">Doctor & Medication Info</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>PCP Name</label><input type="text" id="f_pcp"/></div>
+        <div class="field-sm"><label>Specialist Name</label><input type="text" id="f_specialist"/></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Medications (comma separated)</label><textarea id="f_medications" placeholder="e.g. Metformin, Lisinopril"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-submit" onclick="submitSale()">Log Sale</button>
+        <button class="btn-cancel" onclick="cancelSubmit()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SUBMIT FORM (MAPD) -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="submit-mapd-screen" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Log MAPD Submission</span></div>
+    <div class="header-right"><button class="btn-logout" onclick="cancelSubmit()">← Back to Board</button></div>
+  </div>
+  <div class="submit-wrap">
+    <div class="submit-inner">
+      <div class="submit-success" id="submitMAPDSuccess">✓ MAPD submission logged! Returning to leaderboard...</div>
+
+      <div class="form-section-title">Sunfire / Application Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>Application Submit Date</label><input type="date" id="m_appSubmitDate"/></div>
+        <div class="field-sm"><label>Sunfire Confirmation Date</label><input type="date" id="m_sunfireDate"/></div>
+        <div class="field-sm"><label>Carrier Name</label><input type="text" id="m_carrier"/></div>
+        <div class="field-sm"><label>Plan Name</label><input type="text" id="m_planName"/></div>
+        <div class="field-sm"><label>Plan Code</label><input type="text" id="m_planCode"/></div>
+        <div class="field-sm"><label>Effective Date</label><input type="date" id="m_effectiveDate"/></div>
+      </div>
+
+      <div class="form-section-title">Agent Details</div>
+      <div class="form-grid three">
+        <div class="field-sm"><label>Agent NPN</label><input type="text" id="m_aNPN"/></div>
+        <div class="field-sm"><label>Agent First Name</label><input type="text" id="m_aFirstName"/></div>
+        <div class="field-sm"><label>Agent Last Name</label><input type="text" id="m_aLastName"/></div>
+      </div>
+
+      <div class="form-section-title">Customer Details</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>First Name</label><input type="text" id="m_cFirstName"/></div>
+        <div class="field-sm"><label>Last Name</label><input type="text" id="m_cLastName"/></div>
+        <div class="field-sm"><label>Date of Birth</label><input type="date" id="m_cDOB"/></div>
+        <div class="field-sm"><label>Gender</label><select id="m_cGender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+        <div class="field-sm"><label>Phone</label><input type="tel" id="m_cPhone"/></div>
+        <div class="field-sm"><label>Email</label><input type="email" id="m_cEmail"/></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;"><div class="field-sm"><label>Street Address</label><input type="text" id="m_cStreet"/></div></div>
+      <div class="form-grid three" style="margin-top:12px;">
+        <div class="field-sm"><label>City</label><input type="text" id="m_cCity"/></div>
+        <div class="field-sm"><label>State</label><input type="text" id="m_cState" maxlength="2" placeholder="FL"/></div>
+        <div class="field-sm"><label>Postal Code</label><input type="text" id="m_cPostal"/></div>
+      </div>
+
+      <div class="form-section-title">Medicare Card Details</div>
+      <div class="form-grid three">
+        <div class="field-sm"><label>Medicare Number</label><input type="text" id="m_medicareNum" placeholder="1EG4-TE5-MK72"/></div>
+        <div class="field-sm"><label>Medicare Part A Date</label><input type="date" id="m_partADate"/></div>
+        <div class="field-sm"><label>Medicare Part B Date</label><input type="date" id="m_partBDate"/></div>
+      </div>
+
+      <div class="form-section-title">Medicaid Details</div>
+      <div class="form-grid">
+        <div class="field-sm">
+          <label>On Medicaid?</label>
+          <div class="toggle-row">
+            <input type="checkbox" id="m_onMedicaid" class="toggle-check" onchange="toggleMedicaidField()"/>
+            <span style="font-size:13px;color:var(--body);">Yes, client is on Medicaid</span>
+          </div>
+        </div>
+        <div class="field-sm" id="m_medicaidNumWrap" style="display:none;">
+          <label>Medicaid Number</label><input type="text" id="m_medicaidNum"/>
+        </div>
+      </div>
+
+      <div class="form-section-title">Doctor & Drug Info</div>
+      <div class="form-grid">
+        <div class="field-sm"><label>PCP Name</label><input type="text" id="m_pcpName"/></div>
+        <div class="field-sm"><label>PCP ID / NPI</label><input type="text" id="m_pcpId"/></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Specialist Doctor Names (comma separated)</label><textarea id="m_specialists" placeholder="e.g. Dr. Smith (Cardiologist), Dr. Jones (Endocrinology)"></textarea></div>
+      </div>
+      <div class="form-grid full" style="margin-top:12px;">
+        <div class="field-sm"><label>Medications (comma separated)</label><textarea id="m_medications" placeholder="e.g. Metformin, Lisinopril, Jardiance"></textarea></div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-submit" onclick="submitMAPD()" style="background:var(--purple);box-shadow:0 2px 12px rgba(168,85,247,0.3);">Log MAPD Submission</button>
+        <button class="btn-cancel" onclick="cancelSubmit()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- ADMIN DASHBOARD -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="admin-dashboard" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Admin — Command Center</span></div>
+    <div class="header-right">
+      <span class="live-dot">Live</span>
+      <span class="clock" id="adminClock"></span>
+      <span class="user-badge">Admin: <span id="adminUserName">—</span></span>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="admin-nav">
+    <div class="admin-tab active" id="adminTab_board" onclick="switchAdminTab('board')">📊 Leaderboard</div>
+    <div class="admin-tab" id="adminTab_subs" onclick="switchAdminTab('subs')">📋 Ancillary Subs</div>
+    <div class="admin-tab" id="adminTab_mapd" onclick="switchAdminTab('mapd')">🏥 MAPD Subs</div>
+    <div class="admin-tab" id="adminTab_scorer" onclick="switchAdminTab('scorer')">🎙 Call Scorer</div>
+    <div class="admin-tab" id="adminTab_agents" onclick="switchAdminTab('agents')">👥 Agents</div>
+    <div class="admin-tab" id="adminTab_reports" onclick="switchAdminTab('reports')">📥 Reports</div>
+  </div>
+
+  <!-- BOARD PANEL -->
+  <div id="admin-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
+      <div class="view-tab active" id="adminBoardTab_anc" onclick="switchAdminBoardView('anc')">💊 Ancillary</div>
+      <div class="view-tab" id="adminBoardTab_mapd" onclick="switchAdminBoardView('mapd')">🏥 MAPD</div>
+      <div class="view-tab" id="adminBoardTab_combined" onclick="switchAdminBoardView('combined')">⚡ Combined</div>
+    </div>
+    <!-- Ancillary board sub-panel -->
+    <div id="admin-anc-sub" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="pulse-strip" id="ad_pulse"></div>
+      <div class="main-layout" style="flex:1;overflow:hidden;">
+        <div class="leaderboard-pane">
+          <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
+          <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Est. Comm</th></tr></thead>
+          <tbody id="ad_leaderboardBody"></tbody></table>
+        </div>
+        <div class="sidebar" id="ad_sidebar"></div>
+      </div>
+    </div>
+    <!-- MAPD board sub-panel -->
+    <div id="admin-mapd-sub" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="mapd-pulse" id="ad_mapd_pulse"></div>
+      <div class="leaderboard-pane" style="flex:1;border-right:none;">
+        <div class="section-eyebrow">MAPD Submissions — This Month</div>
+        <table><thead><tr><th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th></tr></thead>
+        <tbody id="ad_mapdBody"></tbody></table>
+      </div>
+    </div>
+    <!-- Combined board sub-panel -->
+    <div id="admin-combined-sub" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+      <div id="ad_combinedContent"></div>
+    </div>
+  </div>
+
+  <!-- ANCILLARY SUBMISSIONS PANEL -->
+  <div id="admin-subs-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Ancillary Submissions</div>
+    <div id="admin-subs-content"></div>
+  </div>
+
+  <!-- MAPD SUBMISSIONS PANEL -->
+  <div id="admin-mapd-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">MAPD Submissions</div>
+    <div id="admin-mapd-content"></div>
+  </div>
+
+  <!-- CALL SCORER PANEL -->
+  <div id="admin-scorer-panel" style="display:none;flex:1;overflow:hidden;">
+    <div class="scorer-wrap">
+      <div class="scorer-inner">
+
+        <!-- Upload area -->
+        <div class="scorer-config">
+          <div class="scorer-config-title">Ancillary HIP Call Scorer</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Upload a recorded call to score it against the SBA Hospital Indemnity script. Results appear in 60–90 seconds.</div>
+          <div class="scorer-controls" style="margin-bottom:16px;">
+            <div class="scorer-field">
+              <label>Agent Being Reviewed</label>
+              <select id="sc_agent"><option value="">Select agent...</option></select>
+            </div>
+          </div>
+          <div class="scorer-upload-area" id="scorerDropZone" onclick="document.getElementById('sc_file').click()">
+            <div class="scorer-upload-icon">🎙</div>
+            <div class="scorer-upload-text">Click or drag to upload call recording</div>
+            <div class="scorer-upload-sub">MP3, M4A, WAV, OGG — up to 100MB</div>
+            <div class="scorer-upload-filename" id="sc_filename"></div>
+          </div>
+          <input type="file" id="sc_file" accept="audio/*" style="display:none;" onchange="onFileSelected(this)"/>
+          <button class="btn-score" id="sc_btn" onclick="scoreCall()" disabled>
+            <span>🎯</span> Score Call
+          </button>
+        </div>
+
+        <!-- Progress -->
+        <div class="scorer-progress" id="sc_progress">
+          <div class="progress-step" id="step_upload"><div class="progress-dot"></div>Uploading audio...</div>
+          <div class="progress-step" id="step_transcribe"><div class="progress-dot"></div>Transcribing with Deepgram...</div>
+          <div class="progress-step" id="step_score"><div class="progress-dot"></div>Scoring against HIP script plates...</div>
+          <div class="progress-step" id="step_coaching"><div class="progress-dot"></div>Generating coaching points...</div>
+        </div>
+
+        <!-- Error -->
+        <div id="sc_error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:14px;color:var(--red);font-size:13px;margin-bottom:16px;"></div>
+
+        <!-- Result -->
+        <div class="scorer-result" id="sc_result">
+          <div class="scorer-result-header">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+              <div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Overall Score — <span id="res_agentName"></span></div>
+                <div class="overall-score" id="res_overallScore"></div>
+                <div class="score-grade" id="res_grade"></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">File</div>
+                <div style="font-size:13px;color:var(--body);" id="res_fileName">—</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;" id="res_timestamp"></div>
+              </div>
+            </div>
+            <div id="res_summary" style="margin-top:12px;font-size:13px;color:var(--body);line-height:1.6;border-top:1px solid var(--border);padding-top:12px;"></div>
+          </div>
+          <div class="plate-scores" id="res_plateScores"></div>
+          <div class="coaching-section">
+            <div class="coaching-title">Coaching Points</div>
+            <div id="res_coaching"></div>
+          </div>
+          <div class="transcript-section">
+            <div class="transcript-toggle" onclick="toggleTranscript()">▶ Show Transcript</div>
+            <div class="transcript-body" id="res_transcript"></div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="btn-score" onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);font-size:12px;padding:8px 16px;">🖨 Print Report</button>
+            <button class="btn-score" onclick="resetScorer()" style="background:none;border:1px solid var(--border);color:var(--label);font-size:12px;padding:8px 16px;">↩ Score Another Call</button>
+          </div>
+        </div>
+
+        <!-- Recent scored calls -->
+        <div style="margin-top:28px;">
+          <div class="section-eyebrow" style="margin-bottom:12px;">Recent Scored Calls</div>
+          <div id="sc_recentCalls" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="color:var(--muted);font-size:12px;">Loading...</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <!-- AGENTS PANEL -->
+  <div id="admin-agents-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:8px;">Agent Management</div>
+    <button class="btn-add-agent" onclick="openAgentModal(null)">+ Add New Agent</button>
+    <div id="admin-agents-content"></div>
+  </div>
+
+  <!-- REPORTS PANEL -->
+  <div id="admin-reports-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Performance Reports</div>
+    <div class="report-controls">
+      <div class="report-row">
+        <div class="report-field"><label>Agent(s)</label><select id="rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+        <div class="report-field"><label>Date Range</label>
+          <select id="rpt_range" onchange="toggleCustomDates()">
+            <option value="today">Today</option><option value="yesterday">Previous Day</option>
+            <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div class="report-field" id="rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="rpt_from"/></div>
+        <div class="report-field" id="rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="rpt_to"/></div>
+        <button class="btn-run-report" onclick="runReport()">Run Report</button>
+        <button class="btn-download" id="btn_download" onclick="downloadReport()" style="display:none;">⬇ Download PDF</button>
+      </div>
+    </div>
+    <div id="report-output"></div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-left" id="ad_lastUpdated">—</span>
+    <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
+  </div>
+</div>
+
+<!-- EDIT SUBMISSION MODAL -->
+<div class="modal-overlay" id="editSubModal">
+  <div class="modal-box">
+    <div class="modal-title">Edit Ancillary Submission</div>
+    <input type="hidden" id="editSubId"/>
+    <div class="form-grid">
+      <div class="field-sm"><label>Customer First Name</label><input type="text" id="es_cFirstName"/></div>
+      <div class="field-sm"><label>Customer Last Name</label><input type="text" id="es_cLastName"/></div>
+      <div class="field-sm"><label>Product Type</label>
+        <select id="es_productType"><option value="">Select...</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select>
+      </div>
+      <div class="field-sm"><label>Carrier</label><input type="text" id="es_carrier"/></div>
+      <div class="field-sm"><label>Plan Name</label><input type="text" id="es_planName"/></div>
+      <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="es_monthlyPremium" step="0.01"/></div>
+      <div class="field-sm"><label>Policy Number</label><input type="text" id="es_policyNum"/></div>
+      <div class="field-sm"><label>Effective Date</label><input type="date" id="es_effectiveDate"/></div>
+      <div class="field-sm"><label>Agent NPN</label><input type="text" id="es_aNPN"/></div>
+      <div class="field-sm"><label>PCP Name</label><input type="text" id="es_pcp"/></div>
+    </div>
+    <div class="form-grid full" style="margin-top:12px;">
+      <div class="field-sm"><label>Medications</label><textarea id="es_medications" style="min-height:50px;"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveSubEdit()">Save Changes</button>
+      <button class="btn-modal-cancel" onclick="closeModal('editSubModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT AGENT MODAL -->
+<div class="modal-overlay" id="agentModal">
+  <div class="modal-box">
+    <div class="modal-title" id="agentModalTitle">Add Agent</div>
+    <input type="hidden" id="agentModalId"/>
+    <div class="form-grid">
+      <div class="field-sm"><label>Full Name</label><input type="text" id="am_name"/></div>
+      <div class="field-sm"><label>Phone</label><input type="text" id="am_phone" placeholder="+1XXXXXXXXXX"/></div>
+      <div class="field-sm"><label>Daily Goal ($)</label><input type="number" id="am_dailyGoal" value="1600"/></div>
+      <div class="field-sm"><label>Monthly Goal ($)</label><input type="number" id="am_monthlyGoal" value="160000"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveAgent()">Save Agent</button>
+      <button class="btn-modal-cancel" onclick="closeModal('agentModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+const DAILY_GOAL = 8000;
+const ADMIN_CODE = 'bigbrothereye';
+const COMM_RATE  = 0.20 * 0.75;
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentUser   = null;
+let allAgents     = [];
+let reportData    = [];
+let scorerFile    = null;
+let scorerPollInterval = null;
+
+// ── Session ────────────────────────────────────────────────────────────────
+function saveSession(u){ localStorage.setItem('zenyra_board_v4', JSON.stringify(u)); currentUser=u; }
+function loadSession(){ const s=localStorage.getItem('zenyra_board_v4'); return s?JSON.parse(s):null; }
+function clearSession(){ localStorage.removeItem('zenyra_board_v4'); currentUser=null; }
+async function hashPw(pw){ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+
+// ── Screens ────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const fab=document.getElementById('mainFab'), fc=document.getElementById('fabChooser');
+  if(fab) fab.style.display=(id==='agent-dashboard')?'flex':'none';
+  if(fc)  fc.classList.remove('open');
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+let authRole='agent';
+async function showAuth(role){
+  authRole=role;
+  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':'Admin Portal';
+  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':'Admin access only';
+  document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
+  document.getElementById('authError').style.display='none';
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  allAgents=data||[];
+  const opts=allAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+  switchAuthTab('login');
+  showScreen('auth');
+}
+function switchAuthTab(tab){
+  document.getElementById('loginForm').style.display    =tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display =tab==='register'?'block':'none';
+  document.getElementById('tabLogin').classList.toggle('active',tab==='login');
+  document.getElementById('tabRegister').classList.toggle('active',tab==='register');
+  document.getElementById('authError').style.display='none';
+}
+function showAuthError(m){ const e=document.getElementById('authError'); e.textContent=m; e.style.display='block'; }
+async function doLogin(){
+  const agentId=document.getElementById('loginName').value;
+  const pw=document.getElementById('loginPassword').value;
+  if(!pw) return showAuthError('Enter your password.');
+  const hash=await hashPw(pw);
+  const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).eq('role',authRole).eq('password_hash',hash).single();
+  if(error||!data) return showAuthError('Incorrect password. Try again or register.');
+  await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
+  const agent=allAgents.find(a=>a.id===agentId);
+  saveSession({...data,agentName:agent?.name||data.display_name});
+  enterDashboard(data.role);
+}
+async function doRegister(){
+  const agentId=document.getElementById('registerName').value;
+  const pw=document.getElementById('registerPassword').value;
+  const confirm=document.getElementById('registerConfirm').value;
+  if(authRole==='admin'){ const code=document.getElementById('adminCode').value; if(code!==ADMIN_CODE) return showAuthError('Invalid admin access code.'); }
+  if(!pw||pw.length<6) return showAuthError('Password must be at least 6 characters.');
+  if(pw!==confirm) return showAuthError('Passwords do not match.');
+  const {data:existing}=await db.from('lb_users').select('id').eq('agent_id',agentId).eq('role',authRole).single();
+  if(existing) return showAuthError('Account already exists. Sign in instead.');
+  const hash=await hashPw(pw);
+  const agent=allAgents.find(a=>a.id===agentId);
+  const {data,error}=await db.from('lb_users').insert({agent_id:agentId,display_name:agent?.name||'Agent',role:authRole,password_hash:hash}).select().single();
+  if(error) return showAuthError('Registration failed: '+error.message);
+  saveSession({...data,agentName:agent?.name||data.display_name});
+  enterDashboard(authRole);
+}
+function enterDashboard(role){
+  if(role==='admin'){
+    document.getElementById('adminUserName').textContent=currentUser.agentName;
+    showScreen('admin-dashboard');
+    renderAdminBoard();
+    populateReportAgents();
+    populateScorerAgents();
+    loadRecentScores();
+  } else {
+    document.getElementById('agentUserName').textContent=currentUser.agentName;
+    showScreen('agent-dashboard');
+    switchAgentView('board');
+    renderAgentBoard();
+  }
+  startClocks();
+  startRealtime();
+}
+function doLogout(){ clearSession(); showScreen('landing'); }
+
+// ── Data fetchers ──────────────────────────────────────────────────────────
+async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
+async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
+async function fetchRecentSubs(limit=8){
+  const {data}=await db.from('lb_submissions').select('id,agent_id,customer_first_name,customer_last_name,product_type,monthly_premium,annual_premium,submitted_at').eq('status','live').order('submitted_at',{ascending:false}).limit(limit);
+  return data||[];
+}
+async function fetchAllSubs(){
+  const {data}=await db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').order('submitted_at',{ascending:false});
+  return data||[];
+}
+async function fetchAllMAPD(){
+  const {data}=await db.from('lb_mapd_submissions').select('*,lb_agents(name)').eq('status','live').order('submitted_at',{ascending:false});
+  return data||[];
+}
+async function fetchMySubmissions(agentId,filter){
+  let q=db.from('lb_submissions').select('*').eq('agent_id',agentId).eq('status','live');
+  if(filter.from) q=q.gte('submitted_at',filter.from);
+  if(filter.to)   q=q.lte('submitted_at',filter.to);
+  if(filter.product&&filter.product!=='all') q=q.eq('product_type',filter.product);
+  const {data}=await q.order('submitted_at',{ascending:false});
+  return data||[];
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const fmt$  = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmt$2 = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtPct= n=>Math.round(n)+'%';
+const estComm = ap=>Number(ap||0)*COMM_RATE;
+function getDayProgress(){ const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const h=et.getHours()+et.getMinutes()/60; if(h<=9)return 0; if(h>=19)return 1; return(h-9)/10; }
+function paceStatus(agentDailyAP,totalAgents,dp){ const share=DAILY_GOAL/totalAgents; const pct=(agentDailyAP/share)*100; if(dp===0)return'on'; const d=pct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; }
+function scoreColor(s){ if(s>=80)return'var(--teal)'; if(s>=60)return'var(--blue)'; if(s>=40)return'var(--amber)'; return'var(--red)'; }
+function gradeFromScore(s){ if(s>=85)return{label:'A — Excellent',cls:'grade-a'}; if(s>=70)return{label:'B — Good',cls:'grade-b'}; if(s>=55)return{label:'C — Needs Work',cls:'grade-c'}; return{label:'D — Critical',cls:'grade-d'}; }
+
+// ── Pulse ──────────────────────────────────────────────────────────────────
+function buildPulse(stats,prefix){
+  const tToday=stats.reduce((s,a)=>s+Number(a.daily_ap),0);
+  const tWeek =stats.reduce((s,a)=>s+Number(a.week_ap),0);
+  const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+  const tGoal =stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
+  const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
+  const WEEKLY_GOAL=40000;
+  const dailyPct=Math.min((tToday/DAILY_GOAL)*100,100);
+  const weekPct =Math.min((tWeek/WEEKLY_GOAL)*100,100);
+  const monthPct=Math.min((tMonth/tGoal)*100,100);
+  const dp=getDayProgress();
+  const ps=(()=>{ if(dp===0)return'on'; const d=dailyPct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; })();
+  const badgeCls=ps==='ahead'?'ahead':ps==='on'?'on-pace':ps==='off'?'behind':'critical';
+  function goalRow(cur,goal,pct,label,color){ return`<div style="margin-top:10px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;"><div style="display:flex;align-items:baseline;gap:6px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--teal);">${fmt$(cur)}</span><span style="color:var(--muted);font-size:14px;">/</span><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);">${fmt$(goal)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:4px;">${label}</span></div><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:rgba(0,201,177,0.12);color:var(--teal);">${fmtPct(pct)} to goal</span></div><div style="height:5px;border-radius:99px;background:var(--card);overflow:hidden;"><div style="height:100%;width:${pct}%;border-radius:99px;background:${color};transition:width 1s ease;"></div></div></div>`; }
+  const el=document.getElementById(prefix+'pulse');
+  if(!el)return;
+  el.innerHTML=`<div class="pulse-meta"><span class="pulse-label">Team Goal Pulse</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(tToday)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(DAILY_GOAL)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span></div><span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span></div></div><div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>${goalRow(tWeek,WEEKLY_GOAL,weekPct,'Weekly Goal','var(--amber)')}${goalRow(tMonth,tGoal,monthPct,'Monthly Goal','var(--green)')}<div class="pulse-sub" style="margin-top:10px;"><div class="pulse-sub-item"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div></div>`;
+}
+function buildMAPDPulse(mapd,elId){
+  const el=document.getElementById(elId); if(!el)return;
+  const today=mapd.reduce((s,a)=>s+Number(a.apps_today),0);
+  const week =mapd.reduce((s,a)=>s+Number(a.apps_this_week),0);
+  const month=mapd.reduce((s,a)=>s+Number(a.apps_this_month),0);
+  const all  =mapd.reduce((s,a)=>s+Number(a.apps_all_time),0);
+  el.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);align-self:center;">MAPD App Count</div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${today}</div><div class="mapd-pulse-lbl">Today</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${week}</div><div class="mapd-pulse-lbl">This Week</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${month}</div><div class="mapd-pulse-lbl">This Month</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${all}</div><div class="mapd-pulse-lbl">All Time</div></div>`;
+}
+
+// ── Leaderboards ───────────────────────────────────────────────────────────
+function buildLeaderboard(stats,tbodyId){
+  const ranked=[...stats].sort((a,b)=>b.month_ap-a.month_ap);
+  const dp=getDayProgress();
+  const tbody=document.getElementById(tbodyId); if(!tbody)return;
+  tbody.innerHTML='';
+  ranked.forEach((agent,i)=>{
+    const rank=i+1,mPct=(agent.month_ap/agent.monthly_goal)*100;
+    const pClass=mPct>=60?'pct-high':mPct>=35?'pct-mid':'pct-low';
+    const fClass=mPct>=60?'fill-high':mPct>=35?'fill-mid':'fill-low';
+    const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    const ps=paceStatus(Number(agent.daily_ap),stats.length,dp);
+    const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
+    const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
+    const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'▲':'▼'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
+  });
+}
+function buildMAPDLeaderboard(mapd,tbodyId){
+  const ranked=[...mapd].sort((a,b)=>b.apps_this_month-a.apps_this_month);
+  const tbody=document.getElementById(tbodyId); if(!tbody)return;
+  tbody.innerHTML='';
+  ranked.forEach((a,i)=>{
+    const rank=i+1,rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_today}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_week}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple);">${a.apps_this_month}</span></td><td><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--muted);">${a.apps_all_time}</span></td></tr>`;
+  });
+}
+function buildCombined(anc,mapd,elId){
+  const el=document.getElementById(elId); if(!el)return;
+  const mapdMap={}; mapd.forEach(m=>{ mapdMap[m.id]={today:m.apps_today,week:m.apps_this_week,month:m.apps_this_month}; });
+  const rows=anc.sort((a,b)=>b.month_ap-a.month_ap).map((a,i)=>{
+    const m=mapdMap[a.id]||{today:0,week:0,month:0};
+    const rank=i+1,rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
+    return`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div class="agent-name">${a.name}</div></div></td><td><span class="ap-val">${fmt$(a.daily_ap)}</span></td><td><span class="ap-val">${fmt$(a.month_ap)}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.today}</span></td><td style="text-align:right;"><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--purple);">${m.month}</span></td><td><span class="comm-val">${fmt$2(estComm(a.month_ap))}</span></td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="section-eyebrow" style="margin-bottom:12px;">Combined Performance View</div><table><thead><tr><th>Agent</th><th>Ancillary Daily AP</th><th>Ancillary Month AP</th><th style="text-align:right;">MAPD Today</th><th style="text-align:right;">MAPD Month</th><th>Est. Comm</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function buildSidebar(stats,sidebarId,updatedId){
+  const el=document.getElementById(sidebarId); if(!el)return;
+  const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+  const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
+  const topP  =[...stats].sort((a,b)=>b.week_ap-a.week_ap)[0];
+  const mostI =[...stats].sort((a,b)=>(b.week_ap-b.last_week_ap)-(a.week_ap-a.last_week_ap))[0];
+  const miDelta=Number(mostI?.week_ap||0)-Number(mostI?.last_week_ap||0);
+  const tMP=stats.reduce((s,a)=>s+Number(a.daily_mp||0),0);
+  const avgMP=tApps>0?tMP/tApps:0;
+  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{ const pct=Math.min((a.week_ap/(DAILY_GOAL*5))*100,100); const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)'; return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`; }).join('');
+  el.innerHTML=`<div class="stat-card top-producer-card"><div class="stat-card-label">🏆 Top Producer — Week</div><div class="top-producer-name">${topP?.name||'—'}</div><div class="stat-card-sub">${fmt$(topP?.week_ap||0)} this week</div></div><div class="stat-card improved-card"><div class="stat-card-label">📈 Most Improved — WoW</div><div class="improved-name">${mostI?.name||'—'}</div><div class="stat-card-sub">+${fmt$(miDelta)} vs last week</div></div><div class="divider"></div><div class="mini-stats"><div class="mini-stat"><div class="ms-val">${stats.length}</div><div class="ms-lbl">Agents</div></div><div class="mini-stat"><div class="ms-val">${tApps}</div><div class="ms-lbl">Sales Today</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(avgMP)}</div><div class="ms-lbl">Avg MP</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(estComm(tMonth))}</div><div class="ms-lbl">Team Comm</div></div></div><div class="divider"></div><div class="section-eyebrow">Weekly Ranking</div><div style="display:flex;flex-direction:column;gap:8px;">${weekRows}</div>`;
+  const lu=document.getElementById(updatedId);
+  if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ── Agent view switcher ────────────────────────────────────────────────────
+const agentViews=['board','mapd','combined','mysubs'];
+function switchAgentView(view){
+  agentViews.forEach(v=>{
+    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':'mysubs')+'-panel');
+    if(panel) panel.style.display=v===view?(v==='mysubs'||v==='combined'?'flex':'flex'):'none';
+    const tab=document.getElementById('agentTab_'+v);
+    if(tab) tab.classList.toggle('active',v===view);
+  });
+  if(view==='board')    renderAgentBoard();
+  if(view==='mapd')     renderAgentMAPD();
+  if(view==='combined') renderAgentCombined();
+  if(view==='mysubs')   loadMySubmissions();
+}
+
+// ── Agent board ────────────────────────────────────────────────────────────
+async function renderAgentBoard(){
+  const stats=await fetchStats();
+  buildPulse(stats,'a_');
+  buildLeaderboard(stats,'a_leaderboardBody');
+  buildSidebar(stats,'a_sidebar','a_lastUpdated');
+  const subs=await fetchRecentSubs(8);
+  const rsEl=document.getElementById('a_recentSales');
+  if(rsEl){
+    if(!subs.length){ rsEl.innerHTML='<div style="color:var(--muted);font-size:12px;">No sales logged today yet.</div>'; return; }
+    rsEl.innerHTML=subs.map(s=>{ const agent=stats.find(a=>a.id===s.agent_id); const nameDisplay=s.customer_first_name?`${s.customer_first_name} ${(s.customer_last_name||'').charAt(0)}.`:'Customer'; const time=new Date(s.submitted_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}); return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border);"><div><span style="font-weight:600;color:var(--white);font-size:13px;">${nameDisplay}</span><span style="color:var(--muted);font-size:11px;margin-left:8px;">${s.product_type||'—'}</span></div><div style="text-align:right;"><span style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</span><span style="color:var(--muted);font-size:10px;margin-left:6px;">${agent?.name||''} · ${time}</span></div></div>`; }).join('');
+  }
+}
+async function renderAgentMAPD(){
+  const mapd=await fetchMAPDStats();
+  buildMAPDPulse(mapd,'a_mapd_pulse');
+  buildMAPDLeaderboard(mapd,'a_mapdBody');
+}
+async function renderAgentCombined(){
+  const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]);
+  buildCombined(anc,mapd,'a_combinedContent');
+}
+
+// ── My Submissions ─────────────────────────────────────────────────────────
+function toggleMyCustomDates(){ const v=document.getElementById('my_range').value; ['my_from_wrap','my_to_wrap'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=v==='custom'?'flex':'none'; }); }
+function getMyFilter(){
+  const range=document.getElementById('my_range').value,product=document.getElementById('my_product').value;
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
+  let from=null,to=null;
+  if(range==='today'){ from=today.toISOString(); to=new Date(today.getTime()+86400000-1).toISOString(); }
+  else if(range==='7'){ from=new Date(today-6*86400000).toISOString(); }
+  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1).toISOString(); }
+  else if(range==='30'){ from=new Date(today-29*86400000).toISOString(); }
+  else if(range==='custom'){ from=document.getElementById('my_from').value?new Date(document.getElementById('my_from').value).toISOString():null; to=document.getElementById('my_to').value?new Date(document.getElementById('my_to').value+'T23:59:59').toISOString():null; }
+  return{from,to,product};
+}
+async function loadMySubmissions(){
+  if(!currentUser?.agent_id)return;
+  const filter=getMyFilter();
+  const subs=await fetchMySubmissions(currentUser.agent_id,filter);
+  const totalMP=subs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
+  const totalAP=subs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
+  document.getElementById('my_summary').innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
+  const tblEl=document.getElementById('my_subs_table');
+  if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── Admin board ────────────────────────────────────────────────────────────
+let adminBoardView='anc';
+function switchAdminBoardView(view){
+  adminBoardView=view;
+  ['anc','mapd','combined'].forEach(v=>{
+    const p=document.getElementById('admin-'+v+'-sub');
+    if(p) p.style.display=v===view?(v==='combined'?'block':'flex'):'none';
+    const t=document.getElementById('adminBoardTab_'+v);
+    if(t) t.classList.toggle('active',v===view);
+  });
+  if(view==='anc')      renderAdminBoard();
+  if(view==='mapd')     renderMAPDBoard();
+  if(view==='combined') renderAdminCombined();
+}
+async function renderAdminBoard(){ const stats=await fetchStats(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody'); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
+async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody'); }
+async function renderAdminCombined(){ const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]); buildCombined(anc,mapd,'ad_combinedContent'); }
+
+// ── Admin submissions ──────────────────────────────────────────────────────
+async function renderAdminSubmissions(){
+  const subs=await fetchAllSubs();
+  const cont=document.getElementById('admin-subs-content');
+  if(!subs.length){ cont.innerHTML='<div class="no-data">No submissions yet.</div>'; return; }
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr data-id="${s.id}"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteSubmission('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+}
+async function renderAdminMAPD(){
+  const subs=await fetchAllMAPD();
+  const cont=document.getElementById('admin-mapd-content');
+  if(!subs.length){ cont.innerHTML='<div class="no-data">No MAPD submissions yet.</div>'; return; }
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+}
+async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))return; await db.from('lb_mapd_submissions').update({status:'deleted'}).eq('id',id); renderAdminMAPD(); }
+function openEditSub(s){ document.getElementById('editSubId').value=s.id; document.getElementById('es_cFirstName').value=s.customer_first_name||''; document.getElementById('es_cLastName').value=s.customer_last_name||''; document.getElementById('es_productType').value=s.product_type||''; document.getElementById('es_carrier').value=s.carrier_name||''; document.getElementById('es_planName').value=s.plan_name||''; document.getElementById('es_monthlyPremium').value=s.monthly_premium||''; document.getElementById('es_policyNum').value=s.policy_number||''; document.getElementById('es_effectiveDate').value=s.effective_date||''; document.getElementById('es_aNPN').value=s.agent_npn||''; document.getElementById('es_pcp').value=s.pcp_name||''; document.getElementById('es_medications').value=s.medications||''; openModal('editSubModal'); }
+async function saveSubEdit(){ const id=document.getElementById('editSubId').value; const mp=parseFloat(document.getElementById('es_monthlyPremium').value); const {error}=await db.from('lb_submissions').update({customer_first_name:document.getElementById('es_cFirstName').value,customer_last_name:document.getElementById('es_cLastName').value,product_type:document.getElementById('es_productType').value,carrier_name:document.getElementById('es_carrier').value,plan_name:document.getElementById('es_planName').value,monthly_premium:mp||null,policy_number:document.getElementById('es_policyNum').value,effective_date:document.getElementById('es_effectiveDate').value||null,agent_npn:document.getElementById('es_aNPN').value,pcp_name:document.getElementById('es_pcp').value,medications:document.getElementById('es_medications').value}).eq('id',id); if(error){alert('Save failed: '+error.message);return;} closeModal('editSubModal'); renderAdminSubmissions(); renderAdminBoard(); }
+async function deleteSubmission(id){ if(!confirm('Delete this submission?'))return; await db.from('lb_submissions').update({status:'deleted'}).eq('id',id); renderAdminSubmissions(); renderAdminBoard(); }
+
+// ── Agent management ───────────────────────────────────────────────────────
+async function renderAgentManagement(){ const {data:agents}=await db.from('lb_agents').select('*').order('name'); const cont=document.getElementById('admin-agents-content'); if(!agents?.length){cont.innerHTML='<div class="no-data">No agents found.</div>';return;} cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`; }
+function openAgentModal(agent){ document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent'; document.getElementById('agentModalId').value=agent?.id||''; document.getElementById('am_name').value=agent?.name||''; document.getElementById('am_phone').value=agent?.phone||''; document.getElementById('am_dailyGoal').value=agent?.daily_goal||1600; document.getElementById('am_monthlyGoal').value=agent?.monthly_goal||160000; openModal('agentModal'); }
+async function saveAgent(){ const id=document.getElementById('agentModalId').value; const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)}; if(!payload.name){alert('Name is required.');return;} let error; if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}else{({error}=await db.from('lb_agents').insert({...payload,active:true}));} if(error){alert('Save failed: '+error.message);return;} closeModal('agentModal'); renderAgentManagement(); }
+async function toggleAgentStatus(id,current){ if(!confirm(`${current?'Deactivate':'Activate'} this agent?`))return; await db.from('lb_agents').update({active:!current}).eq('id',id); renderAgentManagement(); }
+
+// ── Reports ────────────────────────────────────────────────────────────────
+async function populateReportAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('rpt_agent'); if(!sel)return; sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
+function toggleCustomDates(){ const v=document.getElementById('rpt_range').value; document.getElementById('rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById('rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
+function getDateRange(range){ const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate()); let from,to=new Date(today.getTime()+86400000-1); if(range==='today'){from=today;}else if(range==='yesterday'){from=new Date(today-86400000);to=new Date(today-1);}else if(range==='mtd'){from=new Date(today.getFullYear(),today.getMonth(),1);}else if(range==='custom'){from=new Date(document.getElementById('rpt_from').value);to=new Date(document.getElementById('rpt_to').value+'T23:59:59');}else{from=new Date(today-(parseInt(range)-1)*86400000);} return{from,to}; }
+async function runReport(){ const agentFilter=document.getElementById('rpt_agent').value; const range=document.getElementById('rpt_range').value; const {from,to}=getDateRange(range); let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString()); if(agentFilter!=='all') q=q.eq('agent_id',agentFilter); const {data:subs}=await q.order('submitted_at',{ascending:false}); reportData=subs||[]; const output=document.getElementById('report-output'); const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById('btn_download').style.display='none';return;} const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`; document.getElementById('btn_download').style.display='inline-block'; }
+function downloadReport(){ const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
+
+// ── Admin tab switcher ─────────────────────────────────────────────────────
+function switchAdminTab(tab){
+  const panels={board:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
+  Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
+  if(tab==='board')   renderAdminBoard();
+  if(tab==='subs')    renderAdminSubmissions();
+  if(tab==='mapd')    renderAdminMAPD();
+  if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
+  if(tab==='agents')  renderAgentManagement();
+  if(tab==='reports') populateReportAgents();
+}
+
+// ── FAB ────────────────────────────────────────────────────────────────────
+function toggleFabChooser(){ document.getElementById('fabChooser').classList.toggle('open'); }
+
+// ── Submit forms ───────────────────────────────────────────────────────────
+function showSubmitForm(type){ document.getElementById('fabChooser').classList.remove('open'); if(type==='mapd'){ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('submit-mapd-screen'); } else { document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); } }
+function cancelSubmit(){ showScreen('agent-dashboard'); }
+function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
+async function submitSale(){ const mp=parseFloat(document.getElementById('f_monthlyPremium').value); if(!mp||mp<=0)return alert('Monthly premium is required.'); if(!document.getElementById('f_productType').value)return alert('Product type is required.'); const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:document.getElementById('f_aEmail').value,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value}); if(error)return alert('Submission failed: '+error.message); document.getElementById('submitSuccess').style.display='block'; document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value=''); setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
+async function submitMAPD(){ if(!document.getElementById('m_cFirstName').value||!document.getElementById('m_cLastName').value)return alert('Customer first and last name are required.'); const {error}=await db.from('lb_mapd_submissions').insert({agent_id:currentUser?.agent_id,status:'live',app_submit_date:document.getElementById('m_appSubmitDate').value||null,sunfire_confirm_date:document.getElementById('m_sunfireDate').value||null,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,plan_code:document.getElementById('m_planCode').value,effective_date:document.getElementById('m_effectiveDate').value||null,agent_npn:document.getElementById('m_aNPN').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_dob:document.getElementById('m_cDOB').value||null,customer_gender:document.getElementById('m_cGender').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,medicare_number:document.getElementById('m_medicareNum').value,medicare_part_a_date:document.getElementById('m_partADate').value||null,medicare_part_b_date:document.getElementById('m_partBDate').value||null,is_on_medicaid:document.getElementById('m_onMedicaid').checked,medicaid_number:document.getElementById('m_medicaidNum').value||null,pcp_name:document.getElementById('m_pcpName').value,pcp_id:document.getElementById('m_pcpId').value,specialist_names:document.getElementById('m_specialists').value,medications:document.getElementById('m_medications').value}); if(error)return alert('MAPD submission failed: '+error.message); document.getElementById('submitMAPDSuccess').style.display='block'; document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; }); document.getElementById('m_medicaidNumWrap').style.display='none'; setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
+
+// ── Call Scorer ────────────────────────────────────────────────────────────
+async function populateScorerAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('sc_agent'); if(!sel)return; sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
+function onFileSelected(input){ scorerFile=input.files[0]||null; const fn=document.getElementById('sc_filename'),btn=document.getElementById('sc_btn'); if(scorerFile){ fn.textContent=scorerFile.name+' ('+Math.round(scorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; } else { fn.textContent=''; btn.disabled=true; } }
+function setStep(id,state){ const el=document.getElementById(id); if(!el)return; el.classList.remove('active','done'); if(state) el.classList.add(state); }
+function showScorerError(msg){ const el=document.getElementById('sc_error'); if(el){ el.textContent=msg; el.style.display='block'; } document.getElementById('sc_progress').style.display='none'; document.getElementById('sc_btn').disabled=false; }
+
+async function scoreCall(){
+  if(!scorerFile)return alert('Upload a call recording first.');
+  const agentSel=document.getElementById('sc_agent');
+  const agentName=agentSel.options[agentSel.selectedIndex]?.text||'Unknown Agent';
+  const agentId=agentSel.value||null;
+
+  document.getElementById('sc_error').style.display='none';
+  document.getElementById('sc_result').style.display='none';
+  document.getElementById('sc_progress').style.display='block';
+  document.getElementById('sc_btn').disabled=true;
+  setStep('step_upload','active'); setStep('step_transcribe',''); setStep('step_score',''); setStep('step_coaching','');
+
+  try {
+    // Step 1: Create job record via lightweight API call (no file body)
+    const createRes = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentName, agentId, fileName: scorerFile.name, action: 'create-job' })
+    });
+    if(!createRes.ok){ const t=await createRes.text(); throw new Error(t||'Job creation failed'); }
+    const { jobId, uploadPath, uploadToken } = await createRes.json();
+
+    // Step 2: Upload file directly to Supabase Storage from browser (bypasses Vercel body limit)
+    const SUPA_URL = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
+    const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+    const storageRes = await fetch(
+      `${SUPA_URL}/storage/v1/object/lb-scorer-audio/${uploadPath}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPA_ANON}`,
+          'Content-Type': scorerFile.type || 'audio/mpeg',
+          'x-upsert': 'false'
+        },
+        body: scorerFile
+      }
+    );
+    if(!storageRes.ok){ const t=await storageRes.text(); throw new Error('Storage upload failed: '+t); }
+
+    setStep('step_upload','done'); setStep('step_transcribe','active');
+
+    // Step 3: Trigger Inngest job now that file is in storage
+    const triggerRes = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, uploadPath, agentName, agentId, fileName: scorerFile.name, action: 'trigger-job' })
+    });
+    if(!triggerRes.ok){ const t=await triggerRes.text(); throw new Error('Job trigger failed: '+t); }
+
+    // Step 4: Poll for completion
+    if(scorerPollInterval) clearInterval(scorerPollInterval);
+    scorerPollInterval = setInterval(async ()=>{
+      try {
+        const statusRes = await fetch(`/api/job-status?jobId=${jobId}`);
+        if(!statusRes.ok) return;
+        const job = await statusRes.json();
+        if(job.status==='transcribing'){
+          setStep('step_transcribe','active'); setStep('step_score',''); setStep('step_coaching','');
+        } else if(job.status==='scoring'){
+          setStep('step_transcribe','done'); setStep('step_score','active'); setStep('step_coaching','');
+        } else if(job.status==='complete'){
+          clearInterval(scorerPollInterval);
+          setStep('step_transcribe','done'); setStep('step_score','done'); setStep('step_coaching','done');
+          setTimeout(()=>{ document.getElementById('sc_progress').style.display='none'; renderScorerResult(job); loadRecentScores(); },600);
+        } else if(job.status==='failed'||job.status==='error'){
+          clearInterval(scorerPollInterval);
+          showScorerError('Scoring failed. Check that the file is a valid audio recording and try again.');
+        }
+      } catch(e){ /* keep polling */ }
+    }, 3000);
+
+  } catch(err){
+    showScorerError(err.message||'Upload failed. Try again.');
+  }
+}
+
+function renderScorerResult(job){
+  const plates=[
+    {key:'score_intro',   label:'Intro & Eligibility', weight:20},
+    {key:'score_health',  label:'Health Review',        weight:15},
+    {key:'score_plan',    label:'Plan Review',           weight:15},
+    {key:'score_problem', label:'Problem Reveal',        weight:20},
+    {key:'score_solution',label:'Solution Reveal',       weight:15},
+    {key:'score_enrollment',label:'Enrollment',          weight:15},
+  ];
+
+  document.getElementById('res_agentName').textContent=job.agent_name||'—';
+  document.getElementById('res_overallScore').textContent=Math.round(job.overall_score||0)+'/100';
+  document.getElementById('res_overallScore').style.color=scoreColor(job.overall_score||0);
+  const grade=gradeFromScore(job.overall_score||0);
+  const gradeEl=document.getElementById('res_grade'); gradeEl.textContent=grade.label; gradeEl.className='score-grade '+grade.cls;
+  document.getElementById('res_fileName').textContent=job.file_name||'—';
+  document.getElementById('res_timestamp').textContent=job.completed_at?new Date(job.completed_at).toLocaleString('en-US',{timeZone:'America/New_York'})+' ET':'';
+  document.getElementById('res_summary').textContent=job.call_summary||'';
+
+  document.getElementById('res_plateScores').innerHTML=plates.map(p=>{
+    const sc=job[p.key]||0, col=scoreColor(sc);
+    return`<div class="plate-score-card"><div class="plate-score-name">${p.label} (/${p.weight}pts)</div><div class="plate-score-val" style="color:${col};">${sc}</div><div class="plate-score-bar"><div class="plate-score-fill" style="width:${sc}%;background:${col};"></div></div></div>`;
+  }).join('');
+
+  let pts=[];
+  try{ pts=JSON.parse(job.coaching_points||'[]'); } catch(e){}
+  document.getElementById('res_coaching').innerHTML=pts.length?pts.map(pt=>{ const pCls=pt.priority==='HIGH'?'priority-high':pt.priority==='MEDIUM'?'priority-med':'priority-low'; return`<div class="coaching-point"><div class="coaching-priority ${pCls}">${pt.priority==='HIGH'?'H':pt.priority==='MEDIUM'?'M':'L'}</div><div class="coaching-body"><div class="coaching-plate">${pt.plate}</div><div class="coaching-text">${pt.text}</div></div></div>`; }).join(''):'<div style="color:var(--muted);">No coaching points available.</div>';
+
+  document.getElementById('res_transcript').textContent=job.transcript||'Transcript not available.';
+  document.getElementById('sc_result').style.display='block';
+  document.getElementById('sc_btn').disabled=false;
+  document.getElementById('sc_result').scrollIntoView({behavior:'smooth'});
+}
+
+async function loadRecentScores(){
+  const el=document.getElementById('sc_recentCalls'); if(!el)return;
+  try {
+    const res=await fetch('/api/recent-scores');
+    if(!res.ok){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; return; }
+    const scores=await res.json();
+    if(!scores.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">No scored calls yet.</div>'; return; }
+    el.innerHTML=scores.map(s=>{
+      const col=scoreColor(s.overall_score||0);
+      const grade=gradeFromScore(s.overall_score||0);
+      const ts=s.completed_at?new Date(s.completed_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}):'';
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-weight:600;color:var(--white);font-size:13px;">${s.agent_name||'Unknown'}</div>
+            <div style="font-size:11px;color:var(--muted);">${s.file_name||''} · ${ts}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};">${s.overall_score||0}</div>
+            <div style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;" class="score-grade ${grade.cls}">${grade.label.split('—')[0].trim()}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--body);margin-top:8px;line-height:1.5;">${s.call_summary||''}</div>
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
+}
+function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth'}); }
+function resetScorer(){ scorerFile=null; document.getElementById('sc_file').value=''; document.getElementById('sc_filename').textContent=''; document.getElementById('sc_btn').disabled=true; document.getElementById('sc_result').style.display='none'; document.getElementById('sc_progress').style.display='none'; document.getElementById('sc_error').style.display='none'; }
+function toggleTranscript(){ const body=document.getElementById('res_transcript'),btn=body.previousElementSibling; const visible=body.style.display==='block'; body.style.display=visible?'none':'block'; btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript'; }
+
+// ── Modals ─────────────────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── Realtime ───────────────────────────────────────────────────────────────
+function startRealtime(){
+  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); }).subscribe();
+  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); }).subscribe();
+}
+
+// ── Clocks ─────────────────────────────────────────────────────────────────
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); },30000); }
+
+// ── Drag & drop on scorer ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const dz=document.getElementById('scorerDropZone'); if(!dz)return;
+  dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }});
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+(async function init(){
+  const session=loadSession();
+  if(session){
+    currentUser=session;
+    const {data}=await db.from('lb_agents').select('id,name').eq('active',true);
+    allAgents=data||[];
+    enterDashboard(session.role);
+  }
+})();
+</script>
+</body>
+</html>
