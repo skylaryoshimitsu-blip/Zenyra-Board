@@ -750,6 +750,7 @@ tbody td:not(:first-child){text-align:right;}
             <button onclick="downloadScorerPDF()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">&#x2B07; Download PDF</button>
             <button onclick="resetScorer()" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">&#x21A9; Score Another Call</button>
             <button onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer;">&#x1F5A8; Print</button>
+            <button onclick="deleteCurrentScore()" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">&#x1F5D1; Delete</button>
           </div>
         </div>
 
@@ -1343,18 +1344,22 @@ async function loadRecentScores(){
       const col=scoreColor(s.overall_score||0);
       const grade=gradeFromScore(s.overall_score||0);
       const ts=s.completed_at?new Date(s.completed_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'}):'';
-      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+      const sid='${s.id}';
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div>
+          <div style="flex:1;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">
             <div style="font-weight:600;color:var(--white);font-size:13px;">${s.agent_name||'Unknown'}</div>
             <div style="font-size:11px;color:var(--muted);">${s.file_name||''} · ${ts}</div>
           </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};">${s.overall_score||0}</div>
-            <div style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;" class="score-grade ${grade.cls}">${grade.label.split('—')[0].trim()}</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            <div style="text-align:right;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};">${s.overall_score||0}</div>
+              <div style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;" class="score-grade ${grade.cls}">${grade.label.split('—')[0].trim()}</div>
+            </div>
+            <button onclick="event.stopPropagation();deleteScore('${s.id}')" title="Delete" style="background:none;border:1px solid #555;border-radius:6px;color:#999;padding:6px 8px;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;">&#x1F5D1;</button>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--body);margin-top:8px;line-height:1.5;">${s.call_summary||''}</div>
+        <div style="font-size:12px;color:var(--body);margin-top:8px;line-height:1.5;cursor:pointer;" onclick="expandRecentScore(${JSON.stringify(s).replace(/"/g,'&quot;')})">${s.call_summary||''}</div>
       </div>`;
     }).join('');
   } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
