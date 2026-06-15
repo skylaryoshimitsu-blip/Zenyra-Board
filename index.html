@@ -956,14 +956,16 @@ async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').sel
 
 // ── Top State / Top Carrier (this week, Eastern) ──────────────────────────
 function startOfWeekET_ISO(){
-  // Sunday 00:00 ET of the current week, as a UTC ISO string (timezone-independent)
+  // Monday 00:00 ET of the current week, as a UTC ISO string (timezone-independent)
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(new Date());
   const y=+parts.find(p=>p.type==='year').value;
   const m=+parts.find(p=>p.type==='month').value;
   const d=+parts.find(p=>p.type==='day').value;
   const wd=parts.find(p=>p.type==='weekday').value; // Sun, Mon, ...
-  const idx=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(wd);
-  // Build a UTC date for today's ET calendar date at noon, then step back idx days to Sunday
+  // Days since Monday: Mon=0, Tue=1, ... Sun=6
+  const idxMap={Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+  const idx=idxMap[wd];
+  // Build a UTC date for today's ET calendar date at noon, then step back idx days to Monday
   const base=new Date(Date.UTC(y,m-1,d,12,0,0));
   base.setUTCDate(base.getUTCDate()-idx);
   // Determine ET offset to place midnight ET correctly
@@ -1326,6 +1328,7 @@ function renderScorerResult(job){
   document.getElementById('res_transcript').textContent=job.transcript||'Transcript not available.';
   document.getElementById('sc_result').style.display='block';
   document.getElementById('sc_btn').disabled=false;
+  document.getElementById('sc_result').dataset.jobId=job.id||'';
   document.getElementById('sc_result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -1357,6 +1360,21 @@ async function loadRecentScores(){
   } catch(e){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Could not load recent scores.</div>'; }
 }
 function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth',block:'start'}); }
+async function deleteScore(id){
+  if(!id) return;
+  if(!confirm('Delete this scored call? This cannot be undone.')) return;
+  const {error}=await db.from('lb_scorer_results').delete().eq('id',id);
+  if(error){ alert('Delete failed: '+error.message); return; }
+  const panel=document.getElementById('sc_result');
+  if(panel && panel.dataset.jobId===id){ panel.style.display='none'; panel.dataset.jobId=''; }
+  loadRecentScores();
+}
+async function deleteCurrentScore(){
+  const panel=document.getElementById('sc_result');
+  const id=panel?.dataset.jobId;
+  if(!id){ alert('No scored call selected.'); return; }
+  await deleteScore(id);
+}
 function resetScorer(){
   scorerFile=null;
   document.getElementById('sc_file').value='';
