@@ -792,7 +792,7 @@ async function showAuth(role){
   document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':'Admin access only';
   document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
   document.getElementById('authError').style.display='none';
-  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).or(`role.eq.${role},role.eq.both`).order('name');
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).or('role.eq.'+role+',role.eq.both').order('name');
   allAgents=data||[];
   const opts=allAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
