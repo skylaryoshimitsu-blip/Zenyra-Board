@@ -922,7 +922,7 @@ const fmt$2 = n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:
 const fmtPct= n=>Math.round(n)+'%';
 const estComm = ap=>Number(ap||0)*COMM_RATE;
 function getDayProgress(){ const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const h=et.getHours()+et.getMinutes()/60; if(h<=9)return 0; if(h>=19)return 1; return(h-9)/10; }
-function paceStatus(agentDailyAP,totalAgents,dp){ const share=DAILY_GOAL/totalAgents; const pct=(agentDailyAP/share)*100; if(dp===0)return'on'; const d=pct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; }
+function paceStatus(agentDailyAP,agentDailyGoal,dp){ const goal=Number(agentDailyGoal)||1; const pct=(agentDailyAP/goal)*100; if(dp===0)return'on'; const d=pct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; }
 function scoreColor(s){ if(s>=80)return'var(--teal)'; if(s>=60)return'var(--blue)'; if(s>=40)return'var(--amber)'; return'var(--red)'; }
 function gradeFromScore(s){ if(s>=85)return{label:'A — Excellent',cls:'grade-a'}; if(s>=70)return{label:'B — Good',cls:'grade-b'}; if(s>=55)return{label:'C — Needs Work',cls:'grade-c'}; return{label:'D — Critical',cls:'grade-d'}; }
 
@@ -932,9 +932,10 @@ function buildPulse(stats,prefix){
   const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
   const tGoal =stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
   const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
-  const WEEKLY_GOAL=40000;
-  const dailyPct=Math.min((tToday/DAILY_GOAL)*100,100);
-  const weekPct =Math.min((tWeek/WEEKLY_GOAL)*100,100);
+  const dynamicDailyGoal =stats.reduce((s,a)=>s+Number(a.daily_goal||0),0)||1;
+  const dynamicWeeklyGoal=dynamicDailyGoal*5;
+  const dailyPct=Math.min((tToday/dynamicDailyGoal)*100,100);
+  const weekPct =Math.min((tWeek/dynamicWeeklyGoal)*100,100);
   const monthPct=Math.min((tMonth/tGoal)*100,100);
   const dp=getDayProgress();
   const ps=(()=>{ if(dp===0)return'on'; const d=dailyPct-dp*100; if(d>10)return'ahead'; if(d>=-10)return'on'; if(d>=-25)return'off'; return'crit'; })();
@@ -942,7 +943,7 @@ function buildPulse(stats,prefix){
   function goalRow(cur,goal,pct,label,color){ return`<div style="margin-top:10px;"><div class="pulse-meta"><span class="pulse-label">&nbsp;</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(cur)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(goal)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">${label}</span></div><span class="pulse-pct on-pace">${fmtPct(pct)} to goal</span></div></div><div class="pulse-bar-track"><div style="height:100%;width:${pct}%;border-radius:99px;background:${color};transition:width 1s ease;"></div></div></div>`; }
   const el=document.getElementById(prefix+'pulse');
   if(!el)return;
-  el.innerHTML=`<div class="pulse-meta"><span class="pulse-label">Team Goal Pulse</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(tToday)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(DAILY_GOAL)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span></div><span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span></div></div><div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>${goalRow(tWeek,WEEKLY_GOAL,weekPct,'Weekly Goal','var(--amber)')}${goalRow(tMonth,tGoal,monthPct,'Monthly Goal','var(--green)')}<div class="pulse-sub" style="margin-top:10px;"><div class="pulse-sub-item" style="margin-left:auto;text-align:right;align-items:flex-end;display:flex;flex-direction:column;"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div></div>`;
+  el.innerHTML=`<div class="pulse-meta"><span class="pulse-label">Team Goal Pulse</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(tToday)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(dynamicDailyGoal)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span></div><span class="pulse-pct ${badgeCls}">${fmtPct(dailyPct)} to goal</span></div></div><div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>${goalRow(tWeek,dynamicWeeklyGoal,weekPct,'Weekly Goal','var(--amber)')}${goalRow(tMonth,tGoal,monthPct,'Monthly Goal','var(--green)')}<div class="pulse-sub" style="margin-top:10px;"><div class="pulse-sub-item" style="margin-left:auto;text-align:right;align-items:flex-end;display:flex;flex-direction:column;"><span class="sub-val">${tApps}</span><span class="sub-lbl">Submissions Today</span></div></div>`;
 }
 
 function buildMAPDPulse(mapd,elId){
@@ -965,7 +966,7 @@ function buildLeaderboard(stats,tbodyId,topMap){
     const pClass=mPct>=60?'pct-high':mPct>=35?'pct-mid':'pct-low';
     const fClass=mPct>=60?'fill-high':mPct>=35?'fill-mid':'fill-low';
     const rClass=['','rank-1','rank-2','rank-3'][rank]||'rank-n';
-    const ps=paceStatus(Number(agent.daily_ap),stats.length,dp);
+    const ps=paceStatus(Number(agent.daily_ap),Number(agent.daily_goal)||1,dp);
     const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
     const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
@@ -1003,7 +1004,7 @@ function buildSidebar(stats,sidebarId,updatedId){
   const miDelta=Number(mostI?.week_ap||0)-Number(mostI?.last_week_ap||0);
   const tMP=stats.reduce((s,a)=>s+Number(a.daily_mp||0),0);
   const avgMP=tApps>0?tMP/tApps:0;
-  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{ const pct=Math.min((a.week_ap/(DAILY_GOAL*5))*100,100); const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)'; return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`; }).join('');
+  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{ const agentWeekGoal=(Number(a.daily_goal)||0)*5; const pct=agentWeekGoal>0?Math.min((a.week_ap/agentWeekGoal)*100,100):0; const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)'; return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`; }).join('');
   el.innerHTML=`<div class="stat-card top-producer-card"><div class="stat-card-label">&#x1f3c6; Top Producer — Week</div><div class="top-producer-name">${topP?.name||'—'}</div><div class="stat-card-sub">${fmt$(topP?.week_ap||0)} this week</div></div><div class="stat-card improved-card"><div class="stat-card-label">&#x1f4c8; Most Improved — WoW</div><div class="improved-name">${mostI?.name||'—'}</div><div class="stat-card-sub">+${fmt$(miDelta)} vs last week</div></div><div class="divider"></div><div class="mini-stats"><div class="mini-stat"><div class="ms-val">${stats.length}</div><div class="ms-lbl">Agents</div></div><div class="mini-stat"><div class="ms-val">${tApps}</div><div class="ms-lbl">Sales Today</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(avgMP)}</div><div class="ms-lbl">Avg MP</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(estComm(tMonth))}</div><div class="ms-lbl">Team Comm</div></div></div><div class="divider"></div><div class="section-eyebrow">Weekly Ranking</div><div style="display:flex;flex-direction:column;gap:8px;">${weekRows}</div>`;
   const lu=document.getElementById(updatedId);
   if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
