@@ -212,7 +212,7 @@ tbody td:not(:first-child){text-align:right;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
 
-/* WoW TAB */
+/* WOW TAB */
 .wow-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
 .wow-summary-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
 .wow-summary-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:var(--white);}
@@ -225,10 +225,7 @@ tbody td:not(:first-child){text-align:right;}
 .wow-table td:not(:first-child){text-align:right;}
 .wow-table tr:hover td{background:rgba(30,42,59,0.4);}
 .wow-agent-name{font-weight:600;color:var(--white);font-size:14px;}
-.wow-ap-flow{display:flex;align-items:center;gap:6px;justify-content:flex-end;}
-.wow-ap-prev{font-size:12px;color:var(--muted);}
-.wow-ap-arrow{color:var(--label);font-size:11px;}
-.wow-ap-curr{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--white);}
+.wow-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;font-family:'Bebas Neue',sans-serif;font-size:12px;margin-right:6px;}
 .wow-delta-pos{color:var(--green);font-weight:700;font-size:13px;}
 .wow-delta-neg{color:var(--red);font-weight:700;font-size:13px;}
 .wow-delta-zero{color:var(--muted);font-size:13px;}
@@ -236,7 +233,6 @@ tbody td:not(:first-child){text-align:right;}
 .wow-bar-track{width:80px;height:5px;border-radius:99px;background:var(--card);overflow:hidden;}
 .wow-bar-fill-pos{height:100%;border-radius:99px;background:var(--green);}
 .wow-bar-fill-neg{height:100%;border-radius:99px;background:var(--red);}
-.wow-apps-flow{display:flex;align-items:center;gap:4px;justify-content:flex-end;font-size:13px;}
 .wow-most-improved{background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
 .wow-mi-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:4px;}
 .wow-mi-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);}
@@ -1210,89 +1206,69 @@ function buildPrintReport(){
 // WoW DATA + RENDER
 // ══════════════════════════════════════════════════
 async function fetchWoW(){
-  const {data}=await db.rpc('get_wow_stats').catch(()=>({data:null}));
-  if(data) return data;
-  // Fallback: manual query if RPC not available
-  const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true);
+  const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
   if(!agents||!subs) return [];
   const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const dow=nowET.getDay();
   const startOfThisWeek=new Date(nowET);
-  startOfThisWeek.setDate(nowET.getDate()-nowET.getDay()); // Sunday
+  startOfThisWeek.setDate(nowET.getDate()-dow);
   startOfThisWeek.setHours(0,0,0,0);
   const startOfLastWeek=new Date(startOfThisWeek);
   startOfLastWeek.setDate(startOfThisWeek.getDate()-7);
-  const endOfLastWeek=new Date(startOfThisWeek);
-  endOfLastWeek.setMilliseconds(-1);
-
+  const endOfLastWeek=new Date(startOfThisWeek.getTime()-1);
+  const inET=ts=>new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'}));
   return agents.map(agent=>{
     const agentSubs=subs.filter(s=>s.agent_id===agent.id);
-    const thisWeekSubs=agentSubs.filter(s=>{
-      const d=new Date(new Date(s.submitted_at).toLocaleString('en-US',{timeZone:'America/New_York'}));
-      return d>=startOfThisWeek;
-    });
-    const lastWeekSubs=agentSubs.filter(s=>{
-      const d=new Date(new Date(s.submitted_at).toLocaleString('en-US',{timeZone:'America/New_York'}));
-      return d>=startOfLastWeek && d<=endOfLastWeek;
-    });
-    const thisWeekAP=thisWeekSubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-    const lastWeekAP=lastWeekSubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    const thisW=agentSubs.filter(s=>inET(s.submitted_at)>=startOfThisWeek);
+    const lastW=agentSubs.filter(s=>{ const d=inET(s.submitted_at); return d>=startOfLastWeek&&d<=endOfLastWeek; });
+    const thisAP=thisW.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    const lastAP=lastW.reduce((s,r)=>s+Number(r.annual_premium||0),0);
     return {
-      name:          agent.name,
-      this_week_ap:  thisWeekAP,
-      last_week_ap:  lastWeekAP,
-      ap_delta:      thisWeekAP - lastWeekAP,
-      this_week_apps:thisWeekSubs.length,
-      last_week_apps:lastWeekSubs.length,
-      apps_delta:    thisWeekSubs.length - lastWeekSubs.length,
+      name:agent.name,
+      this_week_ap:thisAP,
+      last_week_ap:lastAP,
+      ap_delta:thisAP-lastAP,
+      this_week_apps:thisW.length,
+      last_week_apps:lastW.length,
+      apps_delta:thisW.length-lastW.length
     };
   });
 }
 
-function renderWoW(data, containerId){
-  const cont=document.getElementById(containerId);
-  if(!cont) return;
+function renderWoW(data,containerId){
+  const cont=document.getElementById(containerId); if(!cont)return;
   if(!data||!data.length){ cont.innerHTML='<div class="no-data">No data available.</div>'; return; }
-
-  // Sort by AP delta desc, tie-break by this_week_ap
   const sorted=[...data].sort((a,b)=>b.ap_delta-a.ap_delta||b.this_week_ap-a.this_week_ap);
-
-  // Team totals
-  const teamThisAP   = data.reduce((s,a)=>s+a.this_week_ap,0);
-  const teamLastAP   = data.reduce((s,a)=>s+a.last_week_ap,0);
-  const teamAPDelta  = teamThisAP - teamLastAP;
-  const teamThisApps = data.reduce((s,a)=>s+a.this_week_apps,0);
-  const teamLastApps = data.reduce((s,a)=>s+a.last_week_apps,0);
-  const teamAppsDelta= teamThisApps - teamLastApps;
-  const teamAPPct    = teamLastAP>0?((teamAPDelta/teamLastAP)*100):0;
-
-  // Most improved
+  const teamThisAP=data.reduce((s,a)=>s+a.this_week_ap,0);
+  const teamLastAP=data.reduce((s,a)=>s+a.last_week_ap,0);
+  const teamAPDelta=teamThisAP-teamLastAP;
+  const teamThisApps=data.reduce((s,a)=>s+a.this_week_apps,0);
+  const teamLastApps=data.reduce((s,a)=>s+a.last_week_apps,0);
+  const teamAppsDelta=teamThisApps-teamLastApps;
+  const teamAPPct=teamLastAP>0?((teamAPDelta/teamLastAP)*100):0;
   const mi=sorted[0];
   const miPct=mi.last_week_ap>0?((mi.ap_delta/mi.last_week_ap)*100):null;
-
-  // Max absolute delta for bar scaling
   const maxDelta=Math.max(...data.map(a=>Math.abs(a.ap_delta)),1);
-
-  function deltaClass(v){ return v>0?'wow-delta-pos':v<0?'wow-delta-neg':'wow-delta-zero'; }
-  function deltaSign(v){ return v>0?'+':''; }
-  function apPct(curr,prev){ if(!prev) return curr>0?'new':'—'; const p=((curr-prev)/prev*100); return (p>=0?'+':'')+p.toFixed(1)+'%'; }
-
+  const dClass=v=>v>0?'wow-delta-pos':v<0?'wow-delta-neg':'wow-delta-zero';
+  const dSign=v=>v>0?'+':'';
+  const aPct=(c,p)=>{ if(!p) return c>0?'new':'—'; const x=((c-p)/p*100); return (x>=0?'+':'')+x.toFixed(1)+'%'; };
   cont.innerHTML=`
-    ${mi.ap_delta>0?`
-    <div class="wow-most-improved">
-      <div style="font-size:28px;">📈</div>
+    ${mi.ap_delta>0?`<div class="wow-most-improved">
+      <div style="font-size:28px;">&#x1F4C8;</div>
       <div>
         <div class="wow-mi-label">Most Improved This Week</div>
         <div class="wow-mi-name">${mi.name}</div>
-        <div class="wow-mi-stat">${fmt$(mi.last_week_ap)} → ${fmt$(mi.this_week_ap)} &nbsp;·&nbsp; <span style="color:var(--green);font-weight:700;">+${fmt$(mi.ap_delta)}${miPct!==null?' ('+miPct.toFixed(1)+'%)':''}</span></div>
+        <div class="wow-mi-stat">${fmt$(mi.last_week_ap)} &#x2192; ${fmt$(mi.this_week_ap)} &nbsp;&middot;&nbsp;
+          <span style="color:var(--green);font-weight:700;">+${fmt$(mi.ap_delta)}${miPct!==null?' ('+miPct.toFixed(1)+'%)':''}</span>
+        </div>
       </div>
     </div>`:''}
-
     <div class="wow-summary">
       <div class="wow-summary-card">
         <div class="wow-summary-val">${fmt$(teamThisAP)}</div>
         <div class="wow-summary-lbl">This Week AP</div>
-        <div class="wow-summary-delta ${deltaClass(teamAPDelta)}">${deltaSign(teamAPDelta)}${fmt$(teamAPDelta)} vs last week</div>
+        <div class="wow-summary-delta ${dClass(teamAPDelta)}">${dSign(teamAPDelta)}${fmt$(teamAPDelta)} vs last week</div>
       </div>
       <div class="wow-summary-card">
         <div class="wow-summary-val">${fmt$(teamLastAP)}</div>
@@ -1302,7 +1278,7 @@ function renderWoW(data, containerId){
       <div class="wow-summary-card">
         <div class="wow-summary-val">${teamThisApps}</div>
         <div class="wow-summary-lbl">This Week Apps</div>
-        <div class="wow-summary-delta ${deltaClass(teamAppsDelta)}">${deltaSign(teamAppsDelta)}${teamAppsDelta} vs last week</div>
+        <div class="wow-summary-delta ${dClass(teamAppsDelta)}">${dSign(teamAppsDelta)}${teamAppsDelta} vs last week</div>
       </div>
       <div class="wow-summary-card">
         <div class="wow-summary-val" style="color:${teamAPDelta>=0?'var(--green)':'var(--red)'};">${teamAPPct>=0?'+':''}${teamAPPct.toFixed(1)}%</div>
@@ -1310,47 +1286,30 @@ function renderWoW(data, containerId){
         <div class="wow-summary-delta" style="color:var(--muted);">Week over week</div>
       </div>
     </div>
-
     <table class="wow-table">
       <thead><tr>
-        <th>Agent</th>
-        <th>Last Week AP</th>
-        <th>This Week AP</th>
-        <th>AP Delta</th>
-        <th>AP Change</th>
-        <th>Last Week Apps</th>
-        <th>This Week Apps</th>
-        <th>Apps Δ</th>
+        <th>Agent</th><th>Last Week AP</th><th>This Week AP</th><th>AP Delta</th>
+        <th>AP Change</th><th>Last Week Apps</th><th>This Week Apps</th><th>Apps &#x394;</th>
       </tr></thead>
-      <tbody>
-        ${sorted.map((a,i)=>{
-          const barPct=Math.round((Math.abs(a.ap_delta)/maxDelta)*100);
-          const fillClass=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
-          const rankColor=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'var(--amber)':'var(--muted)';
-          return `<tr>
-            <td>
-              <span class="wow-rank" style="background:rgba(38,51,72,0.8);color:${rankColor};">${i+1}</span>
-              <span class="wow-agent-name">${a.name}</span>
-            </td>
-            <td><span style="font-size:13px;color:var(--muted);">${fmt$(a.last_week_ap)}</span></td>
-            <td>
-              <div class="wow-ap-flow">
-                <span class="wow-ap-curr">${fmt$(a.this_week_ap)}</span>
-              </div>
-            </td>
-            <td><span class="${deltaClass(a.ap_delta)}">${deltaSign(a.ap_delta)}${fmt$(Math.abs(a.ap_delta))}</span></td>
-            <td>
-              <div class="wow-bar-wrap">
-                <span style="font-size:11px;color:${a.ap_delta>=0?'var(--green)':'var(--red)'};">${apPct(a.this_week_ap,a.last_week_ap)}</span>
-                <div class="wow-bar-track"><div class="${fillClass}" style="width:${barPct}%;"></div></div>
-              </div>
-            </td>
-            <td><span style="font-size:13px;color:var(--muted);">${a.last_week_apps}</span></td>
-            <td><span style="font-weight:600;color:var(--white);">${a.this_week_apps}</span></td>
-            <td><span class="${deltaClass(a.apps_delta)}">${deltaSign(a.apps_delta)}${a.apps_delta}</span></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
+      <tbody>${sorted.map((a,i)=>{
+        const barPct=Math.round((Math.abs(a.ap_delta)/maxDelta)*100);
+        const fillCls=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
+        const rankColor=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'var(--amber)':'var(--muted)';
+        return `<tr>
+          <td><span class="wow-rank" style="background:rgba(38,51,72,0.8);color:${rankColor};">${i+1}</span>
+              <span class="wow-agent-name">${a.name}</span></td>
+          <td><span style="font-size:13px;color:var(--muted);">${fmt$(a.last_week_ap)}</span></td>
+          <td><span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--white);">${fmt$(a.this_week_ap)}</span></td>
+          <td><span class="${dClass(a.ap_delta)}">${dSign(a.ap_delta)}${fmt$(Math.abs(a.ap_delta))}</span></td>
+          <td><div class="wow-bar-wrap">
+            <span style="font-size:11px;color:${a.ap_delta>=0?'var(--green)':'var(--red)'};">${aPct(a.this_week_ap,a.last_week_ap)}</span>
+            <div class="wow-bar-track"><div class="${fillCls}" style="width:${barPct}%;"></div></div>
+          </div></td>
+          <td><span style="font-size:13px;color:var(--muted);">${a.last_week_apps}</span></td>
+          <td><span style="font-weight:600;color:var(--white);">${a.this_week_apps}</span></td>
+          <td><span class="${dClass(a.apps_delta)}">${dSign(a.apps_delta)}${a.apps_delta}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
     </table>`;
 }
 
