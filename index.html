@@ -380,6 +380,39 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <div id="agent-wow-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Week over Week Comparison</div>
+    <div id="a_wow_controls" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Compare Mode</label>
+        <select id="a_wow_mode" onchange="handleAgentWoWMode()" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+          <option value="this_vs_last">This Week vs Last Week</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+      <div id="a_wow_custom_wrap" style="display:none;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period A — From</label>
+          <input type="date" id="a_wow_a_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period A — To</label>
+          <input type="date" id="a_wow_a_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period B — From</label>
+          <input type="date" id="a_wow_b_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period B — To</label>
+          <input type="date" id="a_wow_b_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <button onclick="renderAgentWoW()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Compare</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end;margin-left:auto;">
+        <button onclick="downloadWoWReport('agent')" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download Report</button>
+      </div>
+    </div>
     <div id="a_wow_content"></div>
   </div>
   <div id="agent-mysubs-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
@@ -634,6 +667,39 @@ tbody td:not(:first-child){text-align:right;}
   <!-- WoW PANEL -->
   <div id="admin-wow-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Week over Week Comparison</div>
+    <div id="ad_wow_controls" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Compare Mode</label>
+        <select id="ad_wow_mode" onchange="handleAdminWoWMode()" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+          <option value="this_vs_last">This Week vs Last Week</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+      <div id="ad_wow_custom_wrap" style="display:none;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period A — From</label>
+          <input type="date" id="ad_wow_a_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period A — To</label>
+          <input type="date" id="ad_wow_a_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period B — From</label>
+          <input type="date" id="ad_wow_b_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period B — To</label>
+          <input type="date" id="ad_wow_b_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <button onclick="renderAdminWoW()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Compare</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end;margin-left:auto;">
+        <button onclick="downloadWoWReport('admin')" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download Report</button>
+      </div>
+    </div>
     <div id="ad_wow_content"></div>
   </div>
   <div id="admin-subs-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
@@ -1365,29 +1431,34 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 
 // WoW DATA + RENDER
-async function fetchWoW(){
+async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
   if(!agents||!subs) return [];
-  const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
-  const nowET=new Date(nowStr);
-  const dow=nowET.getDay();
-  const startOfThisWeek=new Date(nowET); startOfThisWeek.setDate(nowET.getDate()-dow); startOfThisWeek.setHours(0,0,0,0);
-  const startOfLastWeek=new Date(startOfThisWeek); startOfLastWeek.setDate(startOfThisWeek.getDate()-7);
-  const endOfLastWeek=new Date(startOfThisWeek.getTime()-1);
-  const inET=ts=>new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'}));
+  if(!aFrom||!bFrom){
+    const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
+    const nowET=new Date(nowStr);
+    const dow=nowET.getDay();
+    const startOfThisWeek=new Date(nowET); startOfThisWeek.setDate(nowET.getDate()-dow); startOfThisWeek.setHours(0,0,0,0);
+    const startOfLastWeek=new Date(startOfThisWeek); startOfLastWeek.setDate(startOfThisWeek.getDate()-7);
+    const endOfLastWeek=new Date(startOfThisWeek.getTime()-1);
+    const endOfThisWeek=new Date();
+    aFrom=startOfThisWeek; aTo=endOfThisWeek; bFrom=startOfLastWeek; bTo=endOfLastWeek;
+  }
+  const inRange=(ts,from,to)=>{ const d=new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'})); return d>=new Date(from)&&d<=new Date(to); };
   return agents.map(agent=>{
     const agentSubs=subs.filter(s=>s.agent_id===agent.id);
-    const thisW=agentSubs.filter(s=>inET(s.submitted_at)>=startOfThisWeek);
-    const lastW=agentSubs.filter(s=>{ const d=inET(s.submitted_at); return d>=startOfLastWeek&&d<=endOfLastWeek; });
-    const thisAP=thisW.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-    const lastAP=lastW.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-    return {name:agent.name,this_week_ap:thisAP,last_week_ap:lastAP,ap_delta:thisAP-lastAP,this_week_apps:thisW.length,last_week_apps:lastW.length,apps_delta:thisW.length-lastW.length};
+    const periodA=agentSubs.filter(s=>inRange(s.submitted_at,aFrom,aTo));
+    const periodB=agentSubs.filter(s=>inRange(s.submitted_at,bFrom,bTo));
+    const apA=periodA.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    const apB=periodB.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length};
   }).sort((a,b)=>b.this_week_ap-a.this_week_ap);
 }
 function renderWoW(data,containerId){
   const el=document.getElementById(containerId); if(!el) return;
   if(!data||!data.length){el.innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">No data available.</div>';return;}
+  const isAdmin=containerId==='ad_wow_content';
   const teamThisAP=data.reduce((s,a)=>s+a.this_week_ap,0);
   const teamLastAP=data.reduce((s,a)=>s+a.last_week_ap,0);
   const teamThisApps=data.reduce((s,a)=>s+a.this_week_apps,0);
@@ -1411,7 +1482,7 @@ function renderWoW(data,containerId){
       <div class="wow-mi-stat">${fmt$(mi.last_week_ap)} &#x2192; ${fmt$(mi.this_week_ap)} &nbsp;&middot;&nbsp;
         <span class="wow-delta-pos">+${fmt$(mi.ap_delta)}</span></div></div>
     </div>`:''}
-    ${md.ap_delta<0?`<div style="background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(239,68,68,0.02));border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+    ${isAdmin&&md.ap_delta<0?`<div style="background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(239,68,68,0.02));border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
       <div style="font-size:32px;">&#x26A0;&#xFE0F;</div>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Needs Attention This Week</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);">${md.name}</div>
@@ -1447,12 +1518,13 @@ function renderWoW(data,containerId){
         const fillCls=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
         const barPct=Math.round((Math.abs(a.ap_delta)/maxAbs)*100);
         const appsDeltaColor=a.apps_delta>0?'var(--green)':a.apps_delta<0?'var(--red)':'var(--muted)';
+        const aPct=a.last_week_ap>0?((a.ap_delta/a.last_week_ap)*100):0;
         return`<tr>
           <td><span class="wow-rank" style="background:rgba(38,51,72,0.8);color:${rankColor};">${i+1}</span>
               <span class="wow-agent-name">${a.name}</span></td>
           <td>${fmt$(a.this_week_ap)}</td>
           <td style="color:var(--muted);">${fmt$(a.last_week_ap)}</td>
-          <td><span class="${dClass(a.ap_delta)}">${dSign(a.ap_delta)}${fmt$(a.ap_delta)}</span></td>
+          <td><span class="${dClass(a.ap_delta)}">${dSign(a.ap_delta)}${fmt$(a.ap_delta)}</span> <span style="font-size:11px;opacity:0.75;font-weight:600;" class="${dClass(a.ap_delta)}">${aPct>=0?'+':''}${aPct.toFixed(1)}%</span></td>
           <td style="color:var(--muted);">${a.last_week_apps}</td>
           <td style="font-weight:600;color:var(--white);">${a.this_week_apps}</td>
           <td><span style="font-weight:700;color:${appsDeltaColor};">${a.apps_delta>0?'+':''}${a.apps_delta}</span></td>
@@ -1464,12 +1536,66 @@ function renderWoW(data,containerId){
     </table>`;
 }
 async function renderAgentWoW(){
-  const data=await fetchWoW();
+  const mode=document.getElementById('a_wow_mode')?.value||'this_vs_last';
+  let data;
+  if(mode==='custom'){
+    const aFrom=document.getElementById('a_wow_a_from').value;
+    const aTo=document.getElementById('a_wow_a_to').value;
+    const bFrom=document.getElementById('a_wow_b_from').value;
+    const bTo=document.getElementById('a_wow_b_to').value;
+    if(!aFrom||!aTo||!bFrom||!bTo){ document.getElementById('a_wow_content').innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">Select all four dates and click Compare.</div>'; return; }
+    data=await fetchWoWData(aFrom+'T00:00:00',aTo+'T23:59:59',bFrom+'T00:00:00',bTo+'T23:59:59');
+  } else {
+    data=await fetchWoWData();
+  }
   renderWoW(data,'a_wow_content');
 }
 async function renderAdminWoW(){
-  const data=await fetchWoW();
+  const mode=document.getElementById('ad_wow_mode')?.value||'this_vs_last';
+  let data;
+  if(mode==='custom'){
+    const aFrom=document.getElementById('ad_wow_a_from').value;
+    const aTo=document.getElementById('ad_wow_a_to').value;
+    const bFrom=document.getElementById('ad_wow_b_from').value;
+    const bTo=document.getElementById('ad_wow_b_to').value;
+    if(!aFrom||!aTo||!bFrom||!bTo){ document.getElementById('ad_wow_content').innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">Select all four dates and click Compare.</div>'; return; }
+    data=await fetchWoWData(aFrom+'T00:00:00',aTo+'T23:59:59',bFrom+'T00:00:00',bTo+'T23:59:59');
+  } else {
+    data=await fetchWoWData();
+  }
   renderWoW(data,'ad_wow_content');
+}
+function handleAgentWoWMode(){
+  const mode=document.getElementById('a_wow_mode').value;
+  document.getElementById('a_wow_custom_wrap').style.display=mode==='custom'?'flex':'none';
+  if(mode==='this_vs_last') renderAgentWoW();
+}
+function handleAdminWoWMode(){
+  const mode=document.getElementById('ad_wow_mode').value;
+  document.getElementById('ad_wow_custom_wrap').style.display=mode==='custom'?'flex':'none';
+  if(mode==='this_vs_last') renderAdminWoW();
+}
+function downloadWoWReport(view){
+  const contentId=view==='admin'?'ad_wow_content':'a_wow_content';
+  const modeId=view==='admin'?'ad_wow_mode':'a_wow_mode';
+  const mode=document.getElementById(modeId)?.value==='custom'?'Custom Range':'This Week vs Last Week';
+  const rows=[];
+  document.querySelectorAll('#'+contentId+' .wow-table tbody tr').forEach(tr=>{
+    const cells=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
+    rows.push(cells);
+  });
+  const headers=['Agent','This Week AP','Last Week AP','AP Change','Last Wk Apps','This Wk Apps','Apps Delta','Trend'];
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Zenyra WoW Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00C9B1;}.brand{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;}.meta{font-size:11px;color:#64748B;margin-top:4px;}table{width:100%;border-collapse:collapse;margin-top:16px;}th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748B;border-bottom:2px solid #e2e8f0;}td{padding:9px 10px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:13px;}.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}@media print{body{padding:16px;}}</style>
+  </head><body>
+  <div class="header"><div><div class="brand">ZENYRA</div><div class="meta">Week over Week Report &middot; ${mode}</div><div class="meta">Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</div></div></div>
+  <table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>
+  <div class="footer">Powered by Zenyra &middot; Confidential</div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),500);
 }
 (async function init(){
   const session=loadSession();
