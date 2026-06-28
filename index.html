@@ -1198,6 +1198,7 @@ function buildCombined(anc,mapd,elId){
 
 function buildSidebar(stats,sidebarId,updatedId){
   const el=document.getElementById(sidebarId); if(!el)return;
+  stats=stats.filter(a=>Number(a.monthly_goal)>0);
   const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
   const tApps =stats.reduce((s,a)=>s+Number(a.apps_today),0);
   const topP  =[...stats].sort((a,b)=>b.week_ap-a.week_ap)[0];
