@@ -262,6 +262,32 @@ tbody td:not(:first-child){text-align:right;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+/* WoW TAB */
+.wow-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.wow-summary-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.wow-summary-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:var(--white);}
+.wow-summary-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+.wow-summary-delta{font-size:12px;font-weight:700;margin-top:4px;}
+.wow-table{width:100%;border-collapse:collapse;}
+.wow-table th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.wow-table th:not(:first-child){text-align:right;}
+.wow-table td{padding:13px 12px;border-bottom:1px solid rgba(38,51,72,0.5);color:var(--body);vertical-align:middle;}
+.wow-table td:not(:first-child){text-align:right;}
+.wow-table tr:hover td{background:rgba(30,42,59,0.4);}
+.wow-agent-name{font-weight:600;color:var(--white);font-size:14px;}
+.wow-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;font-family:'Bebas Neue',sans-serif;font-size:12px;margin-right:6px;}
+.wow-delta-pos{color:var(--green);font-weight:700;font-size:13px;}
+.wow-delta-neg{color:var(--red);font-weight:700;font-size:13px;}
+.wow-delta-zero{color:var(--muted);font-size:13px;}
+.wow-bar-wrap{display:flex;align-items:center;gap:8px;justify-content:flex-end;}
+.wow-bar-track{width:80px;height:5px;border-radius:99px;background:var(--card);overflow:hidden;}
+.wow-bar-fill-pos{height:100%;border-radius:99px;background:var(--green);}
+.wow-bar-fill-neg{height:100%;border-radius:99px;background:var(--red);}
+.wow-most-improved{background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+.wow-mi-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:4px;}
+.wow-mi-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);}
+.wow-mi-stat{font-size:13px;color:var(--body);}
 </style>
 </head>
 <body>
@@ -330,6 +356,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="view-tab active" id="agentTab_board" onclick="switchAgentView('board')">📊 Ancillary</div>
     <div class="view-tab" id="agentTab_mapd" onclick="switchAgentView('mapd')">🏥 MAPD</div>
     <div class="view-tab" id="agentTab_combined" onclick="switchAgentView('combined')">&#x26a1; Combined</div>
+    <div class="view-tab" id="agentTab_wow" onclick="switchAgentView('wow')">&#x1F4C8; Week over Week</div>
     <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
   </div>
   <div id="agent-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -350,6 +377,10 @@ tbody td:not(:first-child){text-align:right;}
       </div>
       <div class="sidebar" id="a_sidebar"></div>
     </div>
+  </div>
+  <div id="agent-wow-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Week over Week Comparison</div>
+    <div id="a_wow_content"></div>
   </div>
   <div id="agent-mysubs-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
     <div class="my-subs-wrap">
@@ -564,6 +595,7 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <div class="admin-nav">
     <div class="admin-tab active" id="adminTab_board" onclick="switchAdminTab('board')">📊 Leaderboard</div>
+    <div class="admin-tab" id="adminTab_wow" onclick="switchAdminTab('wow')">&#x1F4C8; Week over Week</div>
     <div class="admin-tab" id="adminTab_subs" onclick="switchAdminTab('subs')">📋 Ancillary Subs</div>
     <div class="admin-tab" id="adminTab_mapd" onclick="switchAdminTab('mapd')">🏥 MAPD Subs</div>
     <div class="admin-tab" id="adminTab_scorer" onclick="switchAdminTab('scorer')">🎙 Call Scorer</div>
@@ -598,6 +630,11 @@ tbody td:not(:first-child){text-align:right;}
     <div id="admin-combined-sub" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
       <div id="ad_combinedContent"></div>
     </div>
+  </div>
+  <!-- WoW PANEL -->
+  <div id="admin-wow-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Week over Week Comparison</div>
+    <div id="ad_wow_content"></div>
   </div>
   <div id="admin-subs-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Ancillary Submissions</div>
@@ -1010,10 +1047,10 @@ function buildSidebar(stats,sidebarId,updatedId){
   if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-const agentViews=['board','mapd','combined','mysubs'];
+const agentViews=['board','mapd','combined','wow','mysubs'];
 function switchAgentView(view){
   agentViews.forEach(v=>{
-    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':'mysubs')+'-panel');
+    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':v==='wow'?'wow':'mysubs')+'-panel');
     if(panel) panel.style.display=v===view?(v==='mysubs'||v==='combined'?'flex':'flex'):'none';
     const tab=document.getElementById('agentTab_'+v);
     if(tab) tab.classList.toggle('active',v===view);
@@ -1021,6 +1058,7 @@ function switchAgentView(view){
   if(view==='board')    renderAgentBoard();
   if(view==='mapd')     renderAgentMAPD();
   if(view==='combined') renderAgentCombined();
+  if(view==='wow')     renderAgentWoW();
   if(view==='mysubs')   loadMySubmissions();
 }
 
@@ -1120,9 +1158,10 @@ async function runReport(){ const agentFilter=document.getElementById('rpt_agent
 function downloadReport(){ const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
-  const panels={board:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
+  const panels={board:'flex',wow:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='board')   renderAdminBoard();
+  if(tab==='wow')     renderAdminWoW();
   if(tab==='subs')    renderAdminSubmissions();
   if(tab==='mapd')    renderAdminMAPD();
   if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
@@ -1322,6 +1361,103 @@ document.addEventListener('DOMContentLoaded',()=>{
   dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }});
 });
 
+
+// WoW DATA + RENDER
+async function fetchWoW(){
+  const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
+  if(!agents||!subs) return [];
+  const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
+  const nowET=new Date(nowStr);
+  const dow=nowET.getDay();
+  const startOfThisWeek=new Date(nowET); startOfThisWeek.setDate(nowET.getDate()-dow); startOfThisWeek.setHours(0,0,0,0);
+  const startOfLastWeek=new Date(startOfThisWeek); startOfLastWeek.setDate(startOfThisWeek.getDate()-7);
+  const endOfLastWeek=new Date(startOfThisWeek.getTime()-1);
+  const inET=ts=>new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'}));
+  return agents.map(agent=>{
+    const agentSubs=subs.filter(s=>s.agent_id===agent.id);
+    const thisW=agentSubs.filter(s=>inET(s.submitted_at)>=startOfThisWeek);
+    const lastW=agentSubs.filter(s=>{ const d=inET(s.submitted_at); return d>=startOfLastWeek&&d<=endOfLastWeek; });
+    const thisAP=thisW.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    const lastAP=lastW.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    return {name:agent.name,this_week_ap:thisAP,last_week_ap:lastAP,ap_delta:thisAP-lastAP,this_week_apps:thisW.length,last_week_apps:lastW.length,apps_delta:thisW.length-lastW.length};
+  }).sort((a,b)=>b.this_week_ap-a.this_week_ap);
+}
+function renderWoW(data,containerId){
+  const el=document.getElementById(containerId); if(!el) return;
+  if(!data||!data.length){el.innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">No data available.</div>';return;}
+  const teamThisAP=data.reduce((s,a)=>s+a.this_week_ap,0);
+  const teamLastAP=data.reduce((s,a)=>s+a.last_week_ap,0);
+  const teamThisApps=data.reduce((s,a)=>s+a.this_week_apps,0);
+  const teamLastApps=data.reduce((s,a)=>s+a.last_week_apps,0);
+  const teamAPDelta=teamThisAP-teamLastAP;
+  const teamAppsDelta=teamThisApps-teamLastApps;
+  const teamAPPct=teamLastAP>0?(teamAPDelta/teamLastAP)*100:0;
+  const mi=data.slice().sort((a,b)=>b.ap_delta-a.ap_delta)[0];
+  const dSign=v=>v>0?'+':v<0?'':' ';
+  const dClass=v=>v>0?'wow-delta-pos':v<0?'wow-delta-neg':'wow-delta-zero';
+  const maxAbs=Math.max(...data.map(a=>Math.abs(a.ap_delta)),1);
+  const rankColors=['#F59E0B','#94A3B8','#CD7C3A'];
+  el.innerHTML=`
+    ${mi.ap_delta>0?`<div class="wow-most-improved">
+      <div style="font-size:32px;">&#x1F3C6;</div>
+      <div><div class="wow-mi-label">Most Improved This Week</div>
+      <div class="wow-mi-name">${mi.name}</div>
+      <div class="wow-mi-stat">${fmt$(mi.last_week_ap)} &#x2192; ${fmt$(mi.this_week_ap)} &nbsp;&middot;&nbsp;
+        <span class="wow-delta-pos">+${fmt$(mi.ap_delta)}</span></div></div>
+    </div>`:''}
+    <div class="wow-summary">
+      <div class="wow-summary-card">
+        <div class="wow-summary-val">${fmt$(teamThisAP)}</div>
+        <div class="wow-summary-lbl">This Week AP</div>
+        <div class="wow-summary-delta ${dClass(teamAPDelta)}">${dSign(teamAPDelta)}${fmt$(teamAPDelta)} vs last week</div>
+      </div>
+      <div class="wow-summary-card">
+        <div class="wow-summary-val">${fmt$(teamLastAP)}</div>
+        <div class="wow-summary-lbl">Last Week AP</div>
+        <div class="wow-summary-delta" style="color:var(--muted);">Prior period</div>
+      </div>
+      <div class="wow-summary-card">
+        <div class="wow-summary-val">${teamThisApps}</div>
+        <div class="wow-summary-lbl">This Week Apps</div>
+        <div class="wow-summary-delta ${dClass(teamAppsDelta)}">${dSign(teamAppsDelta)}${teamAppsDelta} vs last week</div>
+      </div>
+      <div class="wow-summary-card">
+        <div class="wow-summary-val" style="color:${teamAPDelta>=0?'var(--green)':'var(--red)'};">${teamAPPct>=0?'+':''}${teamAPPct.toFixed(1)}%</div>
+        <div class="wow-summary-lbl">Team AP Growth</div>
+        <div class="wow-summary-delta" style="color:var(--muted);">Week over week</div>
+      </div>
+    </div>
+    <table class="wow-table">
+      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>Change</th><th>Apps</th><th>Trend</th></tr></thead>
+      <tbody>${data.map((a,i)=>{
+        const rankColor=rankColors[i]||'var(--muted)';
+        const fillCls=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
+        const barPct=Math.round((Math.abs(a.ap_delta)/maxAbs)*100);
+        return`<tr>
+          <td><span class="wow-rank" style="background:rgba(38,51,72,0.8);color:${rankColor};">${i+1}</span>
+              <span class="wow-agent-name">${a.name}</span></td>
+          <td>${fmt$(a.this_week_ap)}</td>
+          <td style="color:var(--muted);">${fmt$(a.last_week_ap)}</td>
+          <td><span class="${dClass(a.ap_delta)}">${dSign(a.ap_delta)}${fmt$(a.ap_delta)}</span></td>
+          <td>${a.this_week_apps} <span style="color:var(--muted);font-size:11px;">(${dSign(a.this_week_apps-a.last_week_apps)}${a.this_week_apps-a.last_week_apps})</span></td>
+          <td><div class="wow-bar-wrap">
+            <div class="wow-bar-track"><div class="${fillCls}" style="width:${barPct}%;"></div></div>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+async function renderAgentWoW(){
+  const data=await fetchWoW();
+  console.log('WoW data:',data);
+  console.log('WoW container:',document.getElementById('a_wow_content'));
+  renderWoW(data,'a_wow_content');
+}
+async function renderAdminWoW(){
+  const data=await fetchWoW();
+  renderWoW(data,'ad_wow_content');
+}
 (async function init(){
   const session=loadSession();
   if(session){
