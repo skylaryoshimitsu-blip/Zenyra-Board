@@ -574,8 +574,8 @@ tbody td:not(:first-child){text-align:right;}
       <div class="form-grid">
         <div class="field-sm"><label>Product Type</label><select id="f_productType"><option value="">Select...</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select></div>
         <div class="field-sm"><label>Policy Number</label><input type="text" id="f_policyNum"/></div>
-        <div class="field-sm"><label>Carrier Name</label><input type="text" id="f_carrier"/></div>
-        <div class="field-sm"><label>Plan Name</label><input type="text" id="f_planName"/></div>
+        <div class="field-sm"><label>Carrier Name</label><select id="f_carrier"><option value="">Select carrier...</option><option>UNL</option><option>Heartland</option><option>AHL</option></select></div>
+        <div class="field-sm"><label>Plan Name</label><select id="f_planName"><option value="">Select plan...</option><option>Cancer Shield 2.0</option><option>Home Healthcare</option><option>Dental Shield 2.0</option><option>Hospital Indemnity Shield</option><option>Guaranteed Issue Hospital Indemnity Shield</option><option>Caregiver Shield</option></select></div>
         <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="f_monthlyPremium" step="0.01" min="0"/></div>
         <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="f_draftDay" min="1" max="31"/></div>
         <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
@@ -623,10 +623,11 @@ tbody td:not(:first-child){text-align:right;}
         <div class="field-sm"><label>Effective Date</label><input type="date" id="m_effectiveDate"/></div>
       </div>
       <div class="form-section-title">Agent Details</div>
-      <div class="form-grid three">
+      <div class="form-grid">
         <div class="field-sm"><label>Agent NPN</label><input type="text" id="m_aNPN"/></div>
         <div class="field-sm"><label>Agent First Name</label><input type="text" id="m_aFirstName"/></div>
         <div class="field-sm"><label>Agent Last Name</label><input type="text" id="m_aLastName"/></div>
+        <div class="field-sm"><label>Agent Email *</label><input type="email" id="m_aEmail" placeholder="Required"/></div>
       </div>
       <div class="form-section-title">Customer Details</div>
       <div class="form-grid">
@@ -1204,7 +1205,7 @@ function buildSidebar(stats,sidebarId,updatedId){
   const miDelta=Number(mostI?.week_ap||0)-Number(mostI?.last_week_ap||0);
   const tMP=stats.reduce((s,a)=>s+Number(a.daily_mp||0),0);
   const avgMP=tApps>0?tMP/tApps:0;
-  const weekRows=[...stats].sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{ const agentWeekGoal=(Number(a.daily_goal)||0)*5; const pct=agentWeekGoal>0?Math.min((a.week_ap/agentWeekGoal)*100,100):0; const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)'; return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`; }).join('');
+  const weekRows=[...stats].filter(a=>Number(a.monthly_goal)>0).sort((a,b)=>b.week_ap-a.week_ap).map((a,i)=>{ const agentWeekGoal=(Number(a.daily_goal)||0)*5; const pct=agentWeekGoal>0?Math.min((a.week_ap/agentWeekGoal)*100,100):0; const color=i===0?'var(--teal)':i===1?'#94A3B8':i===2?'#B47850':'var(--muted)'; return`<div style="display:flex;align-items:center;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};width:16px;">${i+1}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:600;color:var(--white);">${a.name}</span><span style="font-size:11px;color:var(--label);">${fmt$(a.week_ap)}</span></div><div style="height:3px;background:var(--card);border-radius:99px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${color};border-radius:99px;"></div></div></div></div>`; }).join('');
   el.innerHTML=`<div class="stat-card top-producer-card"><div class="stat-card-label">&#x1f3c6; Top Producer — Week</div><div class="top-producer-name">${topP?.name||'—'}</div><div class="stat-card-sub">${fmt$(topP?.week_ap||0)} this week</div></div><div class="stat-card improved-card"><div class="stat-card-label">&#x1f4c8; Most Improved — WoW</div><div class="improved-name">${mostI?.name||'—'}</div><div class="stat-card-sub">+${fmt$(miDelta)} vs last week</div></div><div class="divider"></div><div class="mini-stats"><div class="mini-stat"><div class="ms-val">${stats.length}</div><div class="ms-lbl">Agents</div></div><div class="mini-stat"><div class="ms-val">${tApps}</div><div class="ms-lbl">Sales Today</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(avgMP)}</div><div class="ms-lbl">Avg MP</div></div><div class="mini-stat"><div class="ms-val">${fmt$2(estComm(tMonth))}</div><div class="ms-lbl">Team Comm</div></div></div><div class="divider"></div><div class="section-eyebrow">Weekly Ranking</div><div style="display:flex;flex-direction:column;gap:8px;">${weekRows}</div>`;
   const lu=document.getElementById(updatedId);
   if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -1343,12 +1344,40 @@ function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').sty
 
 // ── submitSale — with agent email validation ───────────────────────────────
 async function submitSale(){
-  const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
-  if(!mp||mp<=0) return alert('Monthly premium is required.');
-  if(!document.getElementById('f_productType').value) return alert('Product type is required.');
+  const fields=[
+    {id:'f_cFirstName',label:'Customer First Name'},
+    {id:'f_cLastName',label:'Customer Last Name'},
+    {id:'f_cPhone',label:'Customer Phone'},
+    {id:'f_cEmail',label:'Customer Email'},
+    {id:'f_cDOB',label:'Customer Date of Birth'},
+    {id:'f_cGender',label:'Customer Gender'},
+    {id:'f_cStreet',label:'Street Address'},
+    {id:'f_cCity',label:'City'},
+    {id:'f_cState',label:'State'},
+    {id:'f_cPostal',label:'Postal Code'},
+    {id:'f_productType',label:'Product Type'},
+    {id:'f_policyNum',label:'Policy Number'},
+    {id:'f_carrier',label:'Carrier Name'},
+    {id:'f_planName',label:'Plan Name'},
+    {id:'f_monthlyPremium',label:'Monthly Premium'},
+    {id:'f_draftDay',label:'Recurring Draft Day'},
+    {id:'f_effectiveDate',label:'Effective Date'},
+    {id:'f_draftDate',label:'Draft Date'},
+    {id:'f_aFirstName',label:'Agent First Name'},
+    {id:'f_aLastName',label:'Agent Last Name'},
+    {id:'f_aEmail',label:'Agent Email'},
+    {id:'f_aNPN',label:'Agent NPN'},
+  ];
+  for(const f of fields){
+    const el=document.getElementById(f.id);
+    if(!el||!el.value||!el.value.trim()){alert(`${f.label} is required.`);el?.focus();return;}
+  }
   const agentEmail=document.getElementById('f_aEmail').value.trim();
-  if(!agentEmail) return alert('Agent email is required.');
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail)) return alert('Please enter a valid agent email address.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail)){alert('Please enter a valid agent email address.');document.getElementById('f_aEmail').focus();return;}
+  const cEmail=document.getElementById('f_cEmail').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)){alert('Please enter a valid customer email address.');document.getElementById('f_cEmail').focus();return;}
+  const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
+  if(!mp||mp<=0){alert('Monthly premium must be a positive number.');document.getElementById('f_monthlyPremium').focus();return;}
   const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value});
   if(error) return alert('Submission failed: '+error.message);
   document.getElementById('submitSuccess').style.display='block';
@@ -1356,7 +1385,41 @@ async function submitSale(){
   setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
 }
 
-async function submitMAPD(){ if(!document.getElementById('m_cFirstName').value||!document.getElementById('m_cLastName').value)return alert('Customer first and last name are required.'); const {error}=await db.from('lb_mapd_submissions').insert({agent_id:currentUser?.agent_id,status:'live',app_submit_date:document.getElementById('m_appSubmitDate').value||null,sunfire_confirm_date:document.getElementById('m_sunfireDate').value||null,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,plan_code:document.getElementById('m_planCode').value,effective_date:document.getElementById('m_effectiveDate').value||null,agent_npn:document.getElementById('m_aNPN').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_dob:document.getElementById('m_cDOB').value||null,customer_gender:document.getElementById('m_cGender').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,medicare_number:document.getElementById('m_medicareNum').value,medicare_part_a_date:document.getElementById('m_partADate').value||null,medicare_part_b_date:document.getElementById('m_partBDate').value||null,is_on_medicaid:document.getElementById('m_onMedicaid').checked,medicaid_number:document.getElementById('m_medicaidNum').value||null,pcp_name:document.getElementById('m_pcpName').value,pcp_id:document.getElementById('m_pcpId').value,specialist_names:document.getElementById('m_specialists').value,medications:document.getElementById('m_medications').value}); if(error)return alert('MAPD submission failed: '+error.message); document.getElementById('submitMAPDSuccess').style.display='block'; document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; }); document.getElementById('m_medicaidNumWrap').style.display='none'; setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
+async function submitMAPD(){
+  const fields=[
+    {id:'m_appSubmitDate',label:'Application Submit Date'},
+    {id:'m_sunfireDate',label:'Sunfire Confirmation Date'},
+    {id:'m_carrier',label:'Carrier Name'},
+    {id:'m_planName',label:'Plan Name'},
+    {id:'m_planCode',label:'Plan Code'},
+    {id:'m_effectiveDate',label:'Effective Date'},
+    {id:'m_aNPN',label:'Agent NPN'},
+    {id:'m_aFirstName',label:'Agent First Name'},
+    {id:'m_aLastName',label:'Agent Last Name'},
+    {id:'m_aEmail',label:'Agent Email'},
+    {id:'m_cFirstName',label:'Customer First Name'},
+    {id:'m_cLastName',label:'Customer Last Name'},
+    {id:'m_cDOB',label:'Customer Date of Birth'},
+    {id:'m_cGender',label:'Customer Gender'},
+    {id:'m_cPhone',label:'Customer Phone'},
+    {id:'m_cEmail',label:'Customer Email'},
+    {id:'m_cStreet',label:'Street Address'},
+    {id:'m_cCity',label:'City'},
+    {id:'m_cState',label:'State'},
+    {id:'m_cPostal',label:'Postal Code'},
+    {id:'m_medicareNum',label:'Medicare Number'},
+    {id:'m_partADate',label:'Medicare Part A Date'},
+    {id:'m_partBDate',label:'Medicare Part B Date'},
+  ];
+  for(const f of fields){
+    const el=document.getElementById(f.id);
+    if(!el||!el.value||!el.value.trim()){alert(`${f.label} is required.`);el?.focus();return;}
+  }
+  const aEmail=document.getElementById('m_aEmail').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(aEmail)){alert('Please enter a valid agent email address.');document.getElementById('m_aEmail').focus();return;}
+  const cEmail=document.getElementById('m_cEmail').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)){alert('Please enter a valid customer email address.');document.getElementById('m_cEmail').focus();return;}
+ const {error}=await db.from('lb_mapd_submissions').insert({agent_id:currentUser?.agent_id,status:'live',app_submit_date:document.getElementById('m_appSubmitDate').value||null,sunfire_confirm_date:document.getElementById('m_sunfireDate').value||null,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,plan_code:document.getElementById('m_planCode').value,effective_date:document.getElementById('m_effectiveDate').value||null,agent_npn:document.getElementById('m_aNPN').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,agent_email:document.getElementById('m_aEmail').value,customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_dob:document.getElementById('m_cDOB').value||null,customer_gender:document.getElementById('m_cGender').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,medicare_number:document.getElementById('m_medicareNum').value,medicare_part_a_date:document.getElementById('m_partADate').value||null,medicare_part_b_date:document.getElementById('m_partBDate').value||null,is_on_medicaid:document.getElementById('m_onMedicaid').checked,medicaid_number:document.getElementById('m_medicaidNum').value||null,pcp_name:document.getElementById('m_pcpName').value,pcp_id:document.getElementById('m_pcpId').value,specialist_names:document.getElementById('m_specialists').value,medications:document.getElementById('m_medications').value}); if(error)return alert('MAPD submission failed: '+error.message); document.getElementById('submitMAPDSuccess').style.display='block'; document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; }); document.getElementById('m_medicaidNumWrap').style.display='none'; setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
 
 async function populateScorerAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('sc_agent'); if(!sel)return; sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
 function onFileSelected(input){ scorerFile=input.files[0]||null; const fn=document.getElementById('sc_filename'),btn=document.getElementById('sc_btn'); if(scorerFile){ fn.textContent=scorerFile.name+' ('+Math.round(scorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; } else { fn.textContent=''; btn.disabled=true; } }
