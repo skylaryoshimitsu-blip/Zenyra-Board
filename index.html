@@ -262,6 +262,43 @@ tbody td:not(:first-child){text-align:right;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+/* ── INTELLIGENCE LAYER ─────────────────────────────────────── */
+.intel-panel{padding:20px 24px 60px;overflow-y:auto;flex:1;}
+.intel-inner{max-width:1000px;}
+.intel-section{margin-bottom:28px;}
+.intel-section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--teal);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.intel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.intel-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.intel-card.highlight{background:linear-gradient(135deg,rgba(0,201,177,0.08),rgba(0,201,177,0.02));border-color:rgba(0,201,177,0.25);}
+.intel-card.warn{background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(239,68,68,0.02));border-color:rgba(239,68,68,0.2);}
+.intel-card.amber{background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));border-color:rgba(245,158,11,0.2);}
+.intel-card-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.intel-card-val{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--white);line-height:1;}
+.intel-card-sub{font-size:11px;color:var(--label);margin-top:4px;}
+.intel-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-top:6px;}
+.badge-green{background:rgba(34,197,94,0.15);color:var(--green);}
+.badge-red{background:rgba(239,68,68,0.15);color:var(--red);}
+.badge-amber{background:rgba(245,158,11,0.15);color:var(--amber);}
+.badge-teal{background:rgba(0,201,177,0.15);color:var(--teal);}
+.intel-ai-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;}
+.intel-ai-loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;}
+.intel-ai-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:blink 1s ease-in-out infinite;}
+.intel-forecast-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(38,51,72,0.4);}
+.intel-forecast-row:last-child{border-bottom:none;}
+.intel-forecast-name{font-weight:600;color:var(--white);font-size:13px;min-width:120px;}
+.intel-forecast-bar-wrap{flex:1;display:flex;flex-direction:column;gap:4px;}
+.intel-forecast-bar{height:5px;background:var(--card);border-radius:99px;overflow:hidden;}
+.intel-forecast-fill{height:100%;border-radius:99px;}
+.intel-forecast-labels{display:flex;justify-content:space-between;font-size:10px;}
+.intel-prob-label{font-family:'Bebas Neue',sans-serif;font-size:16px;min-width:48px;text-align:right;}
+.briefing-box{background:linear-gradient(135deg,rgba(0,201,177,0.06),rgba(59,130,246,0.04));border:1px solid rgba(0,201,177,0.2);border-radius:10px;padding:20px;margin-bottom:20px;}
+.briefing-date{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+.briefing-body{font-size:13px;color:var(--body);line-height:1.7;}
+.intel-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.btn-intel{background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;}
+.btn-intel:hover{opacity:0.85;}
+.wow-delta-pos{color:var(--green);font-weight:700;}
+.wow-delta-neg{color:var(--red);font-weight:700;}
 
 /* WoW TAB */
 .wow-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
@@ -357,6 +394,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="view-tab" id="agentTab_mapd" onclick="switchAgentView('mapd')">🏥 MAPD</div>
     <div class="view-tab" id="agentTab_combined" onclick="switchAgentView('combined')">&#x26a1; Combined</div>
     <div class="view-tab" id="agentTab_wow" onclick="switchAgentView('wow')">&#x1F4C8; Week over Week</div>
+    <div class="view-tab" id="agentTab_intel" onclick="switchAgentView('intel')">&#x1F9E0; Intelligence</div>
     <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
   </div>
   <div id="agent-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -461,6 +499,34 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <div id="agent-combined-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
     <div id="a_combinedContent"></div>
+  </div>
+  <div id="agent-intel-panel" style="display:none;flex:1;overflow-y:auto;">
+    <div class="intel-panel">
+      <div class="intel-inner">
+        <div class="intel-controls">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">View</label>
+            <select id="a_intel_view" onchange="switchIntelView('agent')" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+              <option value="team">Team Overview</option>
+              <option value="agent">Individual Agent</option>
+            </select>
+          </div>
+          <div id="a_intel_agent_wrap" style="display:none;flex-direction:column;gap:4px;">
+            <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Agent</label>
+            <select id="a_intel_agent_sel" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;min-width:160px;"></select>
+          </div>
+          <button class="btn-intel" onclick="runIntelAnalysis('agent')">&#x1F9E0; Generate Analysis</button>
+          <div style="margin-left:auto;font-size:11px;color:var(--muted);" id="a_intel_timestamp"></div>
+        </div>
+        <div id="a_intel_content">
+          <div style="text-align:center;padding:60px;color:var(--muted);">
+            <div style="font-size:32px;margin-bottom:12px;">&#x1F9E0;</div>
+            <div style="font-size:14px;font-weight:600;color:var(--label);margin-bottom:6px;">Performance Intelligence</div>
+            <div style="font-size:12px;">Select a view and click Generate Analysis to get AI-powered insights.</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="footer">
     <span class="footer-left" id="a_lastUpdated">—</span>
@@ -629,6 +695,7 @@ tbody td:not(:first-child){text-align:right;}
   <div class="admin-nav">
     <div class="admin-tab active" id="adminTab_board" onclick="switchAdminTab('board')">📊 Leaderboard</div>
     <div class="admin-tab" id="adminTab_wow" onclick="switchAdminTab('wow')">&#x1F4C8; Week over Week</div>
+    <div class="admin-tab" id="adminTab_intel" onclick="switchAdminTab('intel')">&#x1F9E0; Intelligence</div>
     <div class="admin-tab" id="adminTab_subs" onclick="switchAdminTab('subs')">📋 Ancillary Subs</div>
     <div class="admin-tab" id="adminTab_mapd" onclick="switchAdminTab('mapd')">🏥 MAPD Subs</div>
     <div class="admin-tab" id="adminTab_scorer" onclick="switchAdminTab('scorer')">🎙 Call Scorer</div>
@@ -701,6 +768,35 @@ tbody td:not(:first-child){text-align:right;}
       </div>
     </div>
     <div id="ad_wow_content"></div>
+  </div>
+  <div id="admin-intel-panel" style="display:none;flex:1;overflow-y:auto;">
+    <div class="intel-panel">
+      <div class="intel-inner">
+        <div class="intel-controls">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">View</label>
+            <select id="ad_intel_view" onchange="switchIntelView('admin')" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+              <option value="team">Team Overview</option>
+              <option value="agent">Individual Agent</option>
+              <option value="briefing">Manager Morning Briefing</option>
+            </select>
+          </div>
+          <div id="ad_intel_agent_wrap" style="display:none;flex-direction:column;gap:4px;">
+            <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Agent</label>
+            <select id="ad_intel_agent_sel" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;min-width:160px;"></select>
+          </div>
+          <button class="btn-intel" onclick="runIntelAnalysis('admin')">&#x1F9E0; Generate Analysis</button>
+          <div style="margin-left:auto;font-size:11px;color:var(--muted);" id="ad_intel_timestamp"></div>
+        </div>
+        <div id="ad_intel_content">
+          <div style="text-align:center;padding:60px;color:var(--muted);">
+            <div style="font-size:32px;margin-bottom:12px;">&#x1F9E0;</div>
+            <div style="font-size:14px;font-weight:600;color:var(--label);margin-bottom:6px;">Performance Intelligence</div>
+            <div style="font-size:12px;">Select a view and click Generate Analysis to get AI-powered insights.</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="admin-subs-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Ancillary Submissions</div>
@@ -1114,11 +1210,11 @@ function buildSidebar(stats,sidebarId,updatedId){
   if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-const agentViews=['board','mapd','combined','wow','mysubs'];
+const agentViews=['board','mapd','combined','wow','intel','mysubs'];
 function switchAgentView(view){
   currentAgentView=view;
   agentViews.forEach(v=>{
-    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':v==='wow'?'wow':'mysubs')+'-panel');
+    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':v==='wow'?'wow':v==='intel'?'intel':'mysubs')+'-panel');
     if(panel) panel.style.display=v===view?(v==='mysubs'||v==='combined'?'flex':'flex'):'none';
     const tab=document.getElementById('agentTab_'+v);
     if(tab) tab.classList.toggle('active',v===view);
@@ -1128,6 +1224,7 @@ function switchAgentView(view){
   if(view==='combined') renderAgentCombined();
   if(view==='wow')     renderAgentWoW();
   if(view==='mysubs')   loadMySubmissions();
+  if(view==='intel')    { populateIntelAgentSelects(); switchIntelView('agent'); }
 }
 
 async function renderAgentBoard(){
@@ -1226,10 +1323,11 @@ async function runReport(){ const agentFilter=document.getElementById('rpt_agent
 function downloadReport(){ const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
-  const panels={board:'flex',wow:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
+  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='board')   renderAdminBoard();
   if(tab==='wow')     renderAdminWoW();
+  if(tab==='intel')   { populateIntelAgentSelects(); switchIntelView('admin'); }
   if(tab==='subs')    renderAdminSubmissions();
   if(tab==='mapd')    renderAdminMAPD();
   if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
@@ -1611,6 +1709,243 @@ function downloadWoWReport(view){
   win.document.close();
   setTimeout(()=>win.print(),500);
 }
+// ── INTELLIGENCE LAYER ─────────────────────────────────────────────────────
+
+let intelAgents = [];
+let intelStatsCache = null;
+let intelSubsCache = null;
+let intelLastFetch = 0;
+
+async function fetchIntelData(force){
+  const now = Date.now();
+  if(!force && intelStatsCache && (now - intelLastFetch) < 60000) return { stats: intelStatsCache, subs: intelSubsCache };
+  const [statsRes, subsRes] = await Promise.all([
+    db.from('lb_daily_stats').select('*'),
+    db.from('lb_submissions').select('agent_id,annual_premium,submitted_at,product_type').eq('status','live').order('submitted_at',{ascending:true})
+  ]);
+  intelStatsCache = statsRes.data || [];
+  intelSubsCache = subsRes.data || [];
+  intelLastFetch = now;
+  return { stats: intelStatsCache, subs: intelSubsCache };
+}
+
+async function populateIntelAgentSelects(){
+  const {data} = await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  intelAgents = data || [];
+  const opts = intelAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  ['a_intel_agent_sel','ad_intel_agent_sel'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = opts;
+  });
+}
+
+function switchIntelView(portal){
+  const prefix = portal==='admin' ? 'ad' : 'a';
+  const view = document.getElementById(prefix+'_intel_view')?.value || 'team';
+  const agentWrap = document.getElementById(prefix+'_intel_agent_wrap');
+  if(agentWrap) agentWrap.style.display = view==='agent' ? 'flex' : 'none';
+}
+
+function computeForecasts(stats){
+  const nowET = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const dayOfMonth = nowET.getDate();
+  const daysInMonth = new Date(nowET.getFullYear(), nowET.getMonth()+1, 0).getDate();
+  const workdaysElapsed = Math.max(1, Math.round(dayOfMonth * 5/7));
+  const workdaysTotal = Math.round(daysInMonth * 5/7);
+  const workdaysLeft = Math.max(0, workdaysTotal - workdaysElapsed);
+  return stats.filter(a=>Number(a.monthly_goal)>0).map(agent=>{
+    const goal = Number(agent.monthly_goal) || 1;
+    const current = Number(agent.month_ap) || 0;
+    const dailyRate = workdaysElapsed > 0 ? current / workdaysElapsed : 0;
+    const projected = current + (dailyRate * workdaysLeft);
+    const pct = Math.min(100, Math.max(0, Math.round((projected / goal) * 100)));
+    const shortfall = projected < goal ? fmt$(Math.round(goal - projected)) : null;
+    const surplus = projected >= goal ? fmt$(Math.round(projected - goal)) : null;
+    return { name: agent.name, id: agent.id, current, goal, projected: Math.round(projected), pct, shortfall, surplus };
+  }).sort((a,b)=>b.pct-a.pct);
+}
+
+function detectSlumpsAndStreaks(stats){
+  const nowET = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const alerts = [];
+  stats.forEach(agent=>{
+    const weekAP = Number(agent.week_ap) || 0;
+    const lastWeekAP = Number(agent.last_week_ap) || 0;
+    const monthAP = Number(agent.month_ap) || 0;
+    const monthGoal = Number(agent.monthly_goal) || 1;
+    const dailyGoal = Number(agent.daily_goal) || 1;
+    const dailyAP = Number(agent.daily_ap) || 0;
+    if(lastWeekAP > 500){
+      const wowDrop = ((lastWeekAP - weekAP) / lastWeekAP) * 100;
+      if(wowDrop >= 30) alerts.push({ type:'slump', agent:agent.name, message:`Down ${Math.round(wowDrop)}% from last week (${fmt$(lastWeekAP)} → ${fmt$(weekAP)})`, severity: wowDrop >= 50 ? 'critical' : 'warning' });
+    }
+    const nowDay = nowET.getDate();
+    const daysInMonth = new Date(nowET.getFullYear(), nowET.getMonth()+1, 0).getDate();
+    const monthProgress = nowDay / daysInMonth;
+    const monthPct = monthGoal > 0 ? (monthAP / monthGoal) * 100 : 0;
+    if(monthProgress > 0.4 && monthPct < (monthProgress * 100 - 25)) alerts.push({ type:'slump', agent:agent.name, message:`Only ${Math.round(monthPct)}% to monthly goal with ${Math.round(monthProgress*100)}% of month elapsed`, severity:'warning' });
+    if(lastWeekAP > 500){
+      const wowGain = ((weekAP - lastWeekAP) / lastWeekAP) * 100;
+      if(wowGain >= 25) alerts.push({ type:'streak', agent:agent.name, message:`Up ${Math.round(wowGain)}% from last week (${fmt$(lastWeekAP)} → ${fmt$(weekAP)})`, severity:'positive' });
+    }
+    if(dailyGoal > 0 && dailyAP >= dailyGoal * 1.5) alerts.push({ type:'streak', agent:agent.name, message:`${Math.round((dailyAP/dailyGoal)*100)}% of daily goal already today (${fmt$(dailyAP)})`, severity:'positive' });
+  });
+  return alerts;
+}
+
+async function callClaudeForAnalysis(prompt){
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+  });
+  const data = await resp.json();
+  return data.content?.find(b=>b.type==='text')?.text || 'Analysis unavailable.';
+}
+
+function buildTeamPrompt(stats, forecasts, alerts){
+  const nowET = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const dayOfMonth = nowET.getDate();
+  const daysInMonth = new Date(nowET.getFullYear(), nowET.getMonth()+1, 0).getDate();
+  const teamAP=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+  const teamGoal=stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
+  const teamWeekAP=stats.reduce((s,a)=>s+Number(a.week_ap),0);
+  const teamLastWeekAP=stats.reduce((s,a)=>s+Number(a.last_week_ap),0);
+  const teamAppsToday=stats.reduce((s,a)=>s+Number(a.apps_today),0);
+  const agentSummaries=stats.map(a=>{ const pct=Number(a.monthly_goal)>0?Math.round((Number(a.month_ap)/Number(a.monthly_goal))*100):0; const wow=Number(a.week_ap)-Number(a.last_week_ap); return `- ${a.name}: Month AP ${fmt$(a.month_ap)} (${pct}% of ${fmt$(a.monthly_goal)} goal), Week AP ${fmt$(a.week_ap)} (${wow>=0?'+':''}${fmt$(wow)} WoW), ${a.apps_today} sales today`; }).join('\n');
+  const forecastSummary=forecasts.map(f=>`- ${f.name}: ${f.pct}% goal probability, projected ${fmt$(f.projected)} vs ${fmt$(f.goal)} goal`).join('\n');
+  const alertSummary=alerts.length>0?alerts.map(al=>`- [${al.type.toUpperCase()}] ${al.agent}: ${al.message}`).join('\n'):'- No critical alerts';
+  return `You are a Medicare sales agency performance analyst. Analyze this team and provide actionable insights.\n\nTODAY: Day ${dayOfMonth} of ${daysInMonth} (${daysInMonth-dayOfMonth} days remaining)\nTEAM: Month AP ${fmt$(teamAP)} / ${fmt$(teamGoal)} | Week AP ${fmt$(teamWeekAP)} (${teamWeekAP>=teamLastWeekAP?'+':''}${fmt$(teamWeekAP-teamLastWeekAP)} vs last week) | ${teamAppsToday} sales today\n\nAGENT BREAKDOWN:\n${agentSummaries}\n\nGOAL FORECASTS:\n${forecastSummary}\n\nALERTS:\n${alertSummary}\n\nRespond in this exact format using plain text only, no markdown symbols:\n\nTEAM TRAJECTORY\n[2-3 sentences on momentum and projected month-end finish]\n\nWHAT THE NUMBERS MEAN\n[2-3 sentences on what the patterns reveal about team behavior]\n\nCOACHING PRIORITY THIS WEEK\n[1-2 sentences on what the manager should focus on]\n\nAGENTS TO WATCH\n[Name specific agents, who needs intervention and who should be recognized]\n\nWrite as if briefing an agency owner who has 60 seconds to read this.`;
+}
+
+function buildAgentPrompt(agent, stats, subs){
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const dayOfMonth=nowET.getDate();
+  const daysInMonth=new Date(nowET.getFullYear(),nowET.getMonth()+1,0).getDate();
+  const agentStats=stats.find(a=>a.id===agent.id||a.name===agent.name)||{};
+  const agentSubs=subs.filter(s=>s.agent_id===agent.id);
+  const monthPct=Number(agentStats.monthly_goal)>0?Math.round((Number(agentStats.month_ap)/Number(agentStats.monthly_goal))*100):0;
+  const wow=Number(agentStats.week_ap||0)-Number(agentStats.last_week_ap||0);
+  const productCounts={};
+  agentSubs.forEach(s=>{ productCounts[s.product_type||'Unknown']=(productCounts[s.product_type||'Unknown']||0)+1; });
+  const productSummary=Object.entries(productCounts).map(([k,v])=>`${k}: ${v}`).join(', ')||'No data';
+  const now=new Date();
+  const last7=agentSubs.filter(s=>(now-new Date(s.submitted_at))<=7*86400000);
+  const prior7=agentSubs.filter(s=>{ const d=now-new Date(s.submitted_at); return d>7*86400000&&d<=14*86400000; });
+  const last7AP=last7.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const prior7AP=prior7.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  return `You are a Medicare sales performance coach. Analyze this agent and provide specific coaching.\n\nAGENT: ${agent.name}\nDAY: ${dayOfMonth} of ${daysInMonth} (${daysInMonth-dayOfMonth} days left)\n\nDATA:\n- Month AP: ${fmt$(agentStats.month_ap||0)} / ${fmt$(agentStats.monthly_goal||0)} goal (${monthPct}%)\n- Daily AP today: ${fmt$(agentStats.daily_ap||0)} / ${fmt$(agentStats.daily_goal||0)} daily goal\n- This week: ${fmt$(agentStats.week_ap||0)} | Last week: ${fmt$(agentStats.last_week_ap||0)} (${wow>=0?'+':''}${fmt$(wow)} WoW)\n- Sales today: ${agentStats.apps_today||0}\n- Last 7 days AP: ${fmt$(last7AP)} vs prior 7 days: ${fmt$(prior7AP)}\n- Product mix: ${productSummary}\n- Total submissions all time: ${agentSubs.length}\n\nRespond in this exact format, plain text only:\n\nPERFORMANCE ASSESSMENT\n[2-3 sentences on where this agent stands and their trajectory]\n\nTREND ANALYSIS\n[2 sentences on recent momentum and what it signals]\n\nCOACHING POINTS\nPoint 1: [specific actionable recommendation]\nPoint 2: [specific actionable recommendation]\nPoint 3: [specific actionable recommendation]\n\nFOCUS FOR TODAY\n[1 sentence, the single most important thing this agent should do differently right now]\n\nBe honest and specific.`;
+}
+
+function buildBriefingPrompt(stats, forecasts, alerts){
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const dayOfMonth=nowET.getDate();
+  const daysInMonth=new Date(nowET.getFullYear(),nowET.getMonth()+1,0).getDate();
+  const dayName=nowET.toLocaleDateString('en-US',{weekday:'long',timeZone:'America/New_York'});
+  const dateFull=nowET.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'America/New_York'});
+  const teamAP=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+  const teamGoal=stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
+  const teamWeekAP=stats.reduce((s,a)=>s+Number(a.week_ap),0);
+  const teamLastWeekAP=stats.reduce((s,a)=>s+Number(a.last_week_ap),0);
+  const teamAppsToday=stats.reduce((s,a)=>s+Number(a.apps_today),0);
+  const monthPct=teamGoal>0?Math.round((teamAP/teamGoal)*100):0;
+  const topAgent=[...stats].sort((a,b)=>Number(b.week_ap)-Number(a.week_ap))[0];
+  const topForecast=forecasts[0];
+  const bottomForecast=[...forecasts].sort((a,b)=>a.pct-b.pct)[0];
+  const slumps=alerts.filter(a=>a.type==='slump');
+  const streaks=alerts.filter(a=>a.type==='streak');
+  return `Write a daily manager morning briefing for a Medicare sales agency. Be concise and actionable.\n\nDATE: ${dayName}, ${dateFull} - Day ${dayOfMonth} of ${daysInMonth}\nTEAM: Month AP ${fmt$(teamAP)} / ${fmt$(teamGoal)} (${monthPct}%) | Week AP ${fmt$(teamWeekAP)} vs last week ${fmt$(teamLastWeekAP)} | ${teamAppsToday} sales today\nTOP THIS WEEK: ${topAgent?.name||'-'} at ${fmt$(topAgent?.week_ap||0)}\nHIGHEST GOAL PROB: ${topForecast?.name||'-'} at ${topForecast?.pct||0}%\nMOST AT RISK: ${bottomForecast?.name||'-'} at ${bottomForecast?.pct||0}%\nSLUMPS: ${slumps.length>0?slumps.map(s=>s.agent).join(', '):'None'}\nSTREAKS: ${streaks.length>0?streaks.map(s=>s.agent).join(', '):'None'}\n\nWrite in this exact format, plain text only, under 200 words:\n\nGOOD MORNING\n[1 sentence setting the tone for today]\n\nWHERE WE STAND\n[2 sentences on month-to-date status]\n\nTODAY'S PRIORITY\n[1 sentence, the single most important thing for the manager to drive today]\n\nAGENT FOCUS\n[Name 1-2 agents who need specific attention today and why]\n\nRECOGNIZE\n[Name 1 agent who deserves recognition based on the data]`;
+}
+
+function renderIntelLoadingState(containerId, message){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML=`<div class="intel-ai-box" style="text-align:center;padding:40px;"><div class="intel-ai-loading" style="justify-content:center;"><div class="intel-ai-dot"></div><span>${message||'Generating analysis...'}</span></div><div style="font-size:11px;color:var(--muted);margin-top:8px;">Powered by Claude AI · Takes 10-15 seconds</div></div>`;
+}
+
+function renderForecasts(forecasts){
+  if(!forecasts||!forecasts.length) return '';
+  const rows=forecasts.map(f=>{
+    const color=f.pct>=75?'var(--green)':f.pct>=50?'var(--amber)':'var(--red)';
+    const goalPct=Math.min(100,Math.round((f.current/f.goal)*100));
+    return `<div class="intel-forecast-row"><div class="intel-forecast-name">${f.name}</div><div class="intel-forecast-bar-wrap"><div class="intel-forecast-bar"><div class="intel-forecast-fill" style="width:${goalPct}%;background:var(--teal);"></div></div><div class="intel-forecast-labels"><span style="color:var(--muted);">${fmt$(f.current)} / ${fmt$(f.goal)}</span><span style="color:var(--label);">Proj: ${fmt$(f.projected)}</span></div></div><div class="intel-prob-label" style="color:${color};">${f.pct}%</div><div style="width:90px;text-align:right;">${f.shortfall?`<span class="intel-badge badge-red">−${f.shortfall}</span>`:`<span class="intel-badge badge-green">+${f.surplus}</span>`}</div></div>`;
+  }).join('');
+  return `<div class="intel-section"><div class="intel-section-title">Goal Probability Forecast</div><div class="intel-ai-box" style="padding:16px;"><div style="display:flex;gap:10px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding:0 4px;"><span style="min-width:120px;">Agent</span><span style="flex:1;">Month Progress → Projected End</span><span style="min-width:48px;text-align:right;">Prob</span><span style="width:90px;text-align:right;">vs Goal</span></div>${rows}<div style="margin-top:12px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;">Probability = likelihood of hitting monthly goal based on current daily pace through month end.</div></div></div>`;
+}
+
+function renderAlerts(alerts, isAdmin){
+  if(!alerts||!alerts.length) return `<div class="intel-section"><div class="intel-section-title">Performance Alerts</div><div class="intel-ai-box" style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">✓ No alerts — all agents performing within normal range.</div></div>`;
+  const slumps=alerts.filter(a=>a.type==='slump');
+  const streaks=alerts.filter(a=>a.type==='streak');
+  const renderItems=(items,type)=>items.map(al=>{ const isCrit=al.severity==='critical'; const cardClass=type==='slump'?(isCrit?'warn':'amber'):'highlight'; const badgeClass=type==='slump'?(isCrit?'badge-red':'badge-amber'):'badge-green'; const icon=type==='slump'?(isCrit?'⚠️':'📉'):'🔥'; return `<div class="intel-card ${cardClass}" style="margin-bottom:10px;"><div style="display:flex;align-items:flex-start;gap:10px;"><span style="font-size:18px;">${icon}</span><div><div style="font-weight:700;color:var(--white);font-size:13px;margin-bottom:4px;">${al.agent}</div><div style="font-size:12px;color:var(--body);">${al.message}</div>${isAdmin&&type==='slump'?`<div class="intel-badge ${badgeClass}" style="margin-top:6px;">${isCrit?'Immediate attention needed':'Monitor closely'}</div>`:''}</div></div></div>`; }).join('');
+  return `<div class="intel-section"><div class="intel-section-title">Performance Alerts <span style="font-size:11px;font-weight:400;color:var(--muted);letter-spacing:0;">${alerts.length} active</span></div>${slumps.length?`<div style="margin-bottom:8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);">NEEDS ATTENTION (${slumps.length})</div>${renderItems(slumps,'slump')}`:''}${streaks.length?`<div style="margin-top:${slumps.length?16:0}px;margin-bottom:8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);">HOT STREAKS (${streaks.length})</div>${renderItems(streaks,'streak')}`:''}`;
+}
+
+function parseAIText(text){
+  if(!text) return '';
+  const lines=text.split('\n');
+  let html='';
+  let prevWasHeader=false;
+  lines.forEach((line,i)=>{
+    const trimmed=line.trim();
+    if(!trimmed){ prevWasHeader=false; return; }
+    const words=trimmed.split(' ');
+    const isHeader=trimmed===trimmed.toUpperCase()&&trimmed.length>2&&words.length<=7&&!/[.!?,;]$/.test(trimmed)&&!/^\d/.test(trimmed);
+    if(isHeader){ html+=`<div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin:${i>0?'16px':'0px'} 0 6px;">${trimmed}</div>`; prevWasHeader=true; }
+    else { html+=`<div style="font-size:13px;color:var(--body);line-height:1.7;margin-bottom:3px;">${trimmed}</div>`; prevWasHeader=false; }
+  });
+  return html||`<div style="font-size:13px;color:var(--body);line-height:1.7;">${text}</div>`;
+}
+
+async function runIntelAnalysis(portal){
+  const prefix=portal==='admin'?'ad':'a';
+  const view=document.getElementById(prefix+'_intel_view')?.value||'team';
+  const contentEl=document.getElementById(prefix+'_intel_content');
+  const tsEl=document.getElementById(prefix+'_intel_timestamp');
+  if(!contentEl) return;
+  renderIntelLoadingState(prefix+'_intel_content','Fetching performance data...');
+  try {
+    const {stats,subs}=await fetchIntelData(true);
+    const forecasts=computeForecasts(stats);
+    const alerts=detectSlumpsAndStreaks(stats);
+    const nowStr=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'})+' ET';
+    if(view==='briefing'){
+      renderIntelLoadingState(prefix+'_intel_content','Writing your morning briefing...');
+      const analysis=await callClaudeForAnalysis(buildBriefingPrompt(stats,forecasts,alerts));
+      if(tsEl) tsEl.textContent='Generated at '+nowStr;
+      contentEl.innerHTML=`<div class="briefing-box"><div class="briefing-date">${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'America/New_York'})} · Manager Morning Briefing</div><div class="briefing-body">${parseAIText(analysis)}</div></div>${renderForecasts(forecasts)}${renderAlerts(alerts,true)}`;
+    } else if(view==='agent'){
+      const agentId=document.getElementById(prefix+'_intel_agent_sel')?.value;
+      const agentObj=intelAgents.find(a=>a.id===agentId);
+      if(!agentObj){contentEl.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted);">Select an agent to analyze.</div>';return;}
+      renderIntelLoadingState(prefix+'_intel_content','Analyzing '+agentObj.name+'...');
+      const agentStats=stats.find(a=>a.id===agentId||a.name===agentObj.name)||{};
+      const analysis=await callClaudeForAnalysis(buildAgentPrompt(agentObj,stats,subs));
+      if(tsEl) tsEl.textContent='Generated at '+nowStr;
+      const agentForecasts=forecasts.filter(f=>f.name===agentObj.name||f.id===agentId);
+      const agentAlerts=alerts.filter(a=>a.agent===agentObj.name);
+      const wow=Number(agentStats.week_ap||0)-Number(agentStats.last_week_ap||0);
+      contentEl.innerHTML=`<div class="intel-section"><div class="intel-section-title">${agentObj.name} — Performance Analysis</div><div class="intel-grid"><div class="intel-card"><div class="intel-card-label">Month AP</div><div class="intel-card-val">${fmt$(agentStats.month_ap||0)}</div><div class="intel-card-sub">${Math.round(Number(agentStats.monthly_goal)>0?(Number(agentStats.month_ap||0)/Number(agentStats.monthly_goal))*100:0)}% of ${fmt$(agentStats.monthly_goal||0)} goal</div></div><div class="intel-card"><div class="intel-card-label">This Week AP</div><div class="intel-card-val">${fmt$(agentStats.week_ap||0)}</div><div class="intel-card-sub"><span class="${wow>=0?'wow-delta-pos':'wow-delta-neg'}">${wow>=0?'+':''}${fmt$(wow)}</span> vs last week</div></div><div class="intel-card"><div class="intel-card-label">Sales Today</div><div class="intel-card-val">${agentStats.apps_today||0}</div><div class="intel-card-sub">${fmt$(agentStats.daily_ap||0)} AP today</div></div></div>${agentForecasts.length?renderForecasts(agentForecasts):''}${agentAlerts.length?renderAlerts(agentAlerts,portal==='admin'):''}</div><div class="intel-section"><div class="intel-section-title">AI Coaching Analysis</div><div class="intel-ai-box">${parseAIText(analysis)}</div></div>`;
+    } else {
+      renderIntelLoadingState(prefix+'_intel_content','Analyzing team performance...');
+      const analysis=await callClaudeForAnalysis(buildTeamPrompt(stats,forecasts,alerts));
+      if(tsEl) tsEl.textContent='Generated at '+nowStr;
+      const teamAP=stats.reduce((s,a)=>s+Number(a.month_ap),0);
+      const teamGoal=stats.reduce((s,a)=>s+Number(a.monthly_goal),0);
+      const teamWeekAP=stats.reduce((s,a)=>s+Number(a.week_ap),0);
+      const teamLastWeekAP=stats.reduce((s,a)=>s+Number(a.last_week_ap),0);
+      const teamAppsToday=stats.reduce((s,a)=>s+Number(a.apps_today),0);
+      const teamMonthPct=teamGoal>0?Math.round((teamAP/teamGoal)*100):0;
+      const teamWoW=teamWeekAP-teamLastWeekAP;
+      contentEl.innerHTML=`<div class="intel-section"><div class="intel-section-title">Team Snapshot</div><div class="intel-grid"><div class="intel-card highlight"><div class="intel-card-label">Month AP</div><div class="intel-card-val">${fmt$(teamAP)}</div><div class="intel-card-sub">${teamMonthPct}% of ${fmt$(teamGoal)} goal</div></div><div class="intel-card"><div class="intel-card-label">Week AP</div><div class="intel-card-val">${fmt$(teamWeekAP)}</div><div class="intel-card-sub"><span class="${teamWoW>=0?'wow-delta-pos':'wow-delta-neg'}">${teamWoW>=0?'+':''}${fmt$(teamWoW)}</span> vs last week</div></div><div class="intel-card"><div class="intel-card-label">Sales Today</div><div class="intel-card-val">${teamAppsToday}</div><div class="intel-card-sub">across ${stats.length} active agents</div></div></div></div><div class="intel-section"><div class="intel-section-title">AI Team Analysis</div><div class="intel-ai-box">${parseAIText(analysis)}</div></div>${renderForecasts(forecasts)}${renderAlerts(alerts,portal==='admin')}`;
+    }
+  } catch(err){
+    if(contentEl) contentEl.innerHTML=`<div class="intel-ai-box" style="border-color:rgba(239,68,68,0.3);"><div style="color:var(--red);font-size:13px;font-weight:600;">Analysis failed</div><div style="color:var(--muted);font-size:12px;margin-top:4px;">${err.message||'Unknown error'}. Please try again.</div></div>`;
+  }
+}
+
+// END OF INTELLIGENCE LAYER
+
 (async function init(){
   const session=loadSession();
   if(session){
