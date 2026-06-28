@@ -1466,30 +1466,44 @@ function renderWoW(data,containerId){
   const teamAPDelta=teamThisAP-teamLastAP;
   const teamAppsDelta=teamThisApps-teamLastApps;
   const teamAPPct=teamLastAP>0?(teamAPDelta/teamLastAP)*100:0;
-  const sorted=data.slice().sort((a,b)=>b.ap_delta-a.ap_delta);
-  const mi=sorted[0];
-  const md=sorted[sorted.length-1];
   const dSign=v=>v>0?'+':v<0?'':' ';
   const dClass=v=>v>0?'wow-delta-pos':v<0?'wow-delta-neg':'wow-delta-zero';
   const maxAbs=Math.max(...data.map(a=>Math.abs(a.ap_delta)),1);
   const rankColors=['#F59E0B','#94A3B8','#CD7C3A'];
-  const mdPct=md.last_week_ap>0?((md.ap_delta/md.last_week_ap)*100):0;
-  el.innerHTML=`
-    ${mi.ap_delta>0?`<div class="wow-most-improved">
-      <div style="font-size:32px;">&#x1F3C6;</div>
-      <div><div class="wow-mi-label">Most Improved This Week</div>
-      <div class="wow-mi-name">${mi.name}</div>
-      <div class="wow-mi-stat">${fmt$(mi.last_week_ap)} &#x2192; ${fmt$(mi.this_week_ap)} &nbsp;&middot;&nbsp;
-        <span class="wow-delta-pos">+${fmt$(mi.ap_delta)}</span></div></div>
-    </div>`:''}
-    ${isAdmin&&md.ap_delta<0?`<div style="background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(239,68,68,0.02));border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
-      <div style="font-size:32px;">&#x26A0;&#xFE0F;</div>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:4px;">Needs Attention This Week</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);">${md.name}</div>
-      <div style="font-size:13px;color:var(--body);">${fmt$(md.last_week_ap)} &#x2192; ${fmt$(md.this_week_ap)} &nbsp;&middot;&nbsp;
-        <span style="color:var(--red);font-weight:700;">${fmt$(md.ap_delta)} (${mdPct.toFixed(1)}%)</span></div></div>
-    </div>`:''}
-    <div class="wow-summary">
+  const miRev=[...data].filter(a=>a.ap_delta>0).sort((a,b)=>b.ap_delta-a.ap_delta)[0]||null;
+  const miPct=[...data].filter(a=>a.ap_delta>0&&a.last_week_ap>0).sort((a,b)=>(b.ap_delta/b.last_week_ap)-(a.ap_delta/a.last_week_ap))[0]||null;
+  const mdRev=[...data].filter(a=>a.ap_delta<0).sort((a,b)=>a.ap_delta-b.ap_delta)[0]||null;
+  const mdPct=[...data].filter(a=>a.ap_delta<0&&a.last_week_ap>0).sort((a,b)=>(a.ap_delta/a.last_week_ap)-(b.ap_delta/b.last_week_ap))[0]||null;
+  const pct=a=>a.last_week_ap>0?((a.ap_delta/a.last_week_ap)*100).toFixed(1):null;
+  const noImprove=`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">No improvement this period</div>`;
+  const noDecline=`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">No declines this period</div>`;
+  const cardRow=`<div style="display:grid;grid-template-columns:${isAdmin?'1fr 1fr 1fr 1fr':'1fr 1fr'};gap:12px;margin-bottom:24px;">
+    ${miRev?`<div style="background:linear-gradient(135deg,rgba(0,201,177,0.08),rgba(0,201,177,0.02));border:1px solid rgba(0,201,177,0.2);border-radius:8px;padding:16px 18px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;">&#x1F4C8; Most Improved — Revenue</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);margin-bottom:4px;">${miRev.name}</div>
+      <div style="font-size:12px;color:var(--body);">${fmt$(miRev.last_week_ap)} &#x2192; ${fmt$(miRev.this_week_ap)}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--green);margin-top:4px;">+${fmt$(miRev.ap_delta)}${pct(miRev)!==null?' ('+pct(miRev)+'%)':''}</div>
+    </div>`:noImprove}
+    ${miPct?`<div style="background:linear-gradient(135deg,rgba(0,201,177,0.05),rgba(0,201,177,0.01));border:1px solid rgba(0,201,177,0.15);border-radius:8px;padding:16px 18px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;">&#x1F4C8; Most Improved — % Growth</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);margin-bottom:4px;">${miPct.name}</div>
+      <div style="font-size:12px;color:var(--body);">${fmt$(miPct.last_week_ap)} &#x2192; ${fmt$(miPct.this_week_ap)}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--green);margin-top:4px;">+${pct(miPct)}% <span style="font-weight:400;color:var(--muted);font-size:11px;">(+${fmt$(miPct.ap_delta)})</span></div>
+    </div>`:noImprove}
+    ${isAdmin?(mdRev?`<div style="background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(239,68,68,0.02));border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:16px 18px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px;">&#x26A0; Needs Attention — Revenue</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);margin-bottom:4px;">${mdRev.name}</div>
+      <div style="font-size:12px;color:var(--body);">${fmt$(mdRev.last_week_ap)} &#x2192; ${fmt$(mdRev.this_week_ap)}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--red);margin-top:4px;">${fmt$(mdRev.ap_delta)}${pct(mdRev)!==null?' ('+pct(mdRev)+'%)':''}</div>
+    </div>`:noDecline):''}
+    ${isAdmin?(mdPct?`<div style="background:linear-gradient(135deg,rgba(239,68,68,0.05),rgba(239,68,68,0.01));border:1px solid rgba(239,68,68,0.15);border-radius:8px;padding:16px 18px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px;">&#x26A0; Needs Attention — % Drop</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);margin-bottom:4px;">${mdPct.name}</div>
+      <div style="font-size:12px;color:var(--body);">${fmt$(mdPct.last_week_ap)} &#x2192; ${fmt$(mdPct.this_week_ap)}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--red);margin-top:4px;">${pct(mdPct)}% <span style="font-weight:400;color:var(--muted);font-size:11px;">(${fmt$(mdPct.ap_delta)})</span></div>
+    </div>`:noDecline):''}
+  </div>`;
+  el.innerHTML=cardRow+`<div class="wow-summary">
       <div class="wow-summary-card">
         <div class="wow-summary-val">${fmt$(teamThisAP)}</div>
         <div class="wow-summary-lbl">This Week AP</div>
