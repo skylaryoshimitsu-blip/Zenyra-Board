@@ -1157,7 +1157,7 @@ function buildMAPDPulse(mapd,elId){
 
 function buildLeaderboard(stats,tbodyId,topMap){
   topMap=topMap||{};
-  const ranked=[...stats].sort((a,b)=>b.month_ap-a.month_ap);
+  const ranked=[...stats].filter(a=>Number(a.monthly_goal)>0).sort((a,b)=>b.month_ap-a.month_ap);
   const dp=getDayProgress();
   const tbody=document.getElementById(tbodyId); if(!tbody)return;
   tbody.innerHTML='';
