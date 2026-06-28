@@ -1794,13 +1794,15 @@ function detectSlumpsAndStreaks(stats){
 }
 
 async function callClaudeForAnalysis(prompt){
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('/api/intelligence', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    body: JSON.stringify({ prompt })
   });
+  if(!resp.ok) throw new Error('API request failed: '+resp.status);
   const data = await resp.json();
-  return data.content?.find(b=>b.type==='text')?.text || 'Analysis unavailable.';
+  if(data.error) throw new Error(data.error);
+  return data.text || 'Analysis unavailable.';
 }
 
 function buildTeamPrompt(stats, forecasts, alerts){
