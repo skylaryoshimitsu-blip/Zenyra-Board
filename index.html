@@ -447,9 +447,6 @@ tbody td:not(:first-child){text-align:right;}
           <button onclick="renderAgentWoW()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Compare</button>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;justify-content:flex-end;margin-left:auto;">
-        <button onclick="downloadWoWReport('agent')" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download Report</button>
-      </div>
     </div>
     <div id="a_wow_content"></div>
   </div>
@@ -508,7 +505,7 @@ tbody td:not(:first-child){text-align:right;}
             <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">View</label>
             <select id="a_intel_view" onchange="switchIntelView('agent')" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
               <option value="team">Team Overview</option>
-              <option value="agent">Individual Agent</option>
+              <option value="self">My Analysis</option>
             </select>
           </div>
           <div id="a_intel_agent_wrap" style="display:none;flex-direction:column;gap:4px;">
@@ -1594,7 +1591,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // WoW DATA + RENDER
 async function fetchWoWData(aFrom,aTo,bFrom,bTo){
-  const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const {data:agents}=await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
   if(!agents||!subs) return [];
   if(!aFrom||!bFrom){
@@ -1608,7 +1605,7 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
     aFrom=startOfThisWeek; aTo=endOfThisWeek; bFrom=startOfLastWeek; bTo=endOfLastWeek;
   }
   const inRange=(ts,from,to)=>{ const d=new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'})); return d>=new Date(from)&&d<=new Date(to); };
-  return agents.map(agent=>{
+  return agents.filter(a=>Number(a.monthly_goal)>0).map(agent=>{
     const agentSubs=subs.filter(s=>s.agent_id===agent.id);
     const periodA=agentSubs.filter(s=>inRange(s.submitted_at,aFrom,aTo));
     const periodB=agentSubs.filter(s=>inRange(s.submitted_at,bFrom,bTo));
@@ -1794,8 +1791,8 @@ async function fetchIntelData(force){
 }
 
 async function populateIntelAgentSelects(){
-  const {data} = await db.from('lb_agents').select('id,name').eq('active',true).order('name');
-  intelAgents = data || [];
+  const {data} = await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
+  intelAgents = (data || []).filter(a=>Number(a.monthly_goal)>0);
   const opts = intelAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   ['a_intel_agent_sel','ad_intel_agent_sel'].forEach(id=>{
     const el = document.getElementById(id);
@@ -1808,6 +1805,7 @@ function switchIntelView(portal){
   const view = document.getElementById(prefix+'_intel_view')?.value || 'team';
   const agentWrap = document.getElementById(prefix+'_intel_agent_wrap');
   if(agentWrap) agentWrap.style.display = view==='agent' ? 'flex' : 'none';
+  // self view never needs the dropdown — it uses currentUser's own agent_id
 }
 
 function computeForecasts(stats){
@@ -1980,6 +1978,17 @@ async function runIntelAnalysis(portal){
       const analysis=await callClaudeForAnalysis(buildBriefingPrompt(stats,forecasts,alerts));
       if(tsEl) tsEl.textContent='Generated at '+nowStr;
       contentEl.innerHTML=`<div class="briefing-box"><div class="briefing-date">${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'America/New_York'})} · Manager Morning Briefing</div><div class="briefing-body">${parseAIText(analysis)}</div></div>${renderForecasts(forecasts)}${renderAlerts(alerts,true)}`;
+    } else if(view==='self'){
+      const agentId=currentUser?.agent_id;
+      const agentObj=intelAgents.find(a=>a.id===agentId)||{id:agentId,name:currentUser?.agentName||'You'};
+      renderIntelLoadingState(prefix+'_intel_content','Analyzing your performance...');
+      const agentStats=stats.find(a=>a.id===agentId||a.name===agentObj.name)||{};
+      const analysis=await callClaudeForAnalysis(buildAgentPrompt(agentObj,stats,subs));
+      if(tsEl) tsEl.textContent='Generated at '+nowStr;
+      const agentForecasts=forecasts.filter(f=>f.name===agentObj.name||f.id===agentId);
+      const agentAlerts=alerts.filter(a=>a.agent===agentObj.name);
+      const wow=Number(agentStats.week_ap||0)-Number(agentStats.last_week_ap||0);
+      contentEl.innerHTML=`<div class="intel-section"><div class="intel-section-title">${agentObj.name} — Your Performance Analysis</div><div class="intel-grid"><div class="intel-card"><div class="intel-card-label">Month AP</div><div class="intel-card-val">${fmt$(agentStats.month_ap||0)}</div><div class="intel-card-sub">${Math.round(Number(agentStats.monthly_goal)>0?(Number(agentStats.month_ap||0)/Number(agentStats.monthly_goal))*100:0)}% of ${fmt$(agentStats.monthly_goal||0)} goal</div></div><div class="intel-card"><div class="intel-card-label">This Week AP</div><div class="intel-card-val">${fmt$(agentStats.week_ap||0)}</div><div class="intel-card-sub"><span class="${wow>=0?'wow-delta-pos':'wow-delta-neg'}">${wow>=0?'+':''}${fmt$(wow)}</span> vs last week</div></div><div class="intel-card"><div class="intel-card-label">Sales Today</div><div class="intel-card-val">${agentStats.apps_today||0}</div><div class="intel-card-sub">${fmt$(agentStats.daily_ap||0)} AP today</div></div></div>${agentForecasts.length?renderForecasts(agentForecasts):''}${agentAlerts.length?renderAlerts(agentAlerts,false):''}</div><div class="intel-section"><div class="intel-section-title">AI Coaching Analysis</div><div class="intel-ai-box">${parseAIText(analysis)}</div></div>`;
     } else if(view==='agent'){
       const agentId=document.getElementById(prefix+'_intel_agent_sel')?.value;
       const agentObj=intelAgents.find(a=>a.id===agentId);
