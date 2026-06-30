@@ -345,6 +345,11 @@ tbody td:not(:first-child){text-align:right;}
         <div class="portal-title">Admin Portal</div>
         <div class="portal-desc">Full submissions & management</div>
       </div>
+      <div class="portal-card" onclick="showAuth('dialer')">
+        <div class="portal-icon">📞</div>
+        <div class="portal-title">Dialer Access</div>
+        <div class="portal-desc">Log call data & reports</div>
+      </div>
     </div>
   </div>
 </div>
@@ -360,7 +365,8 @@ tbody td:not(:first-child){text-align:right;}
     </div>
     <div class="auth-error" id="authError"></div>
     <div id="loginForm">
-      <div class="field"><label>Your Name</label><select id="loginName"></select></div>
+      <div class="field" id="loginNameField"><label>Your Name</label><select id="loginName"></select></div>
+      <div class="field" id="loginDialerField" style="display:none;"><label>Username</label><input type="text" id="loginUsername" placeholder="Enter your username"/></div>
       <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"/></div>
       <button class="btn-primary" onclick="doLogin()">Sign In</button>
     </div>
@@ -369,7 +375,8 @@ tbody td:not(:first-child){text-align:right;}
         <label>Admin Access Code</label>
         <input type="password" id="adminCode" placeholder="Enter admin access code"/>
       </div>
-      <div class="field"><label>Select Your Name</label><select id="registerName"></select></div>
+      <div class="field" id="registerNameField"><label>Select Your Name</label><select id="registerName"></select></div>
+      <div class="field" id="registerDialerField" style="display:none;"><label>Display Name</label><input type="text" id="registerDisplayName" placeholder="e.g. your first name"/></div>
       <div class="field"><label>Create Password</label><input type="password" id="registerPassword" placeholder="Min 6 characters"/></div>
       <div class="field"><label>Confirm Password</label><input type="password" id="registerConfirm" placeholder="Confirm password"/></div>
       <button class="btn-primary" onclick="doRegister()">Create Account</button>
@@ -907,6 +914,62 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- DIALER DASHBOARD -->
+<div id="dialer-dashboard" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Dialer — Call Logging</span></div>
+    <div class="header-right">
+      <span class="live-dot">Live</span>
+      <span class="clock" id="dialerClock"></span>
+      <span class="user-badge">Signed in as <span id="dialerUserName">—</span></span>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="admin-nav">
+    <div class="admin-tab active" id="dialerTab_log" onclick="switchDialerTab('log')">📞 Log Call Data</div>
+    <div class="admin-tab" id="dialerTab_reports" onclick="switchDialerTab('reports')">📥 Reports</div>
+  </div>
+  <div id="dialer-log-panel" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Log Call Data</div>
+    <div class="form-grid">
+      <div class="field-sm"><label>Agent</label><select id="dl_agent"></select></div>
+      <div class="field-sm"><label>Date</label><input type="date" id="dl_date"/></div>
+      <div class="field-sm"><label>Total Calls</label><input type="number" id="dl_total" min="0"/></div>
+      <div class="field-sm"><label>Incoming Calls</label><input type="number" id="dl_incoming" min="0"/></div>
+      <div class="field-sm"><label>Outgoing Calls</label><input type="number" id="dl_outgoing" min="0"/></div>
+      <div class="field-sm"><label>Billable Calls</label><input type="number" id="dl_billable" min="0"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-submit" onclick="submitDialerLog()">Log Call Data</button>
+    </div>
+    <div class="submit-success" id="dialerLogSuccess" style="display:none;">&#x2713; Call data logged!</div>
+  </div>
+  <div id="dialer-reports-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Effort vs Output Report</div>
+    <div class="report-controls">
+      <div class="report-row">
+        <div class="report-field"><label>Agent(s)</label><select id="dl_rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+        <div class="report-field"><label>Date Range</label>
+          <select id="dl_rpt_range" onchange="toggleDialerCustomDates()">
+            <option value="today">Today</option><option value="yesterday">Previous Day</option>
+            <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div class="report-field" id="dl_rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="dl_rpt_from"/></div>
+        <div class="report-field" id="dl_rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="dl_rpt_to"/></div>
+        <button class="btn-run-report" onclick="runDialerReport()">Run Report</button>
+      </div>
+    </div>
+    <div id="dialer-report-output"></div>
+  </div>
+  <div class="footer">
+    <span class="footer-left" id="dialer_lastUpdated">—</span>
+    <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
+  </div>
+</div>
+
 <!-- EDIT SUBMISSION MODAL -->
 <div class="modal-overlay" id="editSubModal">
   <div class="modal-box">
@@ -986,14 +1049,25 @@ function showScreen(id){
 let authRole='agent';
 async function showAuth(role){
   authRole=role;
-  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':'Admin Portal';
-  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':'Admin access only';
+  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':'Dialer Portal';
+  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':'VA call logging access';
   document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
   document.getElementById('authError').style.display='none';
-  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).or('role.eq.'+role+',role.eq.both').order('name');
-  allAgents=data||[];
-  const opts=allAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
-  ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+  if(role==='dialer'){
+    document.getElementById('loginNameField').style.display='none';
+    document.getElementById('registerNameField').style.display='none';
+    document.getElementById('loginDialerField').style.display='block';
+    document.getElementById('registerDialerField').style.display='block';
+  } else {
+    document.getElementById('loginNameField').style.display='block';
+    document.getElementById('registerNameField').style.display='block';
+    document.getElementById('loginDialerField').style.display='none';
+    document.getElementById('registerDialerField').style.display='none';
+    const {data}=await db.from('lb_agents').select('id,name').eq('active',true).or('role.eq.'+role+',role.eq.both').order('name');
+    allAgents=data||[];
+    const opts=allAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+    ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+  }
   switchAuthTab('login');
   showScreen('auth');
 }
@@ -1006,10 +1080,20 @@ function switchAuthTab(tab){
 }
 function showAuthError(m){ const e=document.getElementById('authError'); e.textContent=m; e.style.display='block'; }
 async function doLogin(){
-  const agentId=document.getElementById('loginName').value;
   const pw=document.getElementById('loginPassword').value;
   if(!pw) return showAuthError('Enter your password.');
   const hash=await hashPw(pw);
+  if(authRole==='dialer'){
+    const username=document.getElementById('loginUsername').value.trim();
+    if(!username) return showAuthError('Enter your username.');
+    const {data,error}=await db.from('lb_users').select('*').eq('display_name',username).eq('role','dialer').eq('password_hash',hash).single();
+    if(error||!data) return showAuthError('Incorrect username or password.');
+    await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
+    saveSession({...data,agentName:data.display_name});
+    enterDashboard(data.role);
+    return;
+  }
+  const agentId=document.getElementById('loginName').value;
   const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).eq('role',authRole).eq('password_hash',hash).single();
   if(error||!data) return showAuthError('Incorrect password. Try again or register.');
   await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
@@ -1018,12 +1102,24 @@ async function doLogin(){
   enterDashboard(data.role);
 }
 async function doRegister(){
-  const agentId=document.getElementById('registerName').value;
   const pw=document.getElementById('registerPassword').value;
   const confirm=document.getElementById('registerConfirm').value;
   if(authRole==='admin'){ const code=document.getElementById('adminCode').value; if(code!==ADMIN_CODE) return showAuthError('Invalid admin access code.'); }
   if(!pw||pw.length<6) return showAuthError('Password must be at least 6 characters.');
   if(pw!==confirm) return showAuthError('Passwords do not match.');
+  if(authRole==='dialer'){
+    const displayName=document.getElementById('registerDisplayName').value.trim();
+    if(!displayName) return showAuthError('Enter a display name.');
+    const {data:existing}=await db.from('lb_users').select('id').eq('display_name',displayName).eq('role','dialer').single();
+    if(existing) return showAuthError('Account already exists. Sign in instead.');
+    const hash=await hashPw(pw);
+    const {data,error}=await db.from('lb_users').insert({agent_id:null,display_name:displayName,role:'dialer',password_hash:hash}).select().single();
+    if(error) return showAuthError('Registration failed: '+error.message);
+    saveSession({...data,agentName:data.display_name});
+    enterDashboard('dialer');
+    return;
+  }
+  const agentId=document.getElementById('registerName').value;
   const {data:existing}=await db.from('lb_users').select('id').eq('agent_id',agentId).eq('role',authRole).single();
   if(existing) return showAuthError('Account already exists. Sign in instead.');
   const hash=await hashPw(pw);
@@ -1041,6 +1137,10 @@ function enterDashboard(role){
     populateReportAgents();
     populateScorerAgents();
     loadRecentScores();
+  } else if(role==='dialer'){
+    document.getElementById('dialerUserName').textContent=currentUser.agentName;
+    showScreen('dialer-dashboard');
+    switchDialerTab('log');
   } else {
     document.getElementById('agentUserName').textContent=currentUser.agentName;
     showScreen('agent-dashboard');
@@ -1575,11 +1675,11 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
 function startRealtime(){
-  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
+  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ /* no-op: dialer never renders leaderboard data */ } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
   db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); }).subscribe();
 }
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser)renderAgentBoard(); },30000); }
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ /* no-op: dialer never renders leaderboard data */ } else if(currentUser)renderAgentBoard(); },30000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const dz=document.getElementById('scorerDropZone'); if(!dz)return;
@@ -2020,6 +2120,79 @@ async function runIntelAnalysis(portal){
 }
 
 // END OF INTELLIGENCE LAYER
+
+// ── DIALER ROLE ──────────────────────────────────────────────────────────
+function switchDialerTab(tab){
+  const panels={log:'flex',reports:'flex'};
+  Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
+  if(tab==='log')     populateDialerAgents();
+  if(tab==='reports') populateDialerReportAgents();
+}
+async function populateDialerAgents(){
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const sel=document.getElementById('dl_agent');
+  if(!sel) return;
+  sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  const dateEl=document.getElementById('dl_date');
+  if(dateEl && !dateEl.value) dateEl.value=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+}
+async function submitDialerLog(){
+  const agentId=document.getElementById('dl_agent').value;
+  if(!agentId) return alert('Select an agent.');
+  const payload={
+    agent_id:agentId,
+    log_date:document.getElementById('dl_date').value||new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}),
+    total_calls:parseInt(document.getElementById('dl_total').value)||0,
+    incoming_calls:parseInt(document.getElementById('dl_incoming').value)||0,
+    outgoing_calls:parseInt(document.getElementById('dl_outgoing').value)||0,
+    billable_calls:parseInt(document.getElementById('dl_billable').value)||0,
+    logged_by:currentUser?.id,
+  };
+  const {error}=await db.from('lb_dialer_activity').insert(payload);
+  if(error) return alert('Log failed: '+error.message);
+  document.getElementById('dialerLogSuccess').style.display='block';
+  ['dl_total','dl_incoming','dl_outgoing','dl_billable'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  setTimeout(()=>{ document.getElementById('dialerLogSuccess').style.display='none'; },2000);
+}
+async function populateDialerReportAgents(){
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const sel=document.getElementById('dl_rpt_agent');
+  if(!sel) return;
+  sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+}
+function toggleDialerCustomDates(){ const v=document.getElementById('dl_rpt_range').value; document.getElementById('dl_rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById('dl_rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
+async function runDialerReport(){
+  const agentFilter=document.getElementById('dl_rpt_agent').value;
+  const range=document.getElementById('dl_rpt_range').value;
+  const {from,to}=getDateRange(range);
+  let callQ=db.from('lb_dialer_activity').select('*,lb_agents(name)').gte('log_date',from.toISOString().slice(0,10)).lte('log_date',to.toISOString().slice(0,10));
+  if(agentFilter!=='all') callQ=callQ.eq('agent_id',agentFilter);
+  const {data:calls}=await callQ;
+  let subQ=db.from('lb_submissions').select('agent_id,annual_premium,monthly_premium,submitted_at,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString());
+  if(agentFilter!=='all') subQ=subQ.eq('agent_id',agentFilter);
+  const {data:subs}=await subQ;
+  const output=document.getElementById('dialer-report-output');
+  if(!calls?.length && !subs?.length){ output.innerHTML='<div class="no-data">No data found for this range.</div>'; return; }
+  const byAgent={};
+  (calls||[]).forEach(c=>{
+    const n=c.lb_agents?.name||'Unknown';
+    if(!byAgent[n]) byAgent[n]={total:0,billable:0,apps:0,ap:0,mp:0};
+    byAgent[n].total+=Number(c.total_calls||0);
+    byAgent[n].billable+=Number(c.billable_calls||0);
+  });
+  (subs||[]).forEach(s=>{
+    const n=s.lb_agents?.name||'Unknown';
+    if(!byAgent[n]) byAgent[n]={total:0,billable:0,apps:0,ap:0,mp:0};
+    byAgent[n].apps+=1;
+    byAgent[n].ap+=Number(s.annual_premium||0);
+    byAgent[n].mp+=Number(s.monthly_premium||0);
+  });
+  const rows=Object.entries(byAgent).map(([name,d])=>{
+    const cpa=d.apps>0?(d.total/d.apps).toFixed(1):'—';
+    return `<tr><td style="font-weight:600;color:var(--white);">${name}</td><td>${d.total}</td><td>${d.billable}</td><td>${d.apps}</td><td style="color:var(--teal);">${fmt$(d.ap)}</td><td style="color:var(--green);">${fmt$2(estComm(d.ap))}</td><td>${cpa}</td></tr>`;
+  }).join('');
+  output.innerHTML=`<table class="submissions-table"><thead><tr><th>Agent</th><th>Total Calls</th><th>Billable Calls</th><th>Apps Submitted</th><th>Annual AP</th><th>Est. Commission</th><th>Calls / App</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
 (async function init(){
   const session=loadSession();
