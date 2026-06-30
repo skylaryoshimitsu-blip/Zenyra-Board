@@ -1003,25 +1003,52 @@ tbody td:not(:first-child){text-align:right;}
     </div>
     <div id="dl_wow_content"></div>
   </div>
-  <div id="dialer-reports-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Effort vs Output Report</div>
-    <div class="report-controls">
-      <div class="report-row">
-        <div class="report-field"><label>Agent(s)</label><select id="dl_rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
-        <div class="report-field"><label>Date Range</label>
-          <select id="dl_rpt_range" onchange="toggleDialerCustomDates()">
-            <option value="today">Today</option><option value="yesterday">Previous Day</option>
-            <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
-            <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div class="report-field" id="dl_rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="dl_rpt_from"/></div>
-        <div class="report-field" id="dl_rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="dl_rpt_to"/></div>
-        <button class="btn-run-report" onclick="runDialerReport()">Run Report</button>
-      </div>
+  <div id="dialer-reports-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn-run-report" id="dlReportType_perf" onclick="switchDialerReportType('perf')">Performance Report</button>
+      <button class="btn-run-report" id="dlReportType_effort" onclick="switchDialerReportType('effort')" style="background:none;border:1px solid var(--teal);color:var(--teal);">Effort vs Output</button>
     </div>
-    <div id="dialer-report-output"></div>
+    <div id="dialer-perf-report">
+      <div class="section-eyebrow" style="margin-bottom:16px;">Performance Report</div>
+      <div class="report-controls">
+        <div class="report-row">
+          <div class="report-field"><label>Agent(s)</label><select id="dl_perf_rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+          <div class="report-field"><label>Date Range</label>
+            <select id="dl_perf_rpt_range" onchange="toggleCustomDates('dl_perf_')">
+              <option value="today">Today</option><option value="yesterday">Previous Day</option>
+              <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+              <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="report-field" id="dl_perf_rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="dl_perf_rpt_from"/></div>
+          <div class="report-field" id="dl_perf_rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="dl_perf_rpt_to"/></div>
+          <button class="btn-run-report" onclick="runReport('dl_perf_')">Run Report</button>
+          <button class="btn-download" id="dl_perf_btn_download" onclick="downloadReport('dl_perf_')" style="display:none;">&#x2B07; Download PDF</button>
+        </div>
+      </div>
+      <div id="dl_perf_report-output"></div>
+    </div>
+    <div id="dialer-effort-report" style="display:none;">
+      <div class="section-eyebrow" style="margin-bottom:16px;">Effort vs Output Report</div>
+      <div class="report-controls">
+        <div class="report-row">
+          <div class="report-field"><label>Agent(s)</label><select id="dl_rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+          <div class="report-field"><label>Date Range</label>
+            <select id="dl_rpt_range" onchange="toggleDialerCustomDates()">
+              <option value="today">Today</option><option value="yesterday">Previous Day</option>
+              <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+              <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="report-field" id="dl_rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="dl_rpt_from"/></div>
+          <div class="report-field" id="dl_rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="dl_rpt_to"/></div>
+          <button class="btn-run-report" onclick="runDialerReport()">Run Report</button>
+        </div>
+      </div>
+      <div id="dialer-report-output"></div>
+    </div>
   </div>
   <div class="footer">
     <span class="footer-left" id="dialer_lastUpdated">—</span>
@@ -1486,11 +1513,11 @@ function openAgentModal(agent){ document.getElementById('agentModalTitle').textC
 async function saveAgent(){ const id=document.getElementById('agentModalId').value; const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)}; if(!payload.name){alert('Name is required.');return;} let error; if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}else{({error}=await db.from('lb_agents').insert({...payload,active:true}));} if(error){alert('Save failed: '+error.message);return;} closeModal('agentModal'); renderAgentManagement(); }
 async function toggleAgentStatus(id,current){ if(!confirm(`${current?'Deactivate':'Activate'} this agent?`))return; await db.from('lb_agents').update({active:!current}).eq('id',id); renderAgentManagement(); }
 
-async function populateReportAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('rpt_agent'); if(!sel)return; sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
-function toggleCustomDates(){ const v=document.getElementById('rpt_range').value; document.getElementById('rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById('rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
-function getDateRange(range){ const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate()); let from,to=new Date(today.getTime()+86400000-1); if(range==='today'){from=today;}else if(range==='yesterday'){from=new Date(today-86400000);to=new Date(today-1);}else if(range==='mtd'){from=new Date(today.getFullYear(),today.getMonth(),1);}else if(range==='custom'){from=new Date(document.getElementById('rpt_from').value);to=new Date(document.getElementById('rpt_to').value+'T23:59:59');}else{from=new Date(today-(parseInt(range)-1)*86400000);} return{from,to}; }
-async function runReport(){ const agentFilter=document.getElementById('rpt_agent').value; const range=document.getElementById('rpt_range').value; const {from,to}=getDateRange(range); let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString()); if(agentFilter!=='all') q=q.eq('agent_id',agentFilter); const {data:subs}=await q.order('submitted_at',{ascending:false}); reportData=subs||[]; const output=document.getElementById('report-output'); const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById('btn_download').style.display='none';return;} const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`; document.getElementById('btn_download').style.display='inline-block'; }
-function downloadReport(){ const agentLabel=document.getElementById('rpt_agent').options[document.getElementById('rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById('rpt_range').options[document.getElementById('rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
+async function populateReportAgents(p){ p=p||''; const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById(p+'rpt_agent'); if(!sel)return; sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
+function toggleCustomDates(p){ p=p||''; const v=document.getElementById(p+'rpt_range').value; document.getElementById(p+'rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById(p+'rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
+function getDateRange(range,p){ p=p||''; const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate()); let from,to=new Date(today.getTime()+86400000-1); if(range==='today'){from=today;}else if(range==='yesterday'){from=new Date(today-86400000);to=new Date(today-1);}else if(range==='mtd'){from=new Date(today.getFullYear(),today.getMonth(),1);}else if(range==='custom'){from=new Date(document.getElementById(p+'rpt_from').value);to=new Date(document.getElementById(p+'rpt_to').value+'T23:59:59');}else{from=new Date(today-(parseInt(range)-1)*86400000);} return{from,to}; }
+async function runReport(p){ p=p||''; const agentFilter=document.getElementById(p+'rpt_agent').value; const range=document.getElementById(p+'rpt_range').value; const {from,to}=getDateRange(range,p); let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString()); if(agentFilter!=='all') q=q.eq('agent_id',agentFilter); const {data:subs}=await q.order('submitted_at',{ascending:false}); reportData=subs||[]; const output=document.getElementById(p+'report-output'); const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById(p+'btn_download').style.display='none';return;} const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table>`; document.getElementById(p+'btn_download').style.display='inline-block'; }
+function downloadReport(p){ p=p||''; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>`<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
   const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
@@ -1794,7 +1821,7 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
 function renderWoW(data,containerId){
   const el=document.getElementById(containerId); if(!el) return;
   if(!data||!data.length){el.innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">No data available.</div>';return;}
-  const isAdmin=containerId==='ad_wow_content';
+  const isAdmin=containerId==='ad_wow_content'||containerId==='dl_wow_content';
   const teamThisAP=data.reduce((s,a)=>s+a.this_week_ap,0);
   const teamLastAP=data.reduce((s,a)=>s+a.last_week_ap,0);
   const teamThisApps=data.reduce((s,a)=>s+a.this_week_apps,0);
@@ -2228,7 +2255,7 @@ function switchDialerTab(tab){
   if(tab==='log')         populateDialerAgents();
   if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
   if(tab==='wow')         renderDialerWoW();
-  if(tab==='reports')     populateDialerReportAgents();
+  if(tab==='reports')     { populateDialerReportAgents(); populateReportAgents('dl_perf_'); }
 }
 function switchDialerBoardView(view){
   currentDialerBoardView=view;
@@ -2284,10 +2311,17 @@ async function populateDialerReportAgents(){
   sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
 }
 function toggleDialerCustomDates(){ const v=document.getElementById('dl_rpt_range').value; document.getElementById('dl_rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById('dl_rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
+function switchDialerReportType(type){
+  document.getElementById('dialer-perf-report').style.display=type==='perf'?'block':'none';
+  document.getElementById('dialer-effort-report').style.display=type==='effort'?'block':'none';
+  const perfBtn=document.getElementById('dlReportType_perf'), effortBtn=document.getElementById('dlReportType_effort');
+  perfBtn.style.background=type==='perf'?'var(--teal)':'none'; perfBtn.style.border=type==='perf'?'none':'1px solid var(--teal)'; perfBtn.style.color=type==='perf'?'var(--navy)':'var(--teal)';
+  effortBtn.style.background=type==='effort'?'var(--teal)':'none'; effortBtn.style.border=type==='effort'?'none':'1px solid var(--teal)'; effortBtn.style.color=type==='effort'?'var(--navy)':'var(--teal)';
+}
 async function runDialerReport(){
   const agentFilter=document.getElementById('dl_rpt_agent').value;
   const range=document.getElementById('dl_rpt_range').value;
-  const {from,to}=getDateRange(range);
+  const {from,to}=getDateRange(range,'dl_');
   let callQ=db.from('lb_dialer_activity').select('*,lb_agents(name)').gte('log_date',from.toISOString().slice(0,10)).lte('log_date',to.toISOString().slice(0,10));
   if(agentFilter!=='all') callQ=callQ.eq('agent_id',agentFilter);
   const {data:calls}=await callQ;
