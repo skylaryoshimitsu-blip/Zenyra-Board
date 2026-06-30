@@ -411,7 +411,7 @@ tbody td:not(:first-child){text-align:right;}
         <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
         <table>
           <thead><tr>
-            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th>
+            <th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Calls Today</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th>
           </tr></thead>
           <tbody id="a_leaderboardBody"></tbody>
         </table>
@@ -718,7 +718,7 @@ tbody td:not(:first-child){text-align:right;}
       <div class="main-layout" style="flex:1;overflow:hidden;">
         <div class="leaderboard-pane">
           <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
-          <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th></tr></thead>
+          <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Calls Today</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th></tr></thead>
           <tbody id="ad_leaderboardBody"></tbody></table>
         </div>
         <div class="sidebar" id="ad_sidebar"></div>
@@ -927,6 +927,8 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <div class="admin-nav">
     <div class="admin-tab active" id="dialerTab_log" onclick="switchDialerTab('log')">📞 Log Call Data</div>
+    <div class="admin-tab" id="dialerTab_leaderboard" onclick="switchDialerTab('leaderboard')">🏆 Leaderboard</div>
+    <div class="admin-tab" id="dialerTab_wow" onclick="switchDialerTab('wow')">&#x1F4C8; Week over Week</div>
     <div class="admin-tab" id="dialerTab_reports" onclick="switchDialerTab('reports')">📥 Reports</div>
   </div>
   <div id="dialer-log-panel" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;padding:20px 24px;">
@@ -943,6 +945,63 @@ tbody td:not(:first-child){text-align:right;}
       <button class="btn-submit" onclick="submitDialerLog()">Log Call Data</button>
     </div>
     <div class="submit-success" id="dialerLogSuccess" style="display:none;">&#x2713; Call data logged!</div>
+  </div>
+  <div id="dialer-leaderboard-panel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
+      <div class="view-tab active" id="dialerBoardTab_anc" onclick="switchDialerBoardView('anc')">&#x1f48a; Ancillary</div>
+      <div class="view-tab" id="dialerBoardTab_mapd" onclick="switchDialerBoardView('mapd')">🏥 MAPD</div>
+    </div>
+    <div id="dialer-anc-sub" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="leaderboard-pane" style="flex:1;border-right:none;">
+        <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
+        <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Calls Today</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th></tr></thead>
+        <tbody id="dl_leaderboardBody"></tbody></table>
+      </div>
+    </div>
+    <div id="dialer-mapd-sub" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="leaderboard-pane" style="flex:1;border-right:none;">
+        <div class="section-eyebrow">MAPD Submissions — This Month</div>
+        <table><thead><tr><th>Agent</th><th style="text-align:right;">Today</th><th style="text-align:right;">This Week</th><th style="text-align:right;">This Month</th><th style="text-align:right;">All Time</th><th>Top State</th><th>Top Carrier</th></tr></thead>
+        <tbody id="dl_mapdBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+  <div id="dialer-wow-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Week over Week Comparison</div>
+    <div id="dl_wow_controls" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Compare Mode</label>
+        <select id="dl_wow_mode" onchange="handleDialerWoWMode()" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+          <option value="this_vs_last">This Week vs Last Week</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+      <div id="dl_wow_custom_wrap" style="display:none;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period A — From</label>
+          <input type="date" id="dl_wow_a_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period A — To</label>
+          <input type="date" id="dl_wow_a_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period B — From</label>
+          <input type="date" id="dl_wow_b_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Period B — To</label>
+          <input type="date" id="dl_wow_b_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <button onclick="renderDialerWoW()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Compare</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end;margin-left:auto;">
+        <button onclick="downloadWoWReport('dialer')" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download Report</button>
+      </div>
+    </div>
+    <div id="dl_wow_content"></div>
   </div>
   <div id="dialer-reports-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Effort vs Output Report</div>
@@ -1032,6 +1091,9 @@ let reportData    = [];
 let scorerFile    = null;
 let scorerPollInterval = null;
 let currentAgentView = 'board';
+let dialerReportAgents = [];
+let currentDialerTab = 'log';
+let currentDialerBoardView = 'anc';
 
 function saveSession(u){ localStorage.setItem('zenyra_board_v4', JSON.stringify(u)); currentUser=u; }
 function loadSession(){ const s=localStorage.getItem('zenyra_board_v4'); return s?JSON.parse(s):null; }
@@ -1184,6 +1246,13 @@ async function fetchTopStateCarrier(table){
   Object.keys(byAgent).forEach(id=>{ out[id]={ state: modeOf(byAgent[id].states), carrier: modeOf(byAgent[id].carriers) }; });
   return out;
 }
+async function fetchCallCountsToday(){
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const {data}=await db.from('lb_dialer_activity').select('agent_id,total_calls').eq('log_date',today);
+  const out={};
+  (data||[]).forEach(r=>{ if(!r.agent_id) return; out[r.agent_id]=(out[r.agent_id]||0)+Number(r.total_calls||0); });
+  return out;
+}
 function startOfTodayET_ISO(){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const y=parts.find(p=>p.type==='year').value;
@@ -1253,8 +1322,9 @@ function buildMAPDPulse(mapd,elId){
   el.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);align-self:center;">MAPD App Count</div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${today}</div><div class="mapd-pulse-lbl">Today</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${week}</div><div class="mapd-pulse-lbl">This Week</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${month}</div><div class="mapd-pulse-lbl">This Month</div></div><div class="mapd-pulse-item"><div class="mapd-pulse-val">${all}</div><div class="mapd-pulse-lbl">All Time</div></div>`;
 }
 
-function buildLeaderboard(stats,tbodyId,topMap){
+function buildLeaderboard(stats,tbodyId,topMap,callMap){
   topMap=topMap||{};
+  callMap=callMap||{};
   const ranked=[...stats].filter(a=>Number(a.monthly_goal)>0).sort((a,b)=>b.month_ap-a.month_ap);
   const dp=getDayProgress();
   const tbody=document.getElementById(tbodyId); if(!tbody)return;
@@ -1268,7 +1338,7 @@ function buildLeaderboard(stats,tbodyId,topMap){
     const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
     const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
-    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'&#x25b2;':'&#x25bc;'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).state||'—'}</span></td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).carrier||'—'}</span></td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
+    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'&#x25b2;':'&#x25bc;'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td>${callMap[agent.id]||0}</td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).state||'—'}</span></td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).carrier||'—'}</span></td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
   });
 }
 function buildMAPDLeaderboard(mapd,tbodyId,topMap){
@@ -1329,8 +1399,9 @@ function switchAgentView(view){
 async function renderAgentBoard(){
   const stats=await fetchStats();
   const topMap=await fetchTopStateCarrier('lb_submissions');
+  const callMap=await fetchCallCountsToday();
   buildPulse(stats,'a_');
-  buildLeaderboard(stats,'a_leaderboardBody',topMap);
+  buildLeaderboard(stats,'a_leaderboardBody',topMap,callMap);
   buildSidebar(stats,'a_sidebar','a_lastUpdated');
   const subs=await fetchRecentSubs(8);
   const rsEl=document.getElementById('a_recentSales');
@@ -1389,7 +1460,7 @@ function switchAdminBoardView(view){
   if(view==='mapd')     renderMAPDBoard();
   if(view==='combined') renderAdminCombined();
 }
-async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
+async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); const callMap=await fetchCallCountsToday(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap,callMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
 async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); const topMap=await fetchTopStateCarrier('lb_mapd_submissions'); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody',topMap); }
 async function renderAdminCombined(){ const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]); buildCombined(anc,mapd,'ad_combinedContent'); }
 
@@ -1675,11 +1746,11 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
 function startRealtime(){
-  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ /* no-op: dialer never renders leaderboard data */ } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
-  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); }).subscribe();
+  db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'&&currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
+  db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); else if(currentUser?.role==='dialer'&&currentDialerTab==='leaderboard'&&currentDialerBoardView==='mapd')renderDialerMAPD(); }).subscribe();
 }
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ /* no-op: dialer never renders leaderboard data */ } else if(currentUser)renderAgentBoard(); },30000); }
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser)renderAgentBoard(); },30000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const dz=document.getElementById('scorerDropZone'); if(!dz)return;
@@ -1693,6 +1764,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const {data:agents}=await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
+  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls');
   if(!agents||!subs) return [];
   if(!aFrom||!bFrom){
     const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
@@ -1705,13 +1777,18 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
     aFrom=startOfThisWeek; aTo=endOfThisWeek; bFrom=startOfLastWeek; bTo=endOfLastWeek;
   }
   const inRange=(ts,from,to)=>{ const d=new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'})); return d>=new Date(from)&&d<=new Date(to); };
+  const dateOnly=v=>typeof v==='string'?v.slice(0,10):v.toISOString().slice(0,10);
+  const aFromD=dateOnly(aFrom),aToD=dateOnly(aTo),bFromD=dateOnly(bFrom),bToD=dateOnly(bTo);
   return agents.filter(a=>Number(a.monthly_goal)>0).map(agent=>{
     const agentSubs=subs.filter(s=>s.agent_id===agent.id);
     const periodA=agentSubs.filter(s=>inRange(s.submitted_at,aFrom,aTo));
     const periodB=agentSubs.filter(s=>inRange(s.submitted_at,bFrom,bTo));
     const apA=periodA.reduce((s,r)=>s+Number(r.annual_premium||0),0);
     const apB=periodB.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length};
+    const agentCalls=(calls||[]).filter(c=>c.agent_id===agent.id);
+    const callsA=agentCalls.filter(c=>c.log_date>=aFromD&&c.log_date<=aToD).reduce((s,c)=>s+Number(c.total_calls||0),0);
+    const callsB=agentCalls.filter(c=>c.log_date>=bFromD&&c.log_date<=bToD).reduce((s,c)=>s+Number(c.total_calls||0),0);
+    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length,this_week_calls:callsA,last_week_calls:callsB};
   }).sort((a,b)=>b.this_week_ap-a.this_week_ap);
 }
 function renderWoW(data,containerId){
@@ -1785,7 +1862,7 @@ function renderWoW(data,containerId){
       </div>
     </div>
     <table class="wow-table">
-      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>AP Change</th><th>Last Wk Apps</th><th>This Wk Apps</th><th>Apps &#x394;</th><th>Trend</th></tr></thead>
+      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>AP Change</th><th>Last Wk Apps</th><th>This Wk Apps</th><th>Apps &#x394;</th><th>Calls This Wk</th><th>Calls Last Wk</th><th>Trend</th></tr></thead>
       <tbody>${data.map((a,i)=>{
         const rankColor=rankColors[i]||'var(--muted)';
         const fillCls=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
@@ -1801,6 +1878,8 @@ function renderWoW(data,containerId){
           <td style="color:var(--muted);">${a.last_week_apps}</td>
           <td style="font-weight:600;color:var(--white);">${a.this_week_apps}</td>
           <td><span style="font-weight:700;color:${appsDeltaColor};">${a.apps_delta>0?'+':''}${a.apps_delta}</span></td>
+          <td style="font-weight:600;color:var(--white);">${a.this_week_calls||0}</td>
+          <td style="color:var(--muted);">${a.last_week_calls||0}</td>
           <td><div class="wow-bar-wrap">
             <div class="wow-bar-track"><div class="${fillCls}" style="width:${barPct}%;"></div></div>
           </div></td>
@@ -1848,16 +1927,36 @@ function handleAdminWoWMode(){
   document.getElementById('ad_wow_custom_wrap').style.display=mode==='custom'?'flex':'none';
   if(mode==='this_vs_last') renderAdminWoW();
 }
+async function renderDialerWoW(){
+  const mode=document.getElementById('dl_wow_mode')?.value||'this_vs_last';
+  let data;
+  if(mode==='custom'){
+    const aFrom=document.getElementById('dl_wow_a_from').value;
+    const aTo=document.getElementById('dl_wow_a_to').value;
+    const bFrom=document.getElementById('dl_wow_b_from').value;
+    const bTo=document.getElementById('dl_wow_b_to').value;
+    if(!aFrom||!aTo||!bFrom||!bTo){ document.getElementById('dl_wow_content').innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">Select all four dates and click Compare.</div>'; return; }
+    data=await fetchWoWData(aFrom+'T00:00:00',aTo+'T23:59:59',bFrom+'T00:00:00',bTo+'T23:59:59');
+  } else {
+    data=await fetchWoWData();
+  }
+  renderWoW(data,'dl_wow_content');
+}
+function handleDialerWoWMode(){
+  const mode=document.getElementById('dl_wow_mode').value;
+  document.getElementById('dl_wow_custom_wrap').style.display=mode==='custom'?'flex':'none';
+  if(mode==='this_vs_last') renderDialerWoW();
+}
 function downloadWoWReport(view){
-  const contentId=view==='admin'?'ad_wow_content':'a_wow_content';
-  const modeId=view==='admin'?'ad_wow_mode':'a_wow_mode';
+  const contentId=view==='admin'?'ad_wow_content':view==='dialer'?'dl_wow_content':'a_wow_content';
+  const modeId=view==='admin'?'ad_wow_mode':view==='dialer'?'dl_wow_mode':'a_wow_mode';
   const mode=document.getElementById(modeId)?.value==='custom'?'Custom Range':'This Week vs Last Week';
   const rows=[];
   document.querySelectorAll('#'+contentId+' .wow-table tbody tr').forEach(tr=>{
     const cells=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
     rows.push(cells);
   });
-  const headers=['Agent','This Week AP','Last Week AP','AP Change','Last Wk Apps','This Wk Apps','Apps Delta','Trend'];
+  const headers=['Agent','This Week AP','Last Week AP','AP Change','Last Wk Apps','This Wk Apps','Apps Delta','Calls This Wk','Calls Last Wk','Trend'];
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Zenyra WoW Report</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -2123,13 +2222,36 @@ async function runIntelAnalysis(portal){
 
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
 function switchDialerTab(tab){
-  const panels={log:'flex',reports:'flex'};
+  currentDialerTab=tab;
+  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
-  if(tab==='log')     populateDialerAgents();
-  if(tab==='reports') populateDialerReportAgents();
+  if(tab==='log')         populateDialerAgents();
+  if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
+  if(tab==='wow')         renderDialerWoW();
+  if(tab==='reports')     populateDialerReportAgents();
+}
+function switchDialerBoardView(view){
+  currentDialerBoardView=view;
+  document.getElementById('dialerBoardTab_anc').classList.toggle('active',view==='anc');
+  document.getElementById('dialerBoardTab_mapd').classList.toggle('active',view==='mapd');
+  document.getElementById('dialer-anc-sub').style.display=view==='anc'?'flex':'none';
+  document.getElementById('dialer-mapd-sub').style.display=view==='mapd'?'flex':'none';
+  if(view==='anc') renderDialerLeaderboard();
+  if(view==='mapd') renderDialerMAPD();
+}
+async function renderDialerLeaderboard(){
+  const stats=await fetchStats();
+  const topMap=await fetchTopStateCarrier('lb_submissions');
+  const callMap=await fetchCallCountsToday();
+  buildLeaderboard(stats,'dl_leaderboardBody',topMap,callMap);
+}
+async function renderDialerMAPD(){
+  const mapd=await fetchMAPDStats();
+  const topMap=await fetchTopStateCarrier('lb_mapd_submissions');
+  buildMAPDLeaderboard(mapd,'dl_mapdBody',topMap);
 }
 async function populateDialerAgents(){
-  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).gt('daily_goal',0).order('name');
   const sel=document.getElementById('dl_agent');
   if(!sel) return;
   sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
@@ -2155,7 +2277,8 @@ async function submitDialerLog(){
   setTimeout(()=>{ document.getElementById('dialerLogSuccess').style.display='none'; },2000);
 }
 async function populateDialerReportAgents(){
-  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
+  const {data}=await db.from('lb_agents').select('id,name').eq('active',true).gt('daily_goal',0).order('name');
+  dialerReportAgents=data||[];
   const sel=document.getElementById('dl_rpt_agent');
   if(!sel) return;
   sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
@@ -2172,8 +2295,10 @@ async function runDialerReport(){
   if(agentFilter!=='all') subQ=subQ.eq('agent_id',agentFilter);
   const {data:subs}=await subQ;
   const output=document.getElementById('dialer-report-output');
-  if(!calls?.length && !subs?.length){ output.innerHTML='<div class="no-data">No data found for this range.</div>'; return; }
   const byAgent={};
+  const roster=agentFilter==='all'?(dialerReportAgents||[]):(dialerReportAgents||[]).filter(a=>a.id===agentFilter);
+  roster.forEach(a=>{ byAgent[a.name]={total:0,billable:0,apps:0,ap:0,mp:0}; });
+  if(!calls?.length && !subs?.length && !roster.length){ output.innerHTML='<div class="no-data">No data found for this range.</div>'; return; }
   (calls||[]).forEach(c=>{
     const n=c.lb_agents?.name||'Unknown';
     if(!byAgent[n]) byAgent[n]={total:0,billable:0,apps:0,ap:0,mp:0};
