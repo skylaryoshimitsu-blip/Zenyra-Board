@@ -2148,7 +2148,7 @@ async function runIntelAnalysis(portal){
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
 function switchDialerTab(tab){
   currentDialerTab=tab;
-  const panels={log:'flex',leaderboard:'flex',reports:'flex'};
+  const panels={log:'flex',leaderboard:'flex',reports:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='log')         populateDialerAgents();
   if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
