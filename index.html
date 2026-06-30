@@ -22,10 +22,9 @@ html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Int
 .landing-inner{text-align:center;max-width:480px;width:90%;}
 .landing-brand{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;color:var(--teal);margin-bottom:4px;}
 .landing-sub{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:48px;}
-.portal-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.portal-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 20px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;}
+.portal-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;}
+.portal-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 20px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;flex:1 1 calc(50% - 16px);max-width:calc(50% - 8px);text-align:center;}
 .portal-card:hover{border-color:var(--teal);transform:translateY(-2px);}
-.portal-icon{font-size:28px;margin-bottom:12px;}
 .portal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px;}
 .portal-desc{font-size:11px;color:var(--muted);}
 #auth{align-items:center;justify-content:center;}
@@ -336,17 +335,14 @@ tbody td:not(:first-child){text-align:right;}
     <div class="landing-sub">Agency Performance Command Center</div>
     <div class="portal-cards">
       <div class="portal-card" onclick="showAuth('agent')">
-        <div class="portal-icon">📊</div>
         <div class="portal-title">Agent Portal</div>
         <div class="portal-desc">Leaderboard & log a sale</div>
       </div>
       <div class="portal-card" onclick="showAuth('admin')">
-        <div class="portal-icon">🛡️</div>
         <div class="portal-title">Admin Portal</div>
         <div class="portal-desc">Full submissions & management</div>
       </div>
       <div class="portal-card" onclick="showAuth('dialer')">
-        <div class="portal-icon">📞</div>
         <div class="portal-title">Dialer Access</div>
         <div class="portal-desc">Log call data & reports</div>
       </div>
