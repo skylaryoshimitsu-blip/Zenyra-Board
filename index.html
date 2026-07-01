@@ -945,6 +945,8 @@ tbody td:not(:first-child){text-align:right;}
       <button class="btn-submit" onclick="submitDialerLog()">Log Call Data</button>
     </div>
     <div class="submit-success" id="dialerLogSuccess" style="display:none;">&#x2713; Call data logged!</div>
+    <div class="section-eyebrow" style="margin-top:24px;">Recent Entries</div>
+    <div id="dialerHistoryContent"></div>
   </div>
   <div id="dialer-leaderboard-panel" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
     <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
@@ -1054,6 +1056,26 @@ tbody td:not(:first-child){text-align:right;}
     <div class="modal-actions">
       <button class="btn-modal-save" onclick="saveSubEdit()">Save Changes</button>
       <button class="btn-modal-cancel" onclick="closeModal('editSubModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DIALER LOG MODAL -->
+<div class="modal-overlay" id="editDialerModal">
+  <div class="modal-box">
+    <div class="modal-title">Edit Call Log Entry</div>
+    <input type="hidden" id="ed_id"/>
+    <div class="form-grid">
+      <div class="field-sm"><label>Date</label><input type="date" id="ed_date"/></div>
+      <div class="field-sm"><label>Agent</label><select id="ed_agent"></select></div>
+      <div class="field-sm"><label>Total Calls</label><input type="number" id="ed_total" min="0"/></div>
+      <div class="field-sm"><label>Incoming Calls</label><input type="number" id="ed_incoming" min="0"/></div>
+      <div class="field-sm"><label>Outgoing Calls</label><input type="number" id="ed_outgoing" min="0"/></div>
+      <div class="field-sm"><label>Billable Calls</label><input type="number" id="ed_billable" min="0"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveDialerEdit()">Save Changes</button>
+      <button class="btn-modal-cancel" onclick="closeModal('editDialerModal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -2225,7 +2247,7 @@ function switchDialerTab(tab){
   currentDialerTab=tab;
   const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
-  if(tab==='log')         populateDialerAgents();
+  if(tab==='log')         { populateDialerAgents(); loadDialerHistory(); }
   if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
   if(tab==='wow')         renderDialerWoW();
   if(tab==='reports')     populateDialerReportAgents();
@@ -2252,11 +2274,13 @@ async function renderDialerMAPD(){
 }
 async function populateDialerAgents(){
   const {data}=await db.from('lb_agents').select('id,name').eq('active',true).gt('daily_goal',0).order('name');
+  const opts='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   const sel=document.getElementById('dl_agent');
-  if(!sel) return;
-  sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  if(sel) sel.innerHTML=opts;
   const dateEl=document.getElementById('dl_date');
   if(dateEl && !dateEl.value) dateEl.value=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const editSel=document.getElementById('ed_agent');
+  if(editSel) editSel.innerHTML=opts;
 }
 async function submitDialerLog(){
   const agentId=document.getElementById('dl_agent').value;
@@ -2275,6 +2299,45 @@ async function submitDialerLog(){
   document.getElementById('dialerLogSuccess').style.display='block';
   ['dl_total','dl_incoming','dl_outgoing','dl_billable'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   setTimeout(()=>{ document.getElementById('dialerLogSuccess').style.display='none'; },2000);
+  loadDialerHistory();
+}
+async function loadDialerHistory(){
+  const cont=document.getElementById('dialerHistoryContent');
+  if(!cont || !currentUser) return;
+  const since=new Date(Date.now()-14*24*60*60*1000).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name)').eq('logged_by',currentUser.id).gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
+  if(!data?.length){ cont.innerHTML='<div class="no-data">No entries in the last 14 days.</div>'; return; }
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Total Calls</th><th>Incoming</th><th>Outgoing</th><th>Billable</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`<tr><td>${e.log_date}</td><td>${e.lb_agents?.name||'—'}</td><td>${e.total_calls||0}</td><td>${e.incoming_calls||0}</td><td>${e.outgoing_calls||0}</td><td>${e.billable_calls||0}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openDialerEdit(${JSON.stringify(e).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteDialerEntry('${e.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+}
+function openDialerEdit(entry){
+  document.getElementById('ed_id').value=entry.id;
+  document.getElementById('ed_date').value=entry.log_date||'';
+  document.getElementById('ed_agent').value=entry.agent_id||'';
+  document.getElementById('ed_total').value=entry.total_calls??'';
+  document.getElementById('ed_incoming').value=entry.incoming_calls??'';
+  document.getElementById('ed_outgoing').value=entry.outgoing_calls??'';
+  document.getElementById('ed_billable').value=entry.billable_calls??'';
+  openModal('editDialerModal');
+}
+async function saveDialerEdit(){
+  const id=document.getElementById('ed_id').value;
+  const payload={
+    log_date:document.getElementById('ed_date').value,
+    agent_id:document.getElementById('ed_agent').value,
+    total_calls:parseInt(document.getElementById('ed_total').value)||0,
+    incoming_calls:parseInt(document.getElementById('ed_incoming').value)||0,
+    outgoing_calls:parseInt(document.getElementById('ed_outgoing').value)||0,
+    billable_calls:parseInt(document.getElementById('ed_billable').value)||0,
+  };
+  const {error}=await db.from('lb_dialer_activity').update(payload).eq('id',id);
+  if(error){ alert('Save failed: '+error.message); return; }
+  closeModal('editDialerModal');
+  loadDialerHistory();
+}
+async function deleteDialerEntry(id){
+  if(!confirm('Delete this entry? This cannot be undone.')) return;
+  await db.from('lb_dialer_activity').delete().eq('id',id);
+  loadDialerHistory();
 }
 async function populateDialerReportAgents(){
   const {data}=await db.from('lb_agents').select('id,name').eq('active',true).gt('daily_goal',0).order('name');
