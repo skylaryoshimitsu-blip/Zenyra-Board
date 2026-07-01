@@ -2141,7 +2141,7 @@ function buildBriefingPrompt(stats, forecasts, alerts){
 function renderIntelLoadingState(containerId, message){
   const el=document.getElementById(containerId);
   if(!el) return;
-  el.innerHTML=`<div class="intel-ai-box" style="text-align:center;padding:40px;"><div class="intel-ai-loading" style="justify-content:center;"><div class="intel-ai-dot"></div><span>${message||'Generating analysis...'}</span></div><div style="font-size:11px;color:var(--muted);margin-top:8px;">Powered by Claude AI · Takes 10-15 seconds</div></div>`;
+  el.innerHTML=`<div class="intel-ai-box" style="text-align:center;padding:40px;"><div class="intel-ai-loading" style="justify-content:center;"><div class="intel-ai-dot"></div><span>${message||'Generating analysis...'}</span></div><div style="font-size:11px;color:var(--muted);margin-top:8px;">Powered by Zenyra Intelligence · Takes 10-15 seconds</div></div>`;
 }
 
 function renderForecasts(forecasts){
