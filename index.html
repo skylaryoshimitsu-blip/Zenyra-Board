@@ -1301,6 +1301,21 @@ function startOfWeekET_ISO(){
   const yy=base.getUTCFullYear(), mm=String(base.getUTCMonth()+1).padStart(2,'0'), dd=String(base.getUTCDate()).padStart(2,'0');
   return yy+'-'+mm+'-'+dd+'T'+String(offset).padStart(2,'0')+':00:00.000Z';
 }
+function fourWeeksAgoMondayET_ISO(){
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(new Date());
+  const y=+parts.find(p=>p.type==='year').value;
+  const m=+parts.find(p=>p.type==='month').value;
+  const d=+parts.find(p=>p.type==='day').value;
+  const wd=parts.find(p=>p.type==='weekday').value;
+  const idxMap={Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+  const idx=idxMap[wd];
+  const base=new Date(Date.UTC(y,m-1,d,12,0,0));
+  base.setUTCDate(base.getUTCDate()-idx-28);
+  const testHour=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(base));
+  let offset=12-testHour; if(offset<0) offset+=24;
+  const yy=base.getUTCFullYear(), mm=String(base.getUTCMonth()+1).padStart(2,'0'), dd=String(base.getUTCDate()).padStart(2,'0');
+  return yy+'-'+mm+'-'+dd+'T'+String(offset).padStart(2,'0')+':00:00.000Z';
+}
 function modeOf(arr){
   const counts={}; let best=null,bestN=0;
   arr.forEach(v=>{ if(!v) return; const k=String(v).trim(); if(!k) return; counts[k]=(counts[k]||0)+1; if(counts[k]>bestN){bestN=counts[k];best=k;} });
@@ -1835,7 +1850,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const {data:agents}=await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
-  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls');
+  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls,billable_calls');
   if(!agents||!subs) return [];
   if(!aFrom||!bFrom){
     const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
@@ -1850,6 +1865,11 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const inRange=(ts,from,to)=>{ const d=new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'})); return d>=new Date(from)&&d<=new Date(to); };
   const dateOnly=v=>typeof v==='string'?v.slice(0,10):v.toISOString().slice(0,10);
   const aFromD=dateOnly(aFrom),aToD=dateOnly(aTo),bFromD=dateOnly(bFrom),bToD=dateOnly(bTo);
+  const toETDate=ts=>new Date(ts).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const todayStr=toETDate(new Date());
+  const thisMonDate=toETDate(new Date(startOfWeekET_ISO()));
+  const fourWkMonDate=toETDate(new Date(fourWeeksAgoMondayET_ISO()));
+  const getMon=s=>{ const [y,m,d]=s.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d,12)); const dow=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-dow); return dt.toISOString().slice(0,10); };
   return agents.filter(a=>Number(a.monthly_goal)>0).map(agent=>{
     const agentSubs=subs.filter(s=>s.agent_id===agent.id);
     const periodA=agentSubs.filter(s=>inRange(s.submitted_at,aFrom,aTo));
@@ -1859,7 +1879,22 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
     const agentCalls=(calls||[]).filter(c=>c.agent_id===agent.id);
     const callsA=agentCalls.filter(c=>c.log_date>=aFromD&&c.log_date<=aToD).reduce((s,c)=>s+Number(c.total_calls||0),0);
     const callsB=agentCalls.filter(c=>c.log_date>=bFromD&&c.log_date<=bToD).reduce((s,c)=>s+Number(c.total_calls||0),0);
-    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length,this_week_calls:callsA,last_week_calls:callsB};
+    const hist4Subs=agentSubs.filter(s=>{ const d=toETDate(s.submitted_at); return d>=fourWkMonDate&&d<thisMonDate; });
+    const wkAppMap={}; hist4Subs.forEach(s=>{ const w=getMon(toETDate(s.submitted_at)); wkAppMap[w]=(wkAppMap[w]||0)+1; });
+    const appWkN=Object.keys(wkAppMap).length;
+    const avgAppsPerWeek=appWkN>0?(hist4Subs.length/appWkN).toFixed(1):null;
+    const hist4Calls=agentCalls.filter(c=>c.log_date>=fourWkMonDate&&c.log_date<thisMonDate);
+    const wkCallMap={}; hist4Calls.forEach(c=>{ const w=getMon(c.log_date); wkCallMap[w]=(wkCallMap[w]||0)+Number(c.total_calls||0); });
+    const callWkN=Object.keys(wkCallMap).length;
+    const avgCallsPerWeek=callWkN>0?(hist4Calls.reduce((s,c)=>s+Number(c.total_calls||0),0)/callWkN).toFixed(1):null;
+    const todayBillable=agentCalls.filter(c=>c.log_date===todayStr).reduce((s,c)=>s+Number(c.billable_calls||0),0);
+    const todayApps=agentSubs.filter(s=>toETDate(s.submitted_at)===todayStr).length;
+    const dailyConvToday=todayBillable===0?null:(todayApps/todayBillable*100).toFixed(1)+'%';
+    const wkBillable=agentCalls.filter(c=>c.log_date>=thisMonDate&&c.log_date<=todayStr).reduce((s,c)=>s+Number(c.billable_calls||0),0);
+    const wkApps=agentSubs.filter(s=>{ const d=toETDate(s.submitted_at); return d>=thisMonDate&&d<=todayStr; }).length;
+    const dailyConvWeek=wkBillable===0?null:(wkApps/wkBillable*100).toFixed(1)+'%';
+    const weeklyAvgConv=dailyConvWeek;
+    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length,this_week_calls:callsA,last_week_calls:callsB,avgAppsPerWeek,avgCallsPerWeek,dailyConvToday,dailyConvWeek,weeklyAvgConv};
   }).sort((a,b)=>b.this_week_ap-a.this_week_ap);
 }
 function renderWoW(data,containerId){
@@ -1933,7 +1968,7 @@ function renderWoW(data,containerId){
       </div>
     </div>
     <table class="wow-table">
-      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>AP Change</th><th>Last Wk Apps</th><th>This Wk Apps</th><th>Apps &#x394;</th><th>Calls This Wk</th><th>Calls Last Wk</th><th>Trend</th></tr></thead>
+      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>AP Change</th><th>Last Wk Apps</th><th>This Wk Apps</th><th>Apps &#x394;</th><th>Calls This Wk</th><th>Calls Last Wk</th><th>Avg Apps/Wk</th><th>Avg Calls/Wk</th><th>Daily Conv Rate</th><th>Weekly Avg Conv</th><th>Trend</th></tr></thead>
       <tbody>${data.map((a,i)=>{
         const rankColor=rankColors[i]||'var(--muted)';
         const fillCls=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
@@ -1951,6 +1986,10 @@ function renderWoW(data,containerId){
           <td><span style="font-weight:700;color:${appsDeltaColor};">${a.apps_delta>0?'+':''}${a.apps_delta}</span></td>
           <td style="font-weight:600;color:var(--white);">${a.this_week_calls||0}</td>
           <td style="color:var(--muted);">${a.last_week_calls||0}</td>
+          <td>${a.avgAppsPerWeek??'—'}</td>
+          <td>${a.avgCallsPerWeek??'—'}</td>
+          <td><div style="font-size:11px;color:var(--label);">Today: <span style="color:var(--body);">${a.dailyConvToday??'—'}</span></div><div style="font-size:11px;color:var(--label);">Week:&nbsp;&nbsp;<span style="color:var(--body);">${a.dailyConvWeek??'—'}</span></div></td>
+          <td>${a.weeklyAvgConv??'—'}</td>
           <td><div class="wow-bar-wrap">
             <div class="wow-bar-track"><div class="${fillCls}" style="width:${barPct}%;"></div></div>
           </div></td>
