@@ -2536,7 +2536,7 @@ async function submitDialerLog(){
     billable_calls:parseInt(document.getElementById('dl_billable').value)||0,
     logged_by:currentUser?.id,
   };
-  const {error}=await db.from('lb_dialer_activity').insert(payload);
+  const {error}=await db.from('lb_dialer_activity').upsert(payload,{onConflict:'agent_id,log_date'});
   if(error) return alert('Log failed: '+error.message);
   document.getElementById('dialerLogSuccess').style.display='block';
   ['dl_total','dl_incoming','dl_outgoing','dl_billable'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
