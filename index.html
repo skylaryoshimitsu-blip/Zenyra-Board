@@ -175,9 +175,9 @@ tbody td:not(:first-child){text-align:right;}
 .pb-section{margin-bottom:32px;}
 .pb-section-body{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
 .pb-table-wrap{flex:1;min-width:280px;}
-.pb-chart-wrap{flex:1;min-width:280px;}
+.pb-chart-wrap{flex:1;min-width:200px;max-width:340px;}
 .pb-charts-pair{display:flex;gap:16px;flex-wrap:wrap;}
-.pb-charts-pair .pb-chart-wrap{flex:1;min-width:240px;}
+.pb-charts-pair .pb-chart-wrap{flex:1;min-width:180px;max-width:300px;}
 .agent-mgmt-table{width:100%;border-collapse:collapse;font-size:13px;}
 .agent-mgmt-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
 .agent-mgmt-table td{padding:10px;border-bottom:1px solid rgba(38,51,72,0.4);color:var(--body);}
@@ -1658,8 +1658,8 @@ async function runProductBreakdown(){
   const fromISO=from.toISOString(); const toISO=to.toISOString();
   document.getElementById('pb_output').innerHTML='<div class="no-data">Loading…</div>';
   const [{data:ancSubs},{data:mapdSubs}]=await Promise.all([
-    db.from('lb_submissions').select('*').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
-    db.from('lb_mapd_submissions').select('*').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
+    db.from('lb_submissions').select('*,lb_agents(name)').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
+    db.from('lb_mapd_submissions').select('*,lb_agents(name)').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
   ]);
   renderProductBreakdown(ancSubs||[],mapdSubs||[]);
 }
@@ -1686,7 +1686,7 @@ function renderProductBreakdown(ancSubs,mapdSubs){
     const arr=ancByType[t]; const ap=sum(arr,'annual_premium');
     return [t,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
   });
-  html+=`<div class="pb-section"><div class="form-section-title">1. Ancillary — By Product Type</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Product Type','Apps','Total AP','Est. Comm'],ancTypeRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c1a" height="220"></canvas></div><div class="pb-chart-wrap"><canvas id="pb_c1b" height="220"></canvas></div></div></div>`;
+  html+=`<div class="pb-section"><div class="form-section-title">1. Ancillary — By Product Type</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Product Type','Apps','Total AP','Est. Comm'],ancTypeRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c1a" height="160"></canvas></div><div class="pb-chart-wrap"><canvas id="pb_c1b" height="160"></canvas></div></div></div>`;
 
   /* ── SECTION 2: Ancillary by Carrier ── */
   const ancByCarrier=groupBy(ancSubs,'carrier_name');
@@ -1695,34 +1695,34 @@ function renderProductBreakdown(ancSubs,mapdSubs){
     const arr=ancByCarrier[c]; const ap=sum(arr,'annual_premium');
     return [c,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
   });
-  html+=`<div class="pb-section"><div class="form-section-title">2. Ancillary — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps','Total AP','Est. Comm'],ancCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c2" height="220"></canvas></div></div></div>`;
+  html+=`<div class="pb-section"><div class="form-section-title">2. Ancillary — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps','Total AP','Est. Comm'],ancCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c2" height="160"></canvas></div></div></div>`;
 
   /* ── SECTION 3: Ancillary by Agent ── */
-  const ancByAgent=groupBy(ancSubs,'agent_name');
+  const ancByAgent=ancSubs.reduce((acc,r)=>{ const k=r.lb_agents?.name||'Unknown'; acc[k]=(acc[k]||[]); acc[k].push(r); return acc; },{});
   const ancAgents=Object.keys(ancByAgent).sort();
   const ancAgentRows=ancAgents.map(a=>{
     const arr=ancByAgent[a]; const ap=sum(arr,'annual_premium');
     return [a,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
   });
-  html+=`<div class="pb-section"><div class="form-section-title">3. Ancillary — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps','Total AP','Est. Comm'],ancAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c3" height="220"></canvas></div></div></div>`;
+  html+=`<div class="pb-section"><div class="form-section-title">3. Ancillary — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps','Total AP','Est. Comm'],ancAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c3" height="160"></canvas></div></div></div>`;
 
   /* ── SECTION 4: MAPD by Carrier ── */
   const mapdByCarrier=groupBy(mapdSubs,'carrier_name');
   const mapdCarriers=Object.keys(mapdByCarrier).sort();
   const mapdCarrierRows=mapdCarriers.map(c=>[c,mapdByCarrier[c].length]);
-  html+=`<div class="pb-section"><div class="form-section-title">4. MAPD — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps'],mapdCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c4" height="220"></canvas></div></div></div>`;
+  html+=`<div class="pb-section"><div class="form-section-title">4. MAPD — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps'],mapdCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c4" height="160"></canvas></div></div></div>`;
 
   /* ── SECTION 5: MAPD by Plan ── */
   const mapdByPlan=groupBy(mapdSubs,'plan_name');
   const mapdPlans=Object.keys(mapdByPlan).sort();
   const mapdPlanRows=mapdPlans.map(p=>[p,mapdByPlan[p].length]);
-  html+=`<div class="pb-section"><div class="form-section-title">5. MAPD — By Plan</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Plan','Apps'],mapdPlanRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c5" height="220"></canvas></div></div></div>`;
+  html+=`<div class="pb-section"><div class="form-section-title">5. MAPD — By Plan</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Plan','Apps'],mapdPlanRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c5" height="160"></canvas></div></div></div>`;
 
   /* ── SECTION 6: MAPD by Agent ── */
-  const mapdByAgent=groupBy(mapdSubs,'agent_first_name');
+  const mapdByAgent=mapdSubs.reduce((acc,r)=>{ const k=r.lb_agents?.name||'Unknown'; acc[k]=(acc[k]||[]); acc[k].push(r); return acc; },{});
   const mapdAgents=Object.keys(mapdByAgent).sort();
   const mapdAgentRows=mapdAgents.map(a=>[a,mapdByAgent[a].length]);
-  html+=`<div class="pb-section"><div class="form-section-title">6. MAPD — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps'],mapdAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c6" height="220"></canvas></div></div></div>`;
+  html+=`<div class="pb-section"><div class="form-section-title">6. MAPD — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps'],mapdAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c6" height="160"></canvas></div></div></div>`;
 
   if(!ancSubs.length&&!mapdSubs.length){ out.innerHTML='<div class="no-data">No submissions found for this date range.</div>'; return; }
   out.innerHTML=html;
