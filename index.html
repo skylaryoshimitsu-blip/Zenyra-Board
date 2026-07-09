@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -171,6 +172,12 @@ tbody td:not(:first-child){text-align:right;}
 .btn-edit-sm{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--label);cursor:pointer;margin-right:4px;transition:border-color 0.15s;}
 .btn-edit-sm:hover{border-color:var(--teal);color:var(--teal);}
 .no-data{text-align:center;padding:40px;color:var(--muted);}
+.pb-section{margin-bottom:32px;}
+.pb-section-body{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.pb-table-wrap{flex:1;min-width:280px;}
+.pb-chart-wrap{flex:1;min-width:280px;}
+.pb-charts-pair{display:flex;gap:16px;flex-wrap:wrap;}
+.pb-charts-pair .pb-chart-wrap{flex:1;min-width:240px;}
 .agent-mgmt-table{width:100%;border-collapse:collapse;font-size:13px;}
 .agent-mgmt-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
 .agent-mgmt-table td{padding:10px;border-bottom:1px solid rgba(38,51,72,0.4);color:var(--body);}
@@ -885,25 +892,52 @@ tbody td:not(:first-child){text-align:right;}
     <div id="admin-agents-content"></div>
   </div>
   <div id="admin-reports-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Performance Reports</div>
-    <div class="report-controls">
-      <div class="report-row">
-        <div class="report-field"><label>Agent(s)</label><select id="rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
-        <div class="report-field"><label>Date Range</label>
-          <select id="rpt_range" onchange="toggleCustomDates()">
-            <option value="today">Today</option><option value="yesterday">Previous Day</option>
-            <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
-            <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div class="report-field" id="rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="rpt_from"/></div>
-        <div class="report-field" id="rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="rpt_to"/></div>
-        <button class="btn-run-report" onclick="runReport()">Run Report</button>
-        <button class="btn-download" id="btn_download" onclick="downloadReport()" style="display:none;">&#x2B07; Download PDF</button>
-      </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button id="adminRptTab_perf" class="btn-run-report" onclick="switchAdminReportType('perf')">Performance</button>
+      <button id="adminRptTab_pb" class="btn-run-report" onclick="switchAdminReportType('pb')" style="background:none;border:1px solid var(--teal);color:var(--teal);">Product Breakdown</button>
     </div>
-    <div id="report-output"></div>
+    <!-- PERFORMANCE REPORT -->
+    <div id="admin-perf-report">
+      <div class="section-eyebrow" style="margin-bottom:16px;">Performance Reports</div>
+      <div class="report-controls">
+        <div class="report-row">
+          <div class="report-field"><label>Agent(s)</label><select id="rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+          <div class="report-field"><label>Date Range</label>
+            <select id="rpt_range" onchange="toggleCustomDates()">
+              <option value="today">Today</option><option value="yesterday">Previous Day</option>
+              <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+              <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="report-field" id="rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="rpt_from"/></div>
+          <div class="report-field" id="rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="rpt_to"/></div>
+          <button class="btn-run-report" onclick="runReport()">Run Report</button>
+          <button class="btn-download" id="btn_download" onclick="downloadReport()" style="display:none;">&#x2B07; Download PDF</button>
+        </div>
+      </div>
+      <div id="report-output"></div>
+    </div>
+    <!-- PRODUCT BREAKDOWN REPORT -->
+    <div id="admin-pb-report" style="display:none;">
+      <div class="section-eyebrow" style="margin-bottom:16px;">Product Breakdown</div>
+      <div class="report-controls">
+        <div class="report-row">
+          <div class="report-field"><label>Date Range</label>
+            <select id="pb_range" onchange="togglePBCustomDates()">
+              <option value="today">Today</option><option value="yesterday">Previous Day</option>
+              <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+              <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="report-field" id="pb_from_wrap" style="display:none;"><label>From</label><input type="date" id="pb_from"/></div>
+          <div class="report-field" id="pb_to_wrap" style="display:none;"><label>To</label><input type="date" id="pb_to"/></div>
+          <button class="btn-run-report" onclick="runProductBreakdown()">Run Report</button>
+        </div>
+      </div>
+      <div id="pb_output"></div>
+    </div>
   </div>
   <div class="footer">
     <span class="footer-left" id="ad_lastUpdated">—</span>
@@ -1587,6 +1621,126 @@ function switchAdminTab(tab){
   if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
   if(tab==='agents')  renderAgentManagement();
   if(tab==='reports') populateReportAgents();
+}
+
+function switchAdminReportType(type){
+  document.getElementById('admin-perf-report').style.display=type==='perf'?'block':'none';
+  document.getElementById('admin-pb-report').style.display=type==='pb'?'block':'none';
+  const perfBtn=document.getElementById('adminRptTab_perf'), pbBtn=document.getElementById('adminRptTab_pb');
+  perfBtn.style.background=type==='perf'?'var(--teal)':'none'; perfBtn.style.border=type==='perf'?'none':'1px solid var(--teal)'; perfBtn.style.color=type==='perf'?'var(--navy)':'var(--teal)';
+  pbBtn.style.background=type==='pb'?'var(--teal)':'none'; pbBtn.style.border=type==='pb'?'none':'1px solid var(--teal)'; pbBtn.style.color=type==='pb'?'var(--navy)':'var(--teal)';
+}
+
+function togglePBCustomDates(){
+  const v=document.getElementById('pb_range').value;
+  document.getElementById('pb_from_wrap').style.display=v==='custom'?'flex':'none';
+  document.getElementById('pb_to_wrap').style.display=v==='custom'?'flex':'none';
+}
+
+function makeChart(id,cfg){
+  const existing=Chart.getChart(id);
+  if(existing) existing.destroy();
+  const canvas=document.getElementById(id);
+  if(!canvas) return;
+  new Chart(canvas,cfg);
+}
+
+async function runProductBreakdown(){
+  const range=document.getElementById('pb_range').value;
+  let from,to;
+  if(range==='custom'){
+    from=new Date(document.getElementById('pb_from').value);
+    to=new Date(document.getElementById('pb_to').value+'T23:59:59');
+  } else {
+    const dr=getDateRange(range);
+    from=dr.from; to=dr.to;
+  }
+  const fromISO=from.toISOString(); const toISO=to.toISOString();
+  document.getElementById('pb_output').innerHTML='<div class="no-data">Loading…</div>';
+  const [{data:ancSubs},{data:mapdSubs}]=await Promise.all([
+    db.from('lb_submissions').select('*').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
+    db.from('lb_mapd_submissions').select('*').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
+  ]);
+  renderProductBreakdown(ancSubs||[],mapdSubs||[]);
+}
+
+function renderProductBreakdown(ancSubs,mapdSubs){
+  const out=document.getElementById('pb_output');
+
+  /* helpers */
+  const groupBy=(arr,key)=>arr.reduce((acc,r)=>{ const k=r[key]||'Unknown'; acc[k]=(acc[k]||[]); acc[k].push(r); return acc; },{});
+  const sum=(arr,key)=>arr.reduce((t,r)=>t+Number(r[key]||0),0);
+  const tbl=(headers,rows)=>`<table class="data-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const TEAL='#00C9B1',PURPLE='#A855F7',AMBER='#F59E0B',BLUE='#3B82F6',GREEN='#22C55E',RED='#EF4444';
+  const PALETTE=[TEAL,PURPLE,AMBER,BLUE,GREEN,RED,'#EC4899','#14B8A6','#F97316','#8B5CF6'];
+  const chartDefaults={plugins:{legend:{labels:{color:'#CBD5E1',font:{size:11}}}},scales:{x:{ticks:{color:'#94A3B8'},grid:{color:'#263348'}},y:{ticks:{color:'#94A3B8'},grid:{color:'#263348'},beginAtZero:true}}};
+  const barCfg=(labels,datasets,opts={})=>({type:'bar',data:{labels,datasets},options:{...chartDefaults,...opts,plugins:{...chartDefaults.plugins,...(opts.plugins||{})}}});
+  const pieCfg=(labels,data,colors)=>({type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#CBD5E1',font:{size:11}}}},cutout:'55%'}});
+
+  let html='';
+
+  /* ── SECTION 1: Ancillary by Product Type ── */
+  const ancByType=groupBy(ancSubs,'product_type');
+  const ancTypes=Object.keys(ancByType).sort();
+  const ancTypeRows=ancTypes.map(t=>{
+    const arr=ancByType[t]; const ap=sum(arr,'annual_premium');
+    return [t,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
+  });
+  html+=`<div class="pb-section"><div class="form-section-title">1. Ancillary — By Product Type</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Product Type','Apps','Total AP','Est. Comm'],ancTypeRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c1a" height="220"></canvas></div><div class="pb-chart-wrap"><canvas id="pb_c1b" height="220"></canvas></div></div></div>`;
+
+  /* ── SECTION 2: Ancillary by Carrier ── */
+  const ancByCarrier=groupBy(ancSubs,'carrier_name');
+  const ancCarriers=Object.keys(ancByCarrier).sort();
+  const ancCarrierRows=ancCarriers.map(c=>{
+    const arr=ancByCarrier[c]; const ap=sum(arr,'annual_premium');
+    return [c,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
+  });
+  html+=`<div class="pb-section"><div class="form-section-title">2. Ancillary — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps','Total AP','Est. Comm'],ancCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c2" height="220"></canvas></div></div></div>`;
+
+  /* ── SECTION 3: Ancillary by Agent ── */
+  const ancByAgent=groupBy(ancSubs,'agent_name');
+  const ancAgents=Object.keys(ancByAgent).sort();
+  const ancAgentRows=ancAgents.map(a=>{
+    const arr=ancByAgent[a]; const ap=sum(arr,'annual_premium');
+    return [a,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
+  });
+  html+=`<div class="pb-section"><div class="form-section-title">3. Ancillary — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps','Total AP','Est. Comm'],ancAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c3" height="220"></canvas></div></div></div>`;
+
+  /* ── SECTION 4: MAPD by Carrier ── */
+  const mapdByCarrier=groupBy(mapdSubs,'carrier_name');
+  const mapdCarriers=Object.keys(mapdByCarrier).sort();
+  const mapdCarrierRows=mapdCarriers.map(c=>[c,mapdByCarrier[c].length]);
+  html+=`<div class="pb-section"><div class="form-section-title">4. MAPD — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps'],mapdCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c4" height="220"></canvas></div></div></div>`;
+
+  /* ── SECTION 5: MAPD by Plan ── */
+  const mapdByPlan=groupBy(mapdSubs,'plan_name');
+  const mapdPlans=Object.keys(mapdByPlan).sort();
+  const mapdPlanRows=mapdPlans.map(p=>[p,mapdByPlan[p].length]);
+  html+=`<div class="pb-section"><div class="form-section-title">5. MAPD — By Plan</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Plan','Apps'],mapdPlanRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c5" height="220"></canvas></div></div></div>`;
+
+  /* ── SECTION 6: MAPD by Agent ── */
+  const mapdByAgent=groupBy(mapdSubs,'agent_first_name');
+  const mapdAgents=Object.keys(mapdByAgent).sort();
+  const mapdAgentRows=mapdAgents.map(a=>[a,mapdByAgent[a].length]);
+  html+=`<div class="pb-section"><div class="form-section-title">6. MAPD — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps'],mapdAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c6" height="220"></canvas></div></div></div>`;
+
+  if(!ancSubs.length&&!mapdSubs.length){ out.innerHTML='<div class="no-data">No submissions found for this date range.</div>'; return; }
+  out.innerHTML=html;
+
+  /* render charts */
+  /* S1 — apps by type (bar) + AP by type (doughnut) */
+  makeChart('pb_c1a',barCfg(ancTypes,[{label:'Apps',data:ancTypes.map(t=>ancByType[t].length),backgroundColor:TEAL}]));
+  makeChart('pb_c1b',pieCfg(ancTypes,ancTypes.map(t=>sum(ancByType[t],'annual_premium')),PALETTE));
+  /* S2 — apps by carrier (bar) */
+  makeChart('pb_c2',barCfg(ancCarriers,[{label:'Apps',data:ancCarriers.map(c=>ancByCarrier[c].length),backgroundColor:PURPLE}]));
+  /* S3 — AP by agent (bar) */
+  makeChart('pb_c3',barCfg(ancAgents,[{label:'Total AP',data:ancAgents.map(a=>sum(ancByAgent[a],'annual_premium')),backgroundColor:AMBER}]));
+  /* S4 — MAPD apps by carrier (doughnut) */
+  makeChart('pb_c4',pieCfg(mapdCarriers,mapdCarriers.map(c=>mapdByCarrier[c].length),PALETTE));
+  /* S5 — MAPD apps by plan (bar) */
+  makeChart('pb_c5',barCfg(mapdPlans,[{label:'Apps',data:mapdPlans.map(p=>mapdByPlan[p].length),backgroundColor:BLUE}]));
+  /* S6 — MAPD apps by agent (bar) */
+  makeChart('pb_c6',barCfg(mapdAgents,[{label:'Apps',data:mapdAgents.map(a=>mapdByAgent[a].length),backgroundColor:GREEN}]));
 }
 
 function toggleFabChooser(){ document.getElementById('fabChooser').classList.toggle('open'); }
