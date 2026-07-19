@@ -1876,7 +1876,7 @@ async function submitSale(){
   }
   const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
   if(!mp||mp<=0){alert('Monthly premium must be a positive number.');document.getElementById('f_monthlyPremium').focus();return;}
-  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null}:{})});
+  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null,carrier_status:'awaiting_window'}:{})});
   if(error) return alert('Submission failed: '+error.message);
   document.getElementById('submitSuccess').style.display='block';
   document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value='');
@@ -2677,6 +2677,15 @@ function switchDialerTab(tab){
   if(tab==='subs')        loadPolicySubs();
   if(tab==='inbox')       loadInbox('dialer');
 }
+const CARRIER_STATUSES=[['awaiting_window','Awaiting Window'],['ready_to_submit','Ready to Submit'],['submitted_to_carrier','Submitted to Carrier'],['processed','Processed']];
+function carrierStatusLabel(v){ return(CARRIER_STATUSES.find(([k])=>k===v)||[v,v||'—'])[1]; }
+function isInHeartlandWindow(r){
+  if(r.carrier_name!=='Heartland'||!r.effective_date)return false;
+  if(!['awaiting_window','ready_to_submit'].includes(r.carrier_status))return false;
+  const days=(new Date(r.effective_date)-new Date())/(1000*60*60*24);
+  return days>=0&&days<=10;
+}
+
 async function loadPolicySubs(){
   const cont=document.getElementById('policySubs_content');
   if(!cont||!currentUser) return;
@@ -2695,12 +2704,26 @@ async function loadPolicySubs(){
     if(!res.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||res.statusText}</div>`; return; }
     const rows=json.data||[];
     if(!rows.length){ cont.innerHTML='<div class="no-data">No submissions found for this range.</div>'; return; }
-    const hasBanking=rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
+    const canEdit=json.canSeeBanking;
+    const hasBanking=canEdit&&rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
     const bankingCols=hasBanking?'<th>Banking Institution</th><th>Routing #</th><th>Account #</th><th>Mother\'s Maiden</th>':'';
-    cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Premium</th><th>AP</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';return`<tr><td>${r.sale_date||'—'}</td><td>${r.lb_agents?.name||'—'}</td><td>${r.client_name||'—'}</td><td>${r.carrier||'—'}</td><td>${r.plan_name||'—'}</td><td>${r.state||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td>${bankCells}</tr>`}).join('')}</tbody></table></div>`;
+    const statusOpts=CARRIER_STATUSES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+    cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Effective</th><th>Premium</th><th>AP</th><th>Carrier Status</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{
+      const dateStr=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'—';
+      const client=[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+      const windowBadge=isInHeartlandWindow(r)?'<span style="margin-left:6px;background:rgba(251,191,36,0.2);color:#fbbf24;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:middle;">⚠ IN WINDOW</span>':'';
+      const statusCell=canEdit&&r.carrier_name==='Heartland'
+        ?`<select onchange="updateCarrierStatus('${r.id}',this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--white);font-size:11px;font-family:'Inter',sans-serif;outline:none;">${CARRIER_STATUSES.map(([k,l])=>`<option value="${k}"${r.carrier_status===k?' selected':''}>${l}</option>`).join('')}</select>`
+        :(r.carrier_status?carrierStatusLabel(r.carrier_status):'—');
+      const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';
+      return`<tr><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;">${statusCell}</td>${bankCells}</tr>`;
+    }).join('')}</tbody></table></div>`;
   }catch(err){
     cont.innerHTML=`<div class="no-data">Request failed: ${err.message}</div>`;
   }
+}
+async function updateCarrierStatus(id,val){
+  await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
 }
 function switchDialerBoardView(view){
   currentDialerBoardView=view;
