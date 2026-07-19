@@ -33,21 +33,25 @@ export default async function handler(req, res) {
 
   const canSeeBanking = user.role === 'admin';
 
-  // Fetch submissions in the requested date range
+  // Fetch submissions in the requested date range (by submitted_at)
   const selectFields = [
-    'id', 'sale_date', 'agent_id', 'client_name', 'carrier', 'plan_name', 'state',
-    'monthly_premium', 'annual_premium', 'created_at',
+    'id', 'submitted_at', 'agent_id',
+    'customer_first_name', 'customer_last_name',
+    'carrier_name', 'plan_name', 'customer_state',
+    'monthly_premium', 'annual_premium',
+    'effective_date', 'carrier_status', 'created_at',
     'lb_agents(name)',
     ...(canSeeBanking ? BANKING_FIELDS : [])
   ].join(',');
 
+  // from/to are date strings (YYYY-MM-DD); expand to full day boundaries
   const { data, error } = await supabase
     .from('lb_submissions')
     .select(selectFields)
-    .gte('sale_date', from)
-    .lte('sale_date', to)
-    .order('sale_date', { ascending: false })
-    .order('created_at', { ascending: false });
+    .eq('status', 'live')
+    .gte('submitted_at', from + 'T00:00:00')
+    .lte('submitted_at', to   + 'T23:59:59')
+    .order('submitted_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
 
