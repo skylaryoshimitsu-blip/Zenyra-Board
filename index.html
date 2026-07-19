@@ -748,6 +748,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="admin-tab" id="adminTab_agents" onclick="switchAdminTab('agents')">&#x1f465; Agents</div>
     <div class="admin-tab" id="adminTab_reports" onclick="switchAdminTab('reports')">📥 Reports</div>
     <div class="admin-tab" id="adminTab_inbox" onclick="switchAdminTab('inbox')">🔔 Inbox</div>
+    <div class="admin-tab" id="adminTab_eod" onclick="switchAdminTab('eod')">📋 EOD Summary</div>
   </div>
   <div id="admin-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
     <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
@@ -980,6 +981,18 @@ tbody td:not(:first-child){text-align:right;}
   <div id="admin-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
     <div id="admin-inbox-content"><div class="no-data">Loading…</div></div>
+  </div>
+  <div id="admin-eod-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">End of Day Summary</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Date</label>
+        <input type="date" id="eod_date" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+      </div>
+      <button onclick="renderEODSummary()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Generate</button>
+      <button id="eod_btn_download" onclick="downloadEODSummary()" style="display:none;background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download PDF</button>
+    </div>
+    <div id="eod-output"></div>
   </div>
   <div class="footer">
     <span class="footer-left" id="ad_lastUpdated">—</span>
@@ -1690,7 +1703,7 @@ async function runReport(p){ p=p||''; const agentFilter=document.getElementById(
 function downloadReport(p){ p=p||''; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=reportCallMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
-  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block',inbox:'flex'};
+  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block',inbox:'flex',eod:'flex'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='board')   renderAdminBoard();
   if(tab==='wow')     renderAdminWoW();
@@ -1701,6 +1714,7 @@ function switchAdminTab(tab){
   if(tab==='agents')  renderAgentManagement();
   if(tab==='reports') populateReportAgents();
   if(tab==='inbox')   loadInbox('admin');
+  if(tab==='eod'){    const d=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}); document.getElementById('eod_date').value=d; renderEODSummary(d); }
 }
 
 function switchAdminReportType(type){
@@ -2665,6 +2679,80 @@ async function runIntelAnalysis(portal){
 }
 
 // END OF INTELLIGENCE LAYER
+
+// ── END OF DAY SUMMARY ───────────────────────────────────────────────────
+let eodData=null;
+async function renderEODSummary(date){
+  const dateEl=document.getElementById('eod_date');
+  if(!dateEl)return;
+  if(!date)date=dateEl.value||new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  dateEl.value=date;
+  const cont=document.getElementById('eod-output');
+  const dlBtn=document.getElementById('eod_btn_download');
+  if(!cont)return;
+  cont.innerHTML='<div class="no-data">Loading…</div>';
+  if(dlBtn)dlBtn.style.display='none';
+  try{
+    const [subsRes,heartlandRes,notifRes]=await Promise.all([
+      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').gte('submitted_at',date+'T00:00:00').lte('submitted_at',date+'T23:59:59').order('submitted_at',{ascending:false}),
+      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_name','Heartland').or('carrier_status.is.null,carrier_status.eq.awaiting_window,carrier_status.eq.ready_to_submit'),
+      db.from('lb_notifications').select('id,title,message,created_at,lb_users!recipient_id(display_name)').eq('escalated',true).gte('created_at',date+'T00:00:00').lte('created_at',date+'T23:59:59')
+    ]);
+    const todaySubs=subsRes.data||[];
+    const allHeartland=heartlandRes.data||[];
+    const escalatedNotifs=notifRes.data||[];
+    const processedToday=todaySubs.filter(r=>r.carrier_status==='processed');
+    const inWindow=allHeartland.filter(r=>isInHeartlandWindow(r));
+    const awaitingWindow=allHeartland.filter(r=>r.carrier_status==='awaiting_window'||r.carrier_status==null);
+    const byAgent={};
+    todaySubs.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={apps:0,mp:0,ap:0}; byAgent[n].apps++; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); });
+    eodData={date,todaySubs,processedToday,inWindow,awaitingWindow,escalatedNotifs,byAgent};
+    const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
+    const totalAP=todaySubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+    const subHdr=`<thead><tr><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>Effective</th><th>Monthly $</th><th>Annual AP</th><th>Status</th></tr></thead>`;
+    const subRow=r=>`<tr><td>${r.lb_agents?.name||'—'}</td><td>${[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'}</td><td>${r.carrier_name||'—'}</td><td>${r.plan_name||'—'}</td><td>${r.effective_date||'—'}</td><td style="color:var(--teal);">${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:14px;">${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td>${carrierStatusLabel(r.carrier_status)}</td></tr>`;
+    const sec=(e,t)=>`<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin:20px 0 10px;">${e} ${t}</div>`;
+    const noData=msg=>`<div class="no-data" style="margin-bottom:12px;">${msg}</div>`;
+    let html=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — END OF DAY SUMMARY</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${date} · Generated ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'})} ET</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--white);">${todaySubs.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Policies Today</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual AP</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--amber);">${inWindow.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">In Heartland Window</div></div></div></div>`;
+    html+=sec('📊','Submissions by Agent — '+date);
+    html+=Object.keys(byAgent).length?`<table class="submissions-table"><thead><tr><th>Agent</th><th>Apps</th><th>Total Monthly</th><th>Total AP</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([n,v])=>`<tr><td style="font-weight:600;color:var(--white);">${n}</td><td>${v.apps}</td><td style="color:var(--teal);">${fmt$2(v.mp)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:14px;">${fmt$(v.ap)}</td></tr>`).join('')}</tbody></table>`:noData('No submissions on this date.');
+    if(todaySubs.length){ html+=sec('📋','All Submissions — '+date); html+=`<table class="submissions-table">${subHdr}<tbody>${todaySubs.map(subRow).join('')}</tbody></table>`; }
+    html+=sec('✅','Processed — '+date);
+    html+=processedToday.length?`<table class="submissions-table">${subHdr}<tbody>${processedToday.map(subRow).join('')}</tbody></table>`:noData('None marked Processed on this date.');
+    html+=sec('⚠','Urgent: Heartland In 10-Day Window (Not Yet Submitted)');
+    html+=inWindow.length?`<table class="submissions-table">${subHdr}<tbody>${inWindow.map(subRow).join('')}</tbody></table>`:noData('No Heartland policies currently in the 10-day window.');
+    html+=sec('🕐','Awaiting Window — Heartland (All)');
+    html+=awaitingWindow.length?`<table class="submissions-table">${subHdr}<tbody>${awaitingWindow.map(subRow).join('')}</tbody></table>`:noData('No Heartland policies awaiting window.');
+    html+=sec('🚨','Escalated Notifications — '+date);
+    html+=escalatedNotifs.length?`<table class="submissions-table"><thead><tr><th>Recipient</th><th>Title</th><th>Message</th><th>Time</th></tr></thead><tbody>${escalatedNotifs.map(n=>`<tr><td>${n.lb_users?.display_name||'—'}</td><td>${n.title}</td><td>${n.message}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td></tr>`).join('')}</tbody></table>`:noData('No escalated notifications on this date.');
+    cont.innerHTML=html;
+    if(dlBtn)dlBtn.style.display='inline-block';
+  }catch(err){ cont.innerHTML=`<div class="no-data">Failed to generate summary: ${err.message}</div>`; }
+}
+function downloadEODSummary(){
+  if(!eodData)return;
+  const{date,todaySubs,processedToday,inWindow,awaitingWindow,escalatedNotifs,byAgent}=eodData;
+  const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
+  const totalAP=todaySubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const sr=r=>`<tr><td>${r.lb_agents?.name||'—'}</td><td>${[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'}</td><td>${r.carrier_name||'—'}</td><td>${r.plan_name||'—'}</td><td>${r.effective_date||'—'}</td><td>$${Number(r.monthly_premium||0).toFixed(2)}</td><td>$${Number(r.annual_premium||0).toFixed(2)}</td><td>${carrierStatusLabel(r.carrier_status)}</td></tr>`;
+  const sth=`<tr><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>Effective</th><th>Monthly $</th><th>Annual AP</th><th>Status</th></tr>`;
+  const sec=(e,t)=>`<h3 style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin:20px 0 8px;">${e} ${t}</h3>`;
+  const nd=msg=>`<p style="color:#94a3b8;font-size:12px;">${msg}</p>`;
+  const tbl=(hdr,rows)=>`<table>${hdr}${rows.map(sr).join('')}</table>`;
+  let h=`<!DOCTYPE html><html><head><title>Zenyra EOD Summary — ${date}</title><style>body{font-family:sans-serif;padding:24px;color:#111;font-size:13px;}h1{color:#00C9B1;font-size:20px;margin-bottom:2px;}h3{color:#64748b;}table{width:100%;border-collapse:collapse;margin-bottom:16px;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:10px;text-transform:uppercase;color:#666;}td{padding:6px 8px;border-bottom:1px solid #f0f4f8;}.teal{color:#00C9B1;}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}.kpi{background:#f8fafc;border-radius:6px;padding:12px;}.kpi-val{font-size:22px;font-weight:700;color:#00C9B1;}.kpi-lbl{font-size:10px;text-transform:uppercase;color:#94a3b8;margin-top:2px;}.footer{margin-top:24px;color:#aaa;font-size:11px;text-align:center;}@media print{body{padding:12px;}}</style></head><body>`;
+  h+=`<h1>ZENYRA — END OF DAY SUMMARY</h1><p style="color:#64748b;font-size:12px;margin-bottom:16px;">${date} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p>`;
+  h+=`<div class="grid"><div class="kpi"><div class="kpi-val">${todaySubs.length}</div><div class="kpi-lbl">Policies Today</div></div><div class="kpi"><div class="kpi-val">$${totalMP.toFixed(2)}</div><div class="kpi-lbl">Total Monthly Premium</div></div><div class="kpi"><div class="kpi-val">$${totalAP.toFixed(2)}</div><div class="kpi-lbl">Total Annual AP</div></div><div class="kpi"><div class="kpi-val" style="color:#f59e0b;">${inWindow.length}</div><div class="kpi-lbl">In Heartland Window</div></div></div>`;
+  h+=sec('📊','Submissions by Agent — '+date);
+  h+=Object.keys(byAgent).length?`<table><tr><th>Agent</th><th>Apps</th><th>Total Monthly</th><th>Total AP</th></tr>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([n,v])=>`<tr><td><b>${n}</b></td><td>${v.apps}</td><td>$${v.mp.toFixed(2)}</td><td>$${v.ap.toFixed(2)}</td></tr>`).join('')}</table>`:nd('No submissions on this date.');
+  if(todaySubs.length){h+=sec('📋','All Submissions — '+date);h+=tbl(`<tr>${sth}</tr>`,todaySubs);}
+  h+=sec('✅','Processed — '+date);h+=processedToday.length?tbl(`<tr>${sth}</tr>`,processedToday):nd('None marked Processed on this date.');
+  h+=sec('⚠','Urgent: Heartland In 10-Day Window');h+=inWindow.length?tbl(`<tr>${sth}</tr>`,inWindow):nd('No Heartland policies currently in the 10-day window.');
+  h+=sec('🕐','Awaiting Window — Heartland (All)');h+=awaitingWindow.length?tbl(`<tr>${sth}</tr>`,awaitingWindow):nd('No Heartland policies awaiting window.');
+  h+=sec('🚨','Escalated Notifications — '+date);
+  h+=escalatedNotifs.length?`<table><tr><th>Recipient</th><th>Title</th><th>Message</th><th>Time</th></tr>${escalatedNotifs.map(n=>`<tr><td>${n.lb_users?.display_name||'—'}</td><td>${n.title}</td><td>${n.message}</td><td>${notifTimeAgo(n.created_at)}</td></tr>`).join('')}</table>`:nd('No escalated notifications on this date.');
+  h+=`<div class="footer">Powered by Zenyra &middot; Confidential</div></body></html>`;
+  const win=window.open('','_blank'); win.document.write(h); win.document.close(); setTimeout(()=>win.print(),500);
+}
 
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
 function switchDialerTab(tab){
