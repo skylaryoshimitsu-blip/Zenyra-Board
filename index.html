@@ -970,6 +970,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="admin-tab" id="dialerTab_leaderboard" onclick="switchDialerTab('leaderboard')">🏆 Leaderboard</div>
     <div class="admin-tab" id="dialerTab_wow" onclick="switchDialerTab('wow')">&#x1F4C8; Week over Week</div>
     <div class="admin-tab" id="dialerTab_reports" onclick="switchDialerTab('reports')">📥 Reports</div>
+    <div class="admin-tab" id="dialerTab_subs" onclick="switchDialerTab('subs')">📋 Policy Submissions</div>
   </div>
   <div id="dialer-log-panel" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Log Call Data</div>
@@ -1091,6 +1092,33 @@ tbody td:not(:first-child){text-align:right;}
       </div>
       <div id="dialer-report-output"></div>
     </div>
+  </div>
+  <div id="dialer-subs-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Policy Submissions</div>
+    <div id="policySubs_controls" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Date Range</label>
+        <select id="policySubs_range" onchange="document.getElementById('policySubs_customWrap').style.display=this.value==='custom'?'flex':'none'" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;">
+          <option value="today">Today</option>
+          <option value="7" selected>Last 7 Days</option>
+          <option value="mtd">Month to Date</option>
+          <option value="30">Last 30 Days</option>
+          <option value="custom">Custom Range</option>
+        </select>
+      </div>
+      <div id="policySubs_customWrap" style="display:none;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">From</label>
+          <input type="date" id="policySubs_from" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">To</label>
+          <input type="date" id="policySubs_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
+        </div>
+      </div>
+      <button onclick="loadPolicySubs()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;">Load</button>
+    </div>
+    <div id="policySubs_content"><div class="no-data">Select a date range and click Load.</div></div>
   </div>
   <div class="footer">
     <span class="footer-left" id="dialer_lastUpdated">—</span>
@@ -2509,12 +2537,38 @@ async function runIntelAnalysis(portal){
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
 function switchDialerTab(tab){
   currentDialerTab=tab;
-  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block'};
+  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block',subs:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='log')         { populateDialerAgents(); loadDialerHistory(); }
   if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
   if(tab==='wow')         renderDialerWoW();
   if(tab==='reports')     { populateDialerReportAgents(); populateReportAgents('dl_perf_'); }
+  if(tab==='subs')        loadPolicySubs();
+}
+async function loadPolicySubs(){
+  const cont=document.getElementById('policySubs_content');
+  if(!cont||!currentUser) return;
+  cont.innerHTML='<div class="no-data">Loading…</div>';
+  const range=document.getElementById('policySubs_range').value;
+  let from,to;
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  if(range==='today'){ from=today; to=today; }
+  else if(range==='7'){ const d=new Date(Date.now()-6*864e5); from=d.toLocaleDateString('en-CA',{timeZone:'America/New_York'}); to=today; }
+  else if(range==='mtd'){ from=today.slice(0,7)+'-01'; to=today; }
+  else if(range==='30'){ const d=new Date(Date.now()-29*864e5); from=d.toLocaleDateString('en-CA',{timeZone:'America/New_York'}); to=today; }
+  else { from=document.getElementById('policySubs_from').value; to=document.getElementById('policySubs_to').value; if(!from||!to){ cont.innerHTML='<div class="no-data">Please select a From and To date.</div>'; return; } }
+  try{
+    const res=await fetch('/api/policy-submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,from,to})});
+    const json=await res.json();
+    if(!res.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||res.statusText}</div>`; return; }
+    const rows=json.data||[];
+    if(!rows.length){ cont.innerHTML='<div class="no-data">No submissions found for this range.</div>'; return; }
+    const hasBanking=rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
+    const bankingCols=hasBanking?'<th>Banking Institution</th><th>Routing #</th><th>Account #</th><th>Mother\'s Maiden</th>':'';
+    cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Premium</th><th>AP</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';return`<tr><td>${r.sale_date||'—'}</td><td>${r.lb_agents?.name||'—'}</td><td>${r.client_name||'—'}</td><td>${r.carrier||'—'}</td><td>${r.plan_name||'—'}</td><td>${r.state||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td>${bankCells}</tr>`}).join('')}</tbody></table></div>`;
+  }catch(err){
+    cont.innerHTML=`<div class="no-data">Request failed: ${err.message}</div>`;
+  }
 }
 function switchDialerBoardView(view){
   currentDialerBoardView=view;
