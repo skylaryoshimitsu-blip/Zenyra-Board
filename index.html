@@ -57,6 +57,27 @@ html,body{height:100%;background:var(--navy);color:var(--white);font-family:'Int
 .user-badge span{color:var(--teal);font-weight:600;}
 .btn-logout{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;transition:border-color 0.15s;}
 .btn-logout:hover{border-color:var(--red);color:var(--red);}
+.notif-bell-wrap{position:relative;display:flex;align-items:center;}
+.notif-bell{background:none;border:none;cursor:pointer;font-size:16px;padding:4px 6px;line-height:1;position:relative;color:var(--muted);transition:color 0.15s;}
+.notif-bell:hover{color:var(--white);}
+.notif-badge{position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;pointer-events:none;}
+.notif-dropdown{position:absolute;top:calc(100% + 6px);right:0;width:300px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999;display:none;flex-direction:column;overflow:hidden;}
+.notif-dropdown.open{display:flex;}
+.notif-dropdown-header{padding:10px 14px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);border-bottom:1px solid var(--border);}
+.notif-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.notif-item:last-child{border-bottom:none;}
+.notif-item:hover{background:var(--surface);}
+.notif-item.unread{border-left:3px solid var(--teal);}
+.notif-item-title{font-size:12px;font-weight:600;color:var(--white);margin-bottom:2px;}
+.notif-item-msg{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.notif-item-time{font-size:10px;color:var(--label);margin-top:3px;}
+.notif-empty{padding:16px 14px;font-size:12px;color:var(--muted);text-align:center;}
+.inbox-table{width:100%;border-collapse:collapse;font-size:12px;}
+.inbox-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--label);border-bottom:1px solid var(--border);}
+.inbox-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--body);vertical-align:top;}
+.inbox-table tr.unread td{color:var(--white);}
+.inbox-table tr.unread td:first-child{border-left:3px solid var(--teal);}
+.btn-confirm{background:var(--teal);color:var(--navy);border:none;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;}
 .view-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
 .view-tab{padding:11px 20px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
 .view-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
@@ -397,6 +418,7 @@ tbody td:not(:first-child){text-align:right;}
       <span class="live-dot">Live</span>
       <span class="clock" id="agentClock"></span>
       <span class="user-badge">Signed in as <span id="agentUserName">—</span></span>
+      <div class="notif-bell-wrap"><button class="notif-bell" id="agentBell" onclick="toggleNotifDropdown('agent')">🔔<span class="notif-badge" id="agentBadge" style="display:none"></span></button><div class="notif-dropdown" id="agentDropdown"><div class="notif-dropdown-header">Notifications</div><div id="agentDropdownList"></div></div></div>
       <button class="btn-logout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -407,6 +429,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="view-tab" id="agentTab_wow" onclick="switchAgentView('wow')">&#x1F4C8; Week over Week</div>
     <div class="view-tab" id="agentTab_intel" onclick="switchAgentView('intel')">&#x1F9E0; Intelligence</div>
     <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
+    <div class="view-tab" id="agentTab_inbox" onclick="switchAgentView('inbox')">🔔 Inbox</div>
   </div>
   <div id="agent-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
     <div class="pulse-strip" id="a_pulse"></div>
@@ -697,6 +720,10 @@ tbody td:not(:first-child){text-align:right;}
       </div>
     </div>
   </div>
+  <div id="agent-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
+    <div id="agent-inbox-content"><div class="no-data">Loading…</div></div>
+  </div>
 </div>
 
 <!-- ADMIN DASHBOARD -->
@@ -707,6 +734,7 @@ tbody td:not(:first-child){text-align:right;}
       <span class="live-dot">Live</span>
       <span class="clock" id="adminClock"></span>
       <span class="user-badge">Admin: <span id="adminUserName">—</span></span>
+      <div class="notif-bell-wrap"><button class="notif-bell" id="adminBell" onclick="toggleNotifDropdown('admin')">🔔<span class="notif-badge" id="adminBadge" style="display:none"></span></button><div class="notif-dropdown" id="adminDropdown"><div class="notif-dropdown-header">Notifications</div><div id="adminDropdownList"></div></div></div>
       <button class="btn-logout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -719,6 +747,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="admin-tab" id="adminTab_scorer" onclick="switchAdminTab('scorer')">🎙 Call Scorer</div>
     <div class="admin-tab" id="adminTab_agents" onclick="switchAdminTab('agents')">&#x1f465; Agents</div>
     <div class="admin-tab" id="adminTab_reports" onclick="switchAdminTab('reports')">📥 Reports</div>
+    <div class="admin-tab" id="adminTab_inbox" onclick="switchAdminTab('inbox')">🔔 Inbox</div>
   </div>
   <div id="admin-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
     <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
@@ -948,6 +977,10 @@ tbody td:not(:first-child){text-align:right;}
       <div id="pb_output"></div>
     </div>
   </div>
+  <div id="admin-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
+    <div id="admin-inbox-content"><div class="no-data">Loading…</div></div>
+  </div>
   <div class="footer">
     <span class="footer-left" id="ad_lastUpdated">—</span>
     <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
@@ -962,6 +995,7 @@ tbody td:not(:first-child){text-align:right;}
       <span class="live-dot">Live</span>
       <span class="clock" id="dialerClock"></span>
       <span class="user-badge">Signed in as <span id="dialerUserName">—</span></span>
+      <div class="notif-bell-wrap"><button class="notif-bell" id="dialerBell" onclick="toggleNotifDropdown('dialer')">🔔<span class="notif-badge" id="dialerBadge" style="display:none"></span></button><div class="notif-dropdown" id="dialerDropdown"><div class="notif-dropdown-header">Notifications</div><div id="dialerDropdownList"></div></div></div>
       <button class="btn-logout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -971,6 +1005,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="admin-tab" id="dialerTab_wow" onclick="switchDialerTab('wow')">&#x1F4C8; Week over Week</div>
     <div class="admin-tab" id="dialerTab_reports" onclick="switchDialerTab('reports')">📥 Reports</div>
     <div class="admin-tab" id="dialerTab_subs" onclick="switchDialerTab('subs')">📋 Policy Submissions</div>
+    <div class="admin-tab" id="dialerTab_inbox" onclick="switchDialerTab('inbox')">🔔 Inbox</div>
   </div>
   <div id="dialer-log-panel" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Log Call Data</div>
@@ -1119,6 +1154,10 @@ tbody td:not(:first-child){text-align:right;}
       <button onclick="loadPolicySubs()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;">Load</button>
     </div>
     <div id="policySubs_content"><div class="no-data">Select a date range and click Load.</div></div>
+  </div>
+  <div id="dialer-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
+    <div id="dialer-inbox-content"><div class="no-data">Loading…</div></div>
   </div>
   <div class="footer">
     <span class="footer-left" id="dialer_lastUpdated">—</span>
@@ -1351,6 +1390,7 @@ function enterDashboard(role){
   }
   startClocks();
   startRealtime();
+  fetchUnreadCount();
 }
 function doLogout(){ clearSession(); showScreen('landing'); }
 
@@ -1534,21 +1574,22 @@ function buildSidebar(stats,sidebarId,updatedId){
   if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-const agentViews=['board','mapd','combined','wow','intel','mysubs'];
+const agentViews=['board','mapd','combined','wow','intel','mysubs','inbox'];
 function switchAgentView(view){
   currentAgentView=view;
   agentViews.forEach(v=>{
-    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':v==='wow'?'wow':v==='intel'?'intel':'mysubs')+'-panel');
-    if(panel) panel.style.display=v===view?(v==='mysubs'||v==='combined'?'flex':'flex'):'none';
+    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':v==='wow'?'wow':v==='intel'?'intel':v==='mysubs'?'mysubs':'inbox')+'-panel');
+    if(panel) panel.style.display=v===view?'flex':'none';
     const tab=document.getElementById('agentTab_'+v);
     if(tab) tab.classList.toggle('active',v===view);
   });
   if(view==='board')    renderAgentBoard();
   if(view==='mapd')     renderAgentMAPD();
   if(view==='combined') renderAgentCombined();
-  if(view==='wow')     renderAgentWoW();
+  if(view==='wow')      renderAgentWoW();
   if(view==='mysubs')   loadMySubmissions();
   if(view==='intel')    { populateIntelAgentSelects(); switchIntelView('agent'); }
+  if(view==='inbox')    loadInbox('agent');
 }
 
 async function renderAgentBoard(){
@@ -1648,7 +1689,7 @@ async function runReport(p){ p=p||''; const agentFilter=document.getElementById(
 function downloadReport(p){ p=p||''; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=reportCallMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
-  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block'};
+  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block',inbox:'flex'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='board')   renderAdminBoard();
   if(tab==='wow')     renderAdminWoW();
@@ -1658,6 +1699,7 @@ function switchAdminTab(tab){
   if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
   if(tab==='agents')  renderAgentManagement();
   if(tab==='reports') populateReportAgents();
+  if(tab==='inbox')   loadInbox('admin');
 }
 
 function switchAdminReportType(type){
@@ -2040,7 +2082,96 @@ function startRealtime(){
   db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); else if(currentUser?.role==='dialer'&&currentDialerTab==='leaderboard'&&currentDialerBoardView==='mapd')renderDialerMAPD(); }).subscribe();
 }
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser)renderAgentBoard(); },30000); }
+// ── NOTIFICATIONS ──────────────────────────────────────────────────────────
+function notifTimeAgo(ts){ const diff=Date.now()-new Date(ts).getTime(); const m=Math.floor(diff/60000); if(m<1)return'just now'; if(m<60)return m+'m ago'; const h=Math.floor(m/60); if(h<24)return h+'h ago'; return Math.floor(h/24)+'d ago'; }
+
+async function fetchUnreadCount(){
+  if(!currentUser)return;
+  const {count}=await db.from('lb_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',currentUser.id).eq('status','unread');
+  const n=count||0;
+  ['agent','admin','dialer'].forEach(p=>{ const badge=document.getElementById(p+'Badge'); if(!badge)return; badge.style.display=n>0?'flex':'none'; badge.textContent=n>9?'9+':n; });
+}
+
+async function toggleNotifDropdown(portal){
+  const dropdown=document.getElementById(portal+'Dropdown');
+  const listEl=document.getElementById(portal+'DropdownList');
+  if(!dropdown||!listEl)return;
+  const isOpen=dropdown.classList.contains('open');
+  // Close all dropdowns first
+  ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  if(isOpen)return;
+  dropdown.classList.add('open');
+  listEl.innerHTML='<div class="notif-empty">Loading…</div>';
+  const {data}=await db.from('lb_notifications').select('*').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(5);
+  if(!data?.length){ listEl.innerHTML='<div class="notif-empty">No notifications yet.</div>'; return; }
+  listEl.innerHTML=data.map(n=>`<div class="notif-item${n.status==='unread'?' unread':''}" onclick="openNotifDetail('${n.id}','${portal}')">\
+<div class="notif-item-title">${n.title}</div>\
+<div class="notif-item-msg">${n.message}</div>\
+<div class="notif-item-time">${notifTimeAgo(n.created_at)}</div>\
+</div>`).join('');
+  // Mark all shown unread ones as read
+  const unreadIds=data.filter(n=>n.status==='unread').map(n=>n.id);
+  if(unreadIds.length) await db.from('lb_notifications').update({status:'read'}).in('id',unreadIds);
+  fetchUnreadCount();
+}
+
+async function openNotifDetail(id, portal){
+  const {data:n}=await db.from('lb_notifications').select('*').eq('id',id).single();
+  if(!n)return;
+  if(n.status==='unread') await db.from('lb_notifications').update({status:'read'}).eq('id',id);
+  ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  fetchUnreadCount();
+  // Switch to inbox and highlight this notification
+  if(portal==='agent') switchAgentView('inbox');
+  else if(portal==='admin') switchAdminTab('inbox');
+  else switchDialerTab('inbox');
+}
+
+async function loadInbox(portal){
+  const contentId = portal+'-inbox-content';
+  const cont=document.getElementById(contentId);
+  if(!cont||!currentUser)return;
+  cont.innerHTML='<div class="no-data">Loading…</div>';
+  const {data}=await db.from('lb_notifications').select('*,lb_submissions(client_name)').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+  if(!data?.length){ cont.innerHTML='<div class="no-data">Your inbox is empty.</div>'; return; }
+  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Related</th><th>Received</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
+    const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
+    const confirmBtn=needsConfirm?`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`:'—';
+    const relClient=n.lb_submissions?.client_name||'—';
+    return`<tr class="${n.status==='unread'?'unread':''}"><td style="width:8px;padding:0;"></td><td style="font-weight:${n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
+  }).join('')}</tbody></table>`;
+  // Mark any unread as read now that user has opened the inbox
+  const unreadIds=data.filter(n=>n.status==='unread').map(n=>n.id);
+  if(unreadIds.length){ await db.from('lb_notifications').update({status:'read'}).in('id',unreadIds); fetchUnreadCount(); }
+}
+
+async function confirmSubmission(notifId){
+  const {data:n}=await db.from('lb_notifications').select('*,lb_submissions(client_name)').eq('id',notifId).single();
+  if(!n)return;
+  await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
+  if(n.sender_id){
+    await db.from('lb_notifications').insert({
+      recipient_id:n.sender_id,
+      sender_id:currentUser.id,
+      type:'submission_confirmed',
+      title:'Submission Confirmed',
+      message:`${currentUser.agentName} confirmed the submission${n.lb_submissions?.client_name?' for '+n.lb_submissions.client_name:''}.`,
+      related_submission_id:n.related_submission_id||null,
+      status:'unread',
+      requires_confirmation:false,
+    });
+  }
+  loadInbox('agent');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.notif-bell-wrap')){
+    ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  }
+});
+
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser)renderAgentBoard(); fetchUnreadCount(); },30000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const dz=document.getElementById('scorerDropZone'); if(!dz)return;
@@ -2537,13 +2668,14 @@ async function runIntelAnalysis(portal){
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
 function switchDialerTab(tab){
   currentDialerTab=tab;
-  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block',subs:'block'};
+  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block',subs:'block',inbox:'flex'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='log')         { populateDialerAgents(); loadDialerHistory(); }
   if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
   if(tab==='wow')         renderDialerWoW();
   if(tab==='reports')     { populateDialerReportAgents(); populateReportAgents('dl_perf_'); }
   if(tab==='subs')        loadPolicySubs();
+  if(tab==='inbox')       loadInbox('dialer');
 }
 async function loadPolicySubs(){
   const cont=document.getElementById('policySubs_content');
