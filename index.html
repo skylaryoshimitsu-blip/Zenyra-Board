@@ -1019,6 +1019,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="admin-tab" id="dialerTab_reports" onclick="switchDialerTab('reports')">📥 Reports</div>
     <div class="admin-tab" id="dialerTab_subs" onclick="switchDialerTab('subs')">📋 Policy Submissions</div>
     <div class="admin-tab" id="dialerTab_inbox" onclick="switchDialerTab('inbox')">🔔 Inbox</div>
+    <div class="admin-tab" id="dialerTab_eod" onclick="switchDialerTab('eod')">📋 EOD Summary</div>
   </div>
   <div id="dialer-log-panel" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Log Call Data</div>
@@ -1172,6 +1173,18 @@ tbody td:not(:first-child){text-align:right;}
   <div id="dialer-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
     <div id="dialer-inbox-content"><div class="no-data">Loading…</div></div>
+  </div>
+  <div id="dialer-eod-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">End of Day Summary</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Date</label>
+        <input type="date" id="eod_date_d" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--white);font-size:13px;" onchange="renderEODSummary(this.value,'dialer')"/>
+      </div>
+      <button onclick="renderEODSummary(document.getElementById('eod_date_d').value,'dialer')" style="background:var(--teal);border:none;border-radius:6px;padding:9px 18px;color:#000;font-size:12px;font-weight:700;cursor:pointer;">Generate</button>
+      <button id="eod_btn_download_d" onclick="downloadEODSummary()" style="display:none;background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download PDF</button>
+    </div>
+    <div id="eod-output-d"></div>
   </div>
   <div class="footer">
     <span class="footer-left" id="dialer_lastUpdated">—</span>
@@ -2682,13 +2695,14 @@ async function runIntelAnalysis(portal){
 
 // ── END OF DAY SUMMARY ───────────────────────────────────────────────────
 let eodData=null;
-async function renderEODSummary(date){
-  const dateEl=document.getElementById('eod_date');
+async function renderEODSummary(date,portal='admin'){
+  const isDialer=portal==='dialer';
+  const dateEl=document.getElementById(isDialer?'eod_date_d':'eod_date');
   if(!dateEl)return;
   if(!date)date=dateEl.value||new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
   dateEl.value=date;
-  const cont=document.getElementById('eod-output');
-  const dlBtn=document.getElementById('eod_btn_download');
+  const cont=document.getElementById(isDialer?'eod-output-d':'eod-output');
+  const dlBtn=document.getElementById(isDialer?'eod_btn_download_d':'eod_btn_download');
   if(!cont)return;
   cont.innerHTML='<div class="no-data">Loading…</div>';
   if(dlBtn)dlBtn.style.display='none';
@@ -2757,7 +2771,7 @@ function downloadEODSummary(){
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
 function switchDialerTab(tab){
   currentDialerTab=tab;
-  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block',subs:'block',inbox:'flex'};
+  const panels={log:'flex',leaderboard:'flex',wow:'flex',reports:'block',subs:'block',inbox:'flex',eod:'flex'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('dialer-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('dialerTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='log')         { populateDialerAgents(); loadDialerHistory(); }
   if(tab==='leaderboard') { currentDialerBoardView='anc'; document.getElementById('dialerBoardTab_anc').classList.add('active'); document.getElementById('dialerBoardTab_mapd').classList.remove('active'); document.getElementById('dialer-anc-sub').style.display='flex'; document.getElementById('dialer-mapd-sub').style.display='none'; renderDialerLeaderboard(); }
@@ -2765,6 +2779,7 @@ function switchDialerTab(tab){
   if(tab==='reports')     { populateDialerReportAgents(); populateReportAgents('dl_perf_'); }
   if(tab==='subs')        loadPolicySubs();
   if(tab==='inbox')       loadInbox('dialer');
+  if(tab==='eod')         { const d=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}); document.getElementById('eod_date_d').value=d; renderEODSummary(d,'dialer'); }
 }
 const CARRIER_STATUSES=[['awaiting_window','Awaiting Window'],['ready_to_submit','Ready to Submit'],['submitted_to_carrier','Submitted to Carrier'],['processed','Processed']];
 function carrierStatusLabel(v){ return(CARRIER_STATUSES.find(([k])=>k===v)||[v,v||'—'])[1]; }
