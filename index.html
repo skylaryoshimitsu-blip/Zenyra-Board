@@ -582,12 +582,21 @@ tbody td:not(:first-child){text-align:right;}
       <div class="form-grid">
         <div class="field-sm"><label>Product Type</label><select id="f_productType"><option value="">Select...</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select></div>
         <div class="field-sm"><label>Policy Number</label><input type="text" id="f_policyNum"/></div>
-        <div class="field-sm"><label>Carrier Name</label><select id="f_carrier"><option value="">Select carrier...</option><option>American Home Life</option><option>United National Life</option><option>Manhattan Life</option><option>Heartland</option></select></div>
+        <div class="field-sm"><label>Carrier Name</label><select id="f_carrier" onchange="toggleHeartlandFields()"><option value="">Select carrier...</option><option>American Home Life</option><option>United National Life</option><option>Manhattan Life</option><option>Heartland</option></select></div>
         <div class="field-sm"><label>Plan Name</label><select id="f_planName"><option value="">Select plan...</option><option>Cancer Shield 2.0</option><option>Home Healthcare</option><option>Dental Shield 2.0</option><option>Hospital Indemnity Shield</option><option>Guaranteed Issue Hospital Indemnity Shield</option><option>Caregiver Shield</option></select></div>
         <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="f_monthlyPremium" step="0.01" min="0"/></div>
         <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="f_draftDay" min="1" max="31"/></div>
         <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
         <div class="field-sm"><label>Draft Date</label><input type="date" id="f_draftDate"/></div>
+      </div>
+      <div id="heartland-fields" style="display:none;">
+        <div class="form-section-title">Banking / Verification Details</div>
+        <div class="form-grid">
+          <div class="field-sm"><label>Banking Institution</label><input type="text" id="f_bankingInstitution"/></div>
+          <div class="field-sm"><label>Routing Number</label><input type="text" id="f_routingNumber"/></div>
+          <div class="field-sm"><label>Account Number</label><input type="text" id="f_accountNumber"/></div>
+          <div class="field-sm"><label>Mother's Maiden Name</label><input type="text" id="f_mothersMaidenName"/></div>
+        </div>
       </div>
       <div class="form-section-title">Submitting Agent Info</div>
       <div class="form-grid">
@@ -1748,6 +1757,13 @@ function toggleFabChooser(){ document.getElementById('fabChooser').classList.tog
 function showSubmitForm(type){ document.getElementById('fabChooser').classList.remove('open'); if(type==='mapd'){ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('submit-mapd-screen'); } else { document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); } }
 function cancelSubmit(){ showScreen('agent-dashboard'); }
 function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
+function toggleHeartlandFields(){
+  const isHeartland=document.getElementById('f_carrier').value==='Heartland';
+  document.getElementById('heartland-fields').style.display=isHeartland?'block':'none';
+  ['f_bankingInstitution','f_routingNumber','f_accountNumber','f_mothersMaidenName'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.required=isHeartland;
+  });
+}
 
 // ── submitSale — with agent email validation ───────────────────────────────
 async function submitSale(){
@@ -1783,12 +1799,18 @@ async function submitSale(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail)){alert('Please enter a valid agent email address.');document.getElementById('f_aEmail').focus();return;}
   const cEmail=document.getElementById('f_cEmail').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)){alert('Please enter a valid customer email address.');document.getElementById('f_cEmail').focus();return;}
+  if(document.getElementById('f_carrier').value==='Heartland'){
+    for(const [id,label] of [['f_bankingInstitution','Banking Institution'],['f_routingNumber','Routing Number'],['f_accountNumber','Account Number'],['f_mothersMaidenName',"Mother's Maiden Name"]]){
+      const el=document.getElementById(id); if(!el?.value?.trim()){alert(`${label} is required for Heartland.`);el?.focus();return;}
+    }
+  }
   const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
   if(!mp||mp<=0){alert('Monthly premium must be a positive number.');document.getElementById('f_monthlyPremium').focus();return;}
-  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value});
+  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null}:{})});
   if(error) return alert('Submission failed: '+error.message);
   document.getElementById('submitSuccess').style.display='block';
   document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value='');
+  toggleHeartlandFields();
   setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
 }
 
