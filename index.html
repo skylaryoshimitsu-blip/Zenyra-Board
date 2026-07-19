@@ -2547,9 +2547,9 @@ async function loadDialerHistory(){
   const cont=document.getElementById('dialerHistoryContent');
   if(!cont || !currentUser) return;
   const since=new Date(Date.now()-14*24*60*60*1000).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name)').eq('logged_by',currentUser.id).gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name),lb_users(display_name)').gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
   if(!data?.length){ cont.innerHTML='<div class="no-data">No entries in the last 14 days.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Total Calls</th><th>Incoming</th><th>Outgoing</th><th>Billable</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`<tr><td>${e.log_date}</td><td>${e.lb_agents?.name||'—'}</td><td>${e.total_calls||0}</td><td>${e.incoming_calls||0}</td><td>${e.outgoing_calls||0}</td><td>${e.billable_calls||0}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openDialerEdit(${JSON.stringify(e).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteDialerEntry('${e.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Total Calls</th><th>Incoming</th><th>Outgoing</th><th>Billable</th><th>Logged By</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`<tr><td>${e.log_date}</td><td>${e.lb_agents?.name||'—'}</td><td>${e.total_calls||0}</td><td>${e.incoming_calls||0}</td><td>${e.outgoing_calls||0}</td><td>${e.billable_calls||0}</td><td>${e.lb_users?.display_name||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openDialerEdit(${JSON.stringify(e).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteDialerEntry('${e.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
 function openDialerEdit(entry){
   document.getElementById('ed_id').value=entry.id;
