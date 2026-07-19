@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -171,6 +172,12 @@ tbody td:not(:first-child){text-align:right;}
 .btn-edit-sm{background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;color:var(--label);cursor:pointer;margin-right:4px;transition:border-color 0.15s;}
 .btn-edit-sm:hover{border-color:var(--teal);color:var(--teal);}
 .no-data{text-align:center;padding:40px;color:var(--muted);}
+.pb-section{margin-bottom:32px;}
+.pb-section-body{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.pb-table-wrap{flex:1;min-width:280px;}
+.pb-chart-wrap{flex:1;min-width:200px;max-width:340px;}
+.pb-charts-pair{display:flex;gap:16px;flex-wrap:wrap;}
+.pb-charts-pair .pb-chart-wrap{flex:1;min-width:180px;max-width:300px;}
 .agent-mgmt-table{width:100%;border-collapse:collapse;font-size:13px;}
 .agent-mgmt-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
 .agent-mgmt-table td{padding:10px;border-bottom:1px solid rgba(38,51,72,0.4);color:var(--body);}
@@ -575,12 +582,21 @@ tbody td:not(:first-child){text-align:right;}
       <div class="form-grid">
         <div class="field-sm"><label>Product Type</label><select id="f_productType"><option value="">Select...</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select></div>
         <div class="field-sm"><label>Policy Number</label><input type="text" id="f_policyNum"/></div>
-        <div class="field-sm"><label>Carrier Name</label><select id="f_carrier"><option value="">Select carrier...</option><option>UNL</option><option>Heartland</option><option>AHL</option></select></div>
+        <div class="field-sm"><label>Carrier Name</label><select id="f_carrier" onchange="toggleHeartlandFields()"><option value="">Select carrier...</option><option>American Home Life</option><option>United National Life</option><option>Manhattan Life</option><option>Heartland</option></select></div>
         <div class="field-sm"><label>Plan Name</label><select id="f_planName"><option value="">Select plan...</option><option>Cancer Shield 2.0</option><option>Home Healthcare</option><option>Dental Shield 2.0</option><option>Hospital Indemnity Shield</option><option>Guaranteed Issue Hospital Indemnity Shield</option><option>Caregiver Shield</option></select></div>
         <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="f_monthlyPremium" step="0.01" min="0"/></div>
         <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="f_draftDay" min="1" max="31"/></div>
         <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
         <div class="field-sm"><label>Draft Date</label><input type="date" id="f_draftDate"/></div>
+      </div>
+      <div id="heartland-fields" style="display:none;">
+        <div class="form-section-title">Banking / Verification Details</div>
+        <div class="form-grid">
+          <div class="field-sm"><label>Banking Institution</label><input type="text" id="f_bankingInstitution"/></div>
+          <div class="field-sm"><label>Routing Number</label><input type="text" id="f_routingNumber"/></div>
+          <div class="field-sm"><label>Account Number</label><input type="text" id="f_accountNumber"/></div>
+          <div class="field-sm"><label>Mother's Maiden Name</label><input type="text" id="f_mothersMaidenName"/></div>
+        </div>
       </div>
       <div class="form-section-title">Submitting Agent Info</div>
       <div class="form-grid">
@@ -885,25 +901,52 @@ tbody td:not(:first-child){text-align:right;}
     <div id="admin-agents-content"></div>
   </div>
   <div id="admin-reports-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Performance Reports</div>
-    <div class="report-controls">
-      <div class="report-row">
-        <div class="report-field"><label>Agent(s)</label><select id="rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
-        <div class="report-field"><label>Date Range</label>
-          <select id="rpt_range" onchange="toggleCustomDates()">
-            <option value="today">Today</option><option value="yesterday">Previous Day</option>
-            <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
-            <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div class="report-field" id="rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="rpt_from"/></div>
-        <div class="report-field" id="rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="rpt_to"/></div>
-        <button class="btn-run-report" onclick="runReport()">Run Report</button>
-        <button class="btn-download" id="btn_download" onclick="downloadReport()" style="display:none;">&#x2B07; Download PDF</button>
-      </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button id="adminRptTab_perf" class="btn-run-report" onclick="switchAdminReportType('perf')">Performance</button>
+      <button id="adminRptTab_pb" class="btn-run-report" onclick="switchAdminReportType('pb')" style="background:none;border:1px solid var(--teal);color:var(--teal);">Product Breakdown</button>
     </div>
-    <div id="report-output"></div>
+    <!-- PERFORMANCE REPORT -->
+    <div id="admin-perf-report">
+      <div class="section-eyebrow" style="margin-bottom:16px;">Performance Reports</div>
+      <div class="report-controls">
+        <div class="report-row">
+          <div class="report-field"><label>Agent(s)</label><select id="rpt_agent" style="min-width:160px;"><option value="all">Whole Team</option></select></div>
+          <div class="report-field"><label>Date Range</label>
+            <select id="rpt_range" onchange="toggleCustomDates()">
+              <option value="today">Today</option><option value="yesterday">Previous Day</option>
+              <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+              <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="report-field" id="rpt_from_wrap" style="display:none;"><label>From</label><input type="date" id="rpt_from"/></div>
+          <div class="report-field" id="rpt_to_wrap" style="display:none;"><label>To</label><input type="date" id="rpt_to"/></div>
+          <button class="btn-run-report" onclick="runReport()">Run Report</button>
+          <button class="btn-download" id="btn_download" onclick="downloadReport()" style="display:none;">&#x2B07; Download PDF</button>
+        </div>
+      </div>
+      <div id="report-output"></div>
+    </div>
+    <!-- PRODUCT BREAKDOWN REPORT -->
+    <div id="admin-pb-report" style="display:none;">
+      <div class="section-eyebrow" style="margin-bottom:16px;">Product Breakdown</div>
+      <div class="report-controls">
+        <div class="report-row">
+          <div class="report-field"><label>Date Range</label>
+            <select id="pb_range" onchange="togglePBCustomDates()">
+              <option value="today">Today</option><option value="yesterday">Previous Day</option>
+              <option value="7">Last 7 Days</option><option value="mtd">Month to Date</option>
+              <option value="30">Last 30 Days</option><option value="90">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="report-field" id="pb_from_wrap" style="display:none;"><label>From</label><input type="date" id="pb_from"/></div>
+          <div class="report-field" id="pb_to_wrap" style="display:none;"><label>To</label><input type="date" id="pb_to"/></div>
+          <button class="btn-run-report" onclick="runProductBreakdown()">Run Report</button>
+        </div>
+      </div>
+      <div id="pb_output"></div>
+    </div>
   </div>
   <div class="footer">
     <span class="footer-left" id="ad_lastUpdated">—</span>
@@ -1149,7 +1192,7 @@ const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
 const DAILY_GOAL = 8000;
 const ADMIN_CODE = 'bigbrothereye';
-const COMM_RATE  = 0.20 * 0.75;
+const COMM_RATE  = 0.1125;
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -1296,6 +1339,21 @@ function startOfWeekET_ISO(){
   const idx=idxMap[wd];
   const base=new Date(Date.UTC(y,m-1,d,12,0,0));
   base.setUTCDate(base.getUTCDate()-idx);
+  const testHour=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(base));
+  let offset=12-testHour; if(offset<0) offset+=24;
+  const yy=base.getUTCFullYear(), mm=String(base.getUTCMonth()+1).padStart(2,'0'), dd=String(base.getUTCDate()).padStart(2,'0');
+  return yy+'-'+mm+'-'+dd+'T'+String(offset).padStart(2,'0')+':00:00.000Z';
+}
+function fourWeeksAgoMondayET_ISO(){
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(new Date());
+  const y=+parts.find(p=>p.type==='year').value;
+  const m=+parts.find(p=>p.type==='month').value;
+  const d=+parts.find(p=>p.type==='day').value;
+  const wd=parts.find(p=>p.type==='weekday').value;
+  const idxMap={Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+  const idx=idxMap[wd];
+  const base=new Date(Date.UTC(y,m-1,d,12,0,0));
+  base.setUTCDate(base.getUTCDate()-idx-28);
   const testHour=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(base));
   let offset=12-testHour; if(offset<0) offset+=24;
   const yy=base.getUTCFullYear(), mm=String(base.getUTCMonth()+1).padStart(2,'0'), dd=String(base.getUTCDate()).padStart(2,'0');
@@ -1574,11 +1632,138 @@ function switchAdminTab(tab){
   if(tab==='reports') populateReportAgents();
 }
 
+function switchAdminReportType(type){
+  document.getElementById('admin-perf-report').style.display=type==='perf'?'block':'none';
+  document.getElementById('admin-pb-report').style.display=type==='pb'?'block':'none';
+  const perfBtn=document.getElementById('adminRptTab_perf'), pbBtn=document.getElementById('adminRptTab_pb');
+  perfBtn.style.background=type==='perf'?'var(--teal)':'none'; perfBtn.style.border=type==='perf'?'none':'1px solid var(--teal)'; perfBtn.style.color=type==='perf'?'var(--navy)':'var(--teal)';
+  pbBtn.style.background=type==='pb'?'var(--teal)':'none'; pbBtn.style.border=type==='pb'?'none':'1px solid var(--teal)'; pbBtn.style.color=type==='pb'?'var(--navy)':'var(--teal)';
+}
+
+function togglePBCustomDates(){
+  const v=document.getElementById('pb_range').value;
+  document.getElementById('pb_from_wrap').style.display=v==='custom'?'flex':'none';
+  document.getElementById('pb_to_wrap').style.display=v==='custom'?'flex':'none';
+}
+
+function makeChart(id,cfg){
+  const existing=Chart.getChart(id);
+  if(existing) existing.destroy();
+  const canvas=document.getElementById(id);
+  if(!canvas) return;
+  new Chart(canvas,cfg);
+}
+
+async function runProductBreakdown(){
+  const range=document.getElementById('pb_range').value;
+  let from,to;
+  if(range==='custom'){
+    from=new Date(document.getElementById('pb_from').value);
+    to=new Date(document.getElementById('pb_to').value+'T23:59:59');
+  } else {
+    const dr=getDateRange(range);
+    from=dr.from; to=dr.to;
+  }
+  const fromISO=from.toISOString(); const toISO=to.toISOString();
+  document.getElementById('pb_output').innerHTML='<div class="no-data">Loading…</div>';
+  const [{data:ancSubs},{data:mapdSubs}]=await Promise.all([
+    db.from('lb_submissions').select('*,lb_agents(name)').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
+    db.from('lb_mapd_submissions').select('*,lb_agents(name)').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
+  ]);
+  renderProductBreakdown(ancSubs||[],mapdSubs||[]);
+}
+
+function renderProductBreakdown(ancSubs,mapdSubs){
+  const out=document.getElementById('pb_output');
+
+  /* helpers */
+  const groupBy=(arr,key)=>arr.reduce((acc,r)=>{ const k=r[key]||'Unknown'; acc[k]=(acc[k]||[]); acc[k].push(r); return acc; },{});
+  const sum=(arr,key)=>arr.reduce((t,r)=>t+Number(r[key]||0),0);
+  const tbl=(headers,rows)=>`<table class="data-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const TEAL='#00C9B1',PURPLE='#A855F7',AMBER='#F59E0B',BLUE='#3B82F6',GREEN='#22C55E',RED='#EF4444';
+  const PALETTE=[TEAL,PURPLE,AMBER,BLUE,GREEN,RED,'#EC4899','#14B8A6','#F97316','#8B5CF6'];
+  const chartDefaults={plugins:{legend:{labels:{color:'#CBD5E1',font:{size:11}}}},scales:{x:{ticks:{color:'#94A3B8'},grid:{color:'#263348'}},y:{ticks:{color:'#94A3B8'},grid:{color:'#263348'},beginAtZero:true}}};
+  const barCfg=(labels,datasets,opts={})=>({type:'bar',data:{labels,datasets},options:{...chartDefaults,...opts,plugins:{...chartDefaults.plugins,...(opts.plugins||{})}}});
+  const pieCfg=(labels,data,colors)=>({type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#CBD5E1',font:{size:11}}}},cutout:'55%'}});
+
+  let html='';
+
+  /* ── SECTION 1: Ancillary by Product Type ── */
+  const ancByType=groupBy(ancSubs,'product_type');
+  const ancTypes=Object.keys(ancByType).sort();
+  const ancTypeRows=ancTypes.map(t=>{
+    const arr=ancByType[t]; const ap=sum(arr,'annual_premium');
+    return [t,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
+  });
+  html+=`<div class="pb-section"><div class="form-section-title">1. Ancillary — By Product Type</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Product Type','Apps','Total AP','Est. Comm'],ancTypeRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c1a" height="160"></canvas></div><div class="pb-chart-wrap"><canvas id="pb_c1b" height="160"></canvas></div></div></div>`;
+
+  /* ── SECTION 2: Ancillary by Carrier ── */
+  const ancByCarrier=groupBy(ancSubs,'carrier_name');
+  const ancCarriers=Object.keys(ancByCarrier).sort();
+  const ancCarrierRows=ancCarriers.map(c=>{
+    const arr=ancByCarrier[c]; const ap=sum(arr,'annual_premium');
+    return [c,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
+  });
+  html+=`<div class="pb-section"><div class="form-section-title">2. Ancillary — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps','Total AP','Est. Comm'],ancCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c2" height="160"></canvas></div></div></div>`;
+
+  /* ── SECTION 3: Ancillary by Agent ── */
+  const ancByAgent=ancSubs.reduce((acc,r)=>{ const k=r.lb_agents?.name||'Unknown'; acc[k]=(acc[k]||[]); acc[k].push(r); return acc; },{});
+  const ancAgents=Object.keys(ancByAgent).sort();
+  const ancAgentRows=ancAgents.map(a=>{
+    const arr=ancByAgent[a]; const ap=sum(arr,'annual_premium');
+    return [a,arr.length,fmt$(ap),fmt$2(ap*COMM_RATE)];
+  });
+  html+=`<div class="pb-section"><div class="form-section-title">3. Ancillary — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps','Total AP','Est. Comm'],ancAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c3" height="160"></canvas></div></div></div>`;
+
+  /* ── SECTION 4: MAPD by Carrier ── */
+  const mapdByCarrier=groupBy(mapdSubs,'carrier_name');
+  const mapdCarriers=Object.keys(mapdByCarrier).sort();
+  const mapdCarrierRows=mapdCarriers.map(c=>[c,mapdByCarrier[c].length]);
+  html+=`<div class="pb-section"><div class="form-section-title">4. MAPD — By Carrier</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Carrier','Apps'],mapdCarrierRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c4" height="160"></canvas></div></div></div>`;
+
+  /* ── SECTION 5: MAPD by Plan ── */
+  const mapdByPlan=groupBy(mapdSubs,'plan_name');
+  const mapdPlans=Object.keys(mapdByPlan).sort();
+  const mapdPlanRows=mapdPlans.map(p=>[p,mapdByPlan[p].length]);
+  html+=`<div class="pb-section"><div class="form-section-title">5. MAPD — By Plan</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Plan','Apps'],mapdPlanRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c5" height="160"></canvas></div></div></div>`;
+
+  /* ── SECTION 6: MAPD by Agent ── */
+  const mapdByAgent=mapdSubs.reduce((acc,r)=>{ const k=r.lb_agents?.name||'Unknown'; acc[k]=(acc[k]||[]); acc[k].push(r); return acc; },{});
+  const mapdAgents=Object.keys(mapdByAgent).sort();
+  const mapdAgentRows=mapdAgents.map(a=>[a,mapdByAgent[a].length]);
+  html+=`<div class="pb-section"><div class="form-section-title">6. MAPD — By Agent</div><div class="pb-section-body"><div class="pb-table-wrap">${tbl(['Agent','Apps'],mapdAgentRows)}</div><div class="pb-chart-wrap"><canvas id="pb_c6" height="160"></canvas></div></div></div>`;
+
+  if(!ancSubs.length&&!mapdSubs.length){ out.innerHTML='<div class="no-data">No submissions found for this date range.</div>'; return; }
+  out.innerHTML=html;
+
+  /* render charts */
+  /* S1 — apps by type (bar) + AP by type (doughnut) */
+  makeChart('pb_c1a',barCfg(ancTypes,[{label:'Apps',data:ancTypes.map(t=>ancByType[t].length),backgroundColor:TEAL}]));
+  makeChart('pb_c1b',pieCfg(ancTypes,ancTypes.map(t=>sum(ancByType[t],'annual_premium')),PALETTE));
+  /* S2 — apps by carrier (bar) */
+  makeChart('pb_c2',barCfg(ancCarriers,[{label:'Apps',data:ancCarriers.map(c=>ancByCarrier[c].length),backgroundColor:PURPLE}]));
+  /* S3 — AP by agent (bar) */
+  makeChart('pb_c3',barCfg(ancAgents,[{label:'Total AP',data:ancAgents.map(a=>sum(ancByAgent[a],'annual_premium')),backgroundColor:AMBER}]));
+  /* S4 — MAPD apps by carrier (doughnut) */
+  makeChart('pb_c4',pieCfg(mapdCarriers,mapdCarriers.map(c=>mapdByCarrier[c].length),PALETTE));
+  /* S5 — MAPD apps by plan (bar) */
+  makeChart('pb_c5',barCfg(mapdPlans,[{label:'Apps',data:mapdPlans.map(p=>mapdByPlan[p].length),backgroundColor:BLUE}]));
+  /* S6 — MAPD apps by agent (bar) */
+  makeChart('pb_c6',barCfg(mapdAgents,[{label:'Apps',data:mapdAgents.map(a=>mapdByAgent[a].length),backgroundColor:GREEN}]));
+}
+
 function toggleFabChooser(){ document.getElementById('fabChooser').classList.toggle('open'); }
 
 function showSubmitForm(type){ document.getElementById('fabChooser').classList.remove('open'); if(type==='mapd'){ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('submit-mapd-screen'); } else { document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); } }
 function cancelSubmit(){ showScreen('agent-dashboard'); }
 function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
+function toggleHeartlandFields(){
+  const isHeartland=document.getElementById('f_carrier').value==='Heartland';
+  document.getElementById('heartland-fields').style.display=isHeartland?'block':'none';
+  ['f_bankingInstitution','f_routingNumber','f_accountNumber','f_mothersMaidenName'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.required=isHeartland;
+  });
+}
 
 // ── submitSale — with agent email validation ───────────────────────────────
 async function submitSale(){
@@ -1614,12 +1799,18 @@ async function submitSale(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail)){alert('Please enter a valid agent email address.');document.getElementById('f_aEmail').focus();return;}
   const cEmail=document.getElementById('f_cEmail').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)){alert('Please enter a valid customer email address.');document.getElementById('f_cEmail').focus();return;}
+  if(document.getElementById('f_carrier').value==='Heartland'){
+    for(const [id,label] of [['f_bankingInstitution','Banking Institution'],['f_routingNumber','Routing Number'],['f_accountNumber','Account Number'],['f_mothersMaidenName',"Mother's Maiden Name"]]){
+      const el=document.getElementById(id); if(!el?.value?.trim()){alert(`${label} is required for Heartland.`);el?.focus();return;}
+    }
+  }
   const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
   if(!mp||mp<=0){alert('Monthly premium must be a positive number.');document.getElementById('f_monthlyPremium').focus();return;}
-  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value});
+  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null}:{})});
   if(error) return alert('Submission failed: '+error.message);
   document.getElementById('submitSuccess').style.display='block';
   document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value='');
+  toggleHeartlandFields();
   setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
 }
 
@@ -1835,7 +2026,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const {data:agents}=await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
-  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls');
+  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls,billable_calls');
   if(!agents||!subs) return [];
   if(!aFrom||!bFrom){
     const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
@@ -1850,6 +2041,11 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const inRange=(ts,from,to)=>{ const d=new Date(new Date(ts).toLocaleString('en-US',{timeZone:'America/New_York'})); return d>=new Date(from)&&d<=new Date(to); };
   const dateOnly=v=>typeof v==='string'?v.slice(0,10):v.toISOString().slice(0,10);
   const aFromD=dateOnly(aFrom),aToD=dateOnly(aTo),bFromD=dateOnly(bFrom),bToD=dateOnly(bTo);
+  const toETDate=ts=>new Date(ts).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const todayStr=toETDate(new Date());
+  const thisMonDate=toETDate(new Date(startOfWeekET_ISO()));
+  const fourWkMonDate=toETDate(new Date(fourWeeksAgoMondayET_ISO()));
+  const getMon=s=>{ const [y,m,d]=s.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d,12)); const dow=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-dow); return dt.toISOString().slice(0,10); };
   return agents.filter(a=>Number(a.monthly_goal)>0).map(agent=>{
     const agentSubs=subs.filter(s=>s.agent_id===agent.id);
     const periodA=agentSubs.filter(s=>inRange(s.submitted_at,aFrom,aTo));
@@ -1859,7 +2055,22 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
     const agentCalls=(calls||[]).filter(c=>c.agent_id===agent.id);
     const callsA=agentCalls.filter(c=>c.log_date>=aFromD&&c.log_date<=aToD).reduce((s,c)=>s+Number(c.total_calls||0),0);
     const callsB=agentCalls.filter(c=>c.log_date>=bFromD&&c.log_date<=bToD).reduce((s,c)=>s+Number(c.total_calls||0),0);
-    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length,this_week_calls:callsA,last_week_calls:callsB};
+    const hist4Subs=agentSubs.filter(s=>{ const d=toETDate(s.submitted_at); return d>=fourWkMonDate&&d<thisMonDate; });
+    const wkAppMap={}; hist4Subs.forEach(s=>{ const w=getMon(toETDate(s.submitted_at)); wkAppMap[w]=(wkAppMap[w]||0)+1; });
+    const appWkN=Object.keys(wkAppMap).length;
+    const avgAppsPerWeek=appWkN>0?(hist4Subs.length/appWkN).toFixed(1):null;
+    const hist4Calls=agentCalls.filter(c=>c.log_date>=fourWkMonDate&&c.log_date<thisMonDate);
+    const wkCallMap={}; hist4Calls.forEach(c=>{ const w=getMon(c.log_date); wkCallMap[w]=(wkCallMap[w]||0)+Number(c.total_calls||0); });
+    const callWkN=Object.keys(wkCallMap).length;
+    const avgCallsPerWeek=callWkN>0?(hist4Calls.reduce((s,c)=>s+Number(c.total_calls||0),0)/callWkN).toFixed(1):null;
+    const todayBillable=agentCalls.filter(c=>c.log_date===todayStr).reduce((s,c)=>s+Number(c.billable_calls||0),0);
+    const todayApps=agentSubs.filter(s=>toETDate(s.submitted_at)===todayStr).length;
+    const dailyConvToday=todayBillable===0?null:(todayApps/todayBillable*100).toFixed(1)+'%';
+    const wkBillable=agentCalls.filter(c=>c.log_date>=thisMonDate&&c.log_date<=todayStr).reduce((s,c)=>s+Number(c.billable_calls||0),0);
+    const wkApps=agentSubs.filter(s=>{ const d=toETDate(s.submitted_at); return d>=thisMonDate&&d<=todayStr; }).length;
+    const dailyConvWeek=wkBillable===0?null:(wkApps/wkBillable*100).toFixed(1)+'%';
+    const weeklyAvgConv=dailyConvWeek;
+    return {name:agent.name,this_week_ap:apA,last_week_ap:apB,ap_delta:apA-apB,this_week_apps:periodA.length,last_week_apps:periodB.length,apps_delta:periodA.length-periodB.length,this_week_calls:callsA,last_week_calls:callsB,avgAppsPerWeek,avgCallsPerWeek,dailyConvToday,dailyConvWeek,weeklyAvgConv};
   }).sort((a,b)=>b.this_week_ap-a.this_week_ap);
 }
 function renderWoW(data,containerId){
@@ -1933,7 +2144,7 @@ function renderWoW(data,containerId){
       </div>
     </div>
     <table class="wow-table">
-      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>AP Change</th><th>Last Wk Apps</th><th>This Wk Apps</th><th>Apps &#x394;</th><th>Calls This Wk</th><th>Calls Last Wk</th><th>Trend</th></tr></thead>
+      <thead><tr><th>Agent</th><th>This Week AP</th><th>Last Week AP</th><th>AP Change</th><th>Last Wk Apps</th><th>This Wk Apps</th><th>Apps &#x394;</th><th>Calls This Wk</th><th>Calls Last Wk</th><th>Avg Apps/Wk</th><th>Avg Calls/Wk</th><th>Daily Conv Rate</th><th>Weekly Avg Conv</th><th>Trend</th></tr></thead>
       <tbody>${data.map((a,i)=>{
         const rankColor=rankColors[i]||'var(--muted)';
         const fillCls=a.ap_delta>=0?'wow-bar-fill-pos':'wow-bar-fill-neg';
@@ -1951,6 +2162,10 @@ function renderWoW(data,containerId){
           <td><span style="font-weight:700;color:${appsDeltaColor};">${a.apps_delta>0?'+':''}${a.apps_delta}</span></td>
           <td style="font-weight:600;color:var(--white);">${a.this_week_calls||0}</td>
           <td style="color:var(--muted);">${a.last_week_calls||0}</td>
+          <td>${a.avgAppsPerWeek??'—'}</td>
+          <td>${a.avgCallsPerWeek??'—'}</td>
+          <td><div style="font-size:11px;color:var(--label);">Today: <span style="color:var(--body);">${a.dailyConvToday??'—'}</span></div><div style="font-size:11px;color:var(--label);">Week:&nbsp;&nbsp;<span style="color:var(--body);">${a.dailyConvWeek??'—'}</span></div></td>
+          <td>${a.weeklyAvgConv??'—'}</td>
           <td><div class="wow-bar-wrap">
             <div class="wow-bar-track"><div class="${fillCls}" style="width:${barPct}%;"></div></div>
           </div></td>
@@ -2194,7 +2409,7 @@ function buildBriefingPrompt(stats, forecasts, alerts){
 function renderIntelLoadingState(containerId, message){
   const el=document.getElementById(containerId);
   if(!el) return;
-  el.innerHTML=`<div class="intel-ai-box" style="text-align:center;padding:40px;"><div class="intel-ai-loading" style="justify-content:center;"><div class="intel-ai-dot"></div><span>${message||'Generating analysis...'}</span></div><div style="font-size:11px;color:var(--muted);margin-top:8px;">Powered by Claude AI · Takes 10-15 seconds</div></div>`;
+  el.innerHTML=`<div class="intel-ai-box" style="text-align:center;padding:40px;"><div class="intel-ai-loading" style="justify-content:center;"><div class="intel-ai-dot"></div><span>${message||'Generating analysis...'}</span></div><div style="font-size:11px;color:var(--muted);margin-top:8px;">Powered by Zenyra Intelligence · Takes 10-15 seconds</div></div>`;
 }
 
 function renderForecasts(forecasts){
@@ -2343,7 +2558,7 @@ async function submitDialerLog(){
     billable_calls:parseInt(document.getElementById('dl_billable').value)||0,
     logged_by:currentUser?.id,
   };
-  const {error}=await db.from('lb_dialer_activity').insert(payload);
+  const {error}=await db.from('lb_dialer_activity').upsert(payload,{onConflict:'agent_id,log_date'});
   if(error) return alert('Log failed: '+error.message);
   document.getElementById('dialerLogSuccess').style.display='block';
   ['dl_total','dl_incoming','dl_outgoing','dl_billable'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
@@ -2354,9 +2569,9 @@ async function loadDialerHistory(){
   const cont=document.getElementById('dialerHistoryContent');
   if(!cont || !currentUser) return;
   const since=new Date(Date.now()-14*24*60*60*1000).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name)').eq('logged_by',currentUser.id).gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name),lb_users(display_name)').gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
   if(!data?.length){ cont.innerHTML='<div class="no-data">No entries in the last 14 days.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Total Calls</th><th>Incoming</th><th>Outgoing</th><th>Billable</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`<tr><td>${e.log_date}</td><td>${e.lb_agents?.name||'—'}</td><td>${e.total_calls||0}</td><td>${e.incoming_calls||0}</td><td>${e.outgoing_calls||0}</td><td>${e.billable_calls||0}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openDialerEdit(${JSON.stringify(e).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteDialerEntry('${e.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Total Calls</th><th>Incoming</th><th>Outgoing</th><th>Billable</th><th>Logged By</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`<tr><td>${e.log_date}</td><td>${e.lb_agents?.name||'—'}</td><td>${e.total_calls||0}</td><td>${e.incoming_calls||0}</td><td>${e.outgoing_calls||0}</td><td>${e.billable_calls||0}</td><td>${e.lb_users?.display_name||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openDialerEdit(${JSON.stringify(e).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteDialerEntry('${e.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
 function openDialerEdit(entry){
   document.getElementById('ed_id').value=entry.id;
