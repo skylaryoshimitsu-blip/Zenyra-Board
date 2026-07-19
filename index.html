@@ -1152,6 +1152,7 @@ tbody td:not(:first-child){text-align:right;}
         </div>
       </div>
       <button onclick="loadPolicySubs()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;">Load</button>
+      <button onclick="exportPolicyCsv()" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;">&#x2B07; Export CSV</button>
     </div>
     <div id="policySubs_content"><div class="no-data">Select a date range and click Load.</div></div>
   </div>
@@ -2724,6 +2725,39 @@ async function loadPolicySubs(){
 }
 async function updateCarrierStatus(id,val){
   await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
+}
+async function exportPolicyCsv(){
+  if(!currentUser)return;
+  const range=document.getElementById('policySubs_range').value;
+  let from,to;
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  if(range==='today'){ from=today; to=today; }
+  else if(range==='7'){ const d=new Date(Date.now()-6*864e5); from=d.toLocaleDateString('en-CA',{timeZone:'America/New_York'}); to=today; }
+  else if(range==='mtd'){ from=today.slice(0,7)+'-01'; to=today; }
+  else if(range==='30'){ const d=new Date(Date.now()-29*864e5); from=d.toLocaleDateString('en-CA',{timeZone:'America/New_York'}); to=today; }
+  else { from=document.getElementById('policySubs_from').value; to=document.getElementById('policySubs_to').value; if(!from||!to){alert('Please select a From and To date.');return;} }
+  try{
+    const res=await fetch('/api/policy-submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,from,to})});
+    const json=await res.json();
+    if(!res.ok||json.error){alert('Export failed: '+(json.error||res.statusText));return;}
+    const rows=json.data||[];
+    if(!rows.length){alert('No submissions found for this range.');return;}
+    const hasBanking=json.canSeeBanking;
+    const csvEsc=v=>{ const s=v==null?'':String(v); return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s; };
+    const headers=['Date','Agent','First Name','Last Name','Carrier','Plan','State','Effective Date','Monthly Premium','Annual Premium','Carrier Status'];
+    if(hasBanking) headers.push('Banking Institution','Routing Number','Account Number',"Mother's Maiden Name");
+    const lines=[headers.join(',')];
+    rows.forEach(r=>{
+      const date=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'';
+      const cols=[date,r.lb_agents?.name||'',r.customer_first_name||'',r.customer_last_name||'',r.carrier_name||'',r.plan_name||'',r.customer_state||'',r.effective_date||'',r.monthly_premium!=null?Number(r.monthly_premium).toFixed(2):'',r.annual_premium!=null?Number(r.annual_premium).toFixed(2):'',carrierStatusLabel(r.carrier_status)];
+      if(hasBanking) cols.push(r.banking_institution||'',r.routing_number||'',r.account_number||'',r.mothers_maiden_name||'');
+      lines.push(cols.map(csvEsc).join(','));
+    });
+    const blob=new Blob([lines.join('\r\n')],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`policy-submissions-${from}-to-${to}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }catch(err){ alert('Export failed: '+err.message); }
 }
 function switchDialerBoardView(view){
   currentDialerBoardView=view;
