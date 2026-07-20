@@ -2218,8 +2218,11 @@ async function loadInbox(portal){
   const subIds=[...new Set(data.map(n=>n.related_submission_id).filter(Boolean))];
   const subMap={};
   if(subIds.length){
-    const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name').in('id',subIds);
-    (subs||[]).forEach(s=>{ subMap[s.id]=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'; });
+    const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_status').in('id',subIds);
+    (subs||[]).forEach(s=>{
+      subMap[s.id]=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+      subMap[s.id+'_status']=s.carrier_status;
+    });
   }
   const dirLabel=(n)=>{
     if(!isSender) return '';
@@ -2229,10 +2232,11 @@ async function loadInbox(portal){
   };
   cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th><th></th></tr></thead><tbody>${data.map(n=>{
     const isSent=isSender&&n.sender_id===currentUser.id;
-    const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
+    const subStatus=n.related_submission_id?subMap[n.related_submission_id+'_status']:null;
+    const needsConfirm=n.requires_confirmation&&portal==='agent'&&subStatus!=='processed';
     let actionCell;
-    if(n.confirmed_at) actionCell='<span style="color:#22c55e;font-size:11px;font-weight:600;">✓ Completed</span>';
-    else if(needsConfirm) actionCell=`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`;
+    if(needsConfirm) actionCell=`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`;
+    else if(n.confirmed_at||subStatus==='processed') actionCell='<span style="color:#22c55e;font-size:11px;font-weight:600;">✓ Completed</span>';
     else if(n.type==='submission_confirmed') actionCell='<span style="color:var(--teal);font-size:11px;font-weight:600;">✓ Agent Confirmed</span>';
     else actionCell=`<span style="font-size:11px;color:var(--muted);">${n.status==='read'?'Read':'New'}</span>`;
     const relClient=n.related_submission_id?subMap[n.related_submission_id]||'—':'—';
@@ -2996,7 +3000,7 @@ async function loadPolicySubs(){
     const json=await res.json();
     if(!res.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||res.statusText}</div>`; return; }
     policySubsRawData=json.data||[];
-    policySubsCanEdit=json.canSeeBanking;
+    policySubsCanEdit=json.canEdit??json.canSeeBanking;
     // Populate carrier dropdown; default to Heartland if present
     const carriers=[...new Set(policySubsRawData.map(r=>r.carrier_name).filter(Boolean))].sort();
     const carrierSel=document.getElementById('policySubs_carrier');
@@ -3124,7 +3128,9 @@ function openPolicySubModal(id){
   openModal('policySubDetailModal');
 }
 async function updateCarrierStatus(id,val){
-  await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
+  const r=await fetch('/api/update-carrier-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submissionId:id,status:val,userId:currentUser.id})});
+  if(!r.ok){ const e=await r.json().catch(()=>{}); alert('Failed to update status: '+(e?.error||r.statusText)); }
+  else { if(policySubsRawData){ const row=policySubsRawData.find(x=>x.id===id); if(row) row.carrier_status=val; } }
 }
 async function exportPolicyCsv(){
   if(!currentUser)return;
