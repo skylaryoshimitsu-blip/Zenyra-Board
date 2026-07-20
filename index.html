@@ -1282,6 +1282,17 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- POLICY SUBMISSION DETAIL MODAL -->
+<div class="modal-overlay" id="policySubDetailModal">
+  <div class="modal-box wide">
+    <div class="modal-title">Submission Detail</div>
+    <div id="psub_content"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('policySubDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- BENEFICIARY DETAIL MODAL (MAPD) -->
 <div class="modal-overlay" id="mapdBeneficiaryModal">
   <div class="modal-box wide">
@@ -2802,7 +2813,7 @@ function isInHeartlandWindow(r){
   return days>=0&&days<=10;
 }
 
-let policySubsRawData=null; let policySubsCanEdit=false;
+let policySubsRawData=null; let policySubsCanEdit=false; let policySubsRowMap={};
 
 async function loadPolicySubs(){
   const cont=document.getElementById('policySubs_content');
@@ -2851,6 +2862,8 @@ function applyPolicySubsFilters(){
 }
 
 function renderPolicySubsTable(rows, canEdit, cont){
+  policySubsRowMap={};
+  rows.forEach(r=>{ policySubsRowMap[r.id]=r; });
   const hasBanking=canEdit&&rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
   const bankingCols=hasBanking?'<th>Banking Institution</th><th>Routing #</th><th>Account #</th><th>Mother\'s Maiden</th>':'';
   cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Effective</th><th>Premium</th><th>AP</th><th>Carrier Status</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{
@@ -2861,8 +2874,42 @@ function renderPolicySubsTable(rows, canEdit, cont){
       ?`<select onchange="updateCarrierStatus('${r.id}',this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--white);font-size:11px;font-family:'Inter',sans-serif;outline:none;">${CARRIER_STATUSES.map(([k,l])=>`<option value="${k}"${r.carrier_status===k?' selected':''}>${l}</option>`).join('')}</select>`
       :(r.carrier_status?carrierStatusLabel(r.carrier_status):'—');
     const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';
-    return`<tr><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;">${statusCell}</td>${bankCells}</tr>`;
+    return`<tr style="cursor:pointer;" onclick="openPolicySubModal('${r.id}')"><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;" onclick="event.stopPropagation()">${statusCell}</td>${bankCells}</tr>`;
   }).join('')}</tbody></table></div>`;
+}
+
+function openPolicySubModal(id){
+  const r=policySubsRowMap[id]; if(!r)return;
+  const canSeeBanking=policySubsCanEdit;
+  const field=(label,val)=>`<div style="display:flex;flex-direction:column;gap:3px;"><div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">${label}</div><div style="font-size:13px;color:var(--white);">${val||'—'}</div></div>`;
+  const dateStr=r.submitted_at?new Date(r.submitted_at).toLocaleString('en-US',{timeZone:'America/New_York'}):'—';
+  const client=[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+  const windowBadge=isInHeartlandWindow(r)?'<span style="background:rgba(251,191,36,0.2);color:#fbbf24;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;">⚠ IN WINDOW</span>':'';
+  const grid=(fields)=>`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:20px;">${fields}</div>`;
+  let html=grid(
+    field('Submitted',dateStr)+
+    field('Agent',r.lb_agents?.name)+
+    field('Client',client)+
+    field('Carrier',(r.carrier_name||'—')+' '+windowBadge)+
+    field('Plan',r.plan_name)+
+    field('State',r.customer_state)+
+    field('Effective Date',r.effective_date)+
+    field('Monthly Premium',r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):null)+
+    field('Annual Premium',r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):null)+
+    field('Carrier Status',carrierStatusLabel(r.carrier_status))
+  );
+  if(canSeeBanking){
+    html+=`<div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px;"><div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin-bottom:12px;">Banking Information</div>`;
+    html+=grid(
+      field('Banking Institution',r.banking_institution)+
+      field('Routing Number',r.routing_number)+
+      field('Account Number',r.account_number)+
+      field("Mother's Maiden Name",r.mothers_maiden_name)
+    );
+    html+=`</div>`;
+  }
+  document.getElementById('psub_content').innerHTML=html;
+  openModal('policySubDetailModal');
 }
 async function updateCarrierStatus(id,val){
   await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
