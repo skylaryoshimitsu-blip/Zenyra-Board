@@ -2171,10 +2171,13 @@ async function toggleNotifDropdown(portal){
   listEl.innerHTML='<div class="notif-empty">Loading…</div>';
   const {data}=await db.from('lb_notifications').select('*').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(5);
   if(!data?.length){ listEl.innerHTML='<div class="notif-empty">No notifications yet.</div>'; return; }
-  listEl.innerHTML=data.map(n=>`<div class="notif-item${n.status==='unread'?' unread':''}" onclick="openNotifDetail('${n.id}','${portal}')">\
+  listEl.innerHTML=data.map(n=>`<div class="notif-item${n.status==='unread'?' unread':''}" style="position:relative;">\
+<div onclick="openNotifDetail('${n.id}','${portal}')" style="cursor:pointer;padding-right:24px;">\
 <div class="notif-item-title">${n.title}</div>\
 <div class="notif-item-msg">${n.message}</div>\
 <div class="notif-item-time">${notifTimeAgo(n.created_at)}</div>\
+</div>\
+<button onclick="event.stopPropagation();deleteBellNotif('${n.id}','${portal}')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0;" title="Delete">×</button>\
 </div>`).join('');
   // Mark all shown unread ones as read
   const unreadIds=data.filter(n=>n.status==='unread').map(n=>n.id);
@@ -2210,7 +2213,7 @@ async function loadInbox(portal){
   }
   const {data,error}=await q;
   if(error){ cont.innerHTML=`<div class="no-data">Failed to load: ${error.message}</div>`; return; }
-  if(!data?.length){ cont.innerHTML=`<div class="no-data">Your inbox is empty.</div><div style="font-size:10px;color:var(--muted);margin-top:8px;">debug — user id: ${currentUser.id} | rows returned: ${data ? data.length : 'null'} | error: ${error ? error.message : 'none'}</div>`; return; }
+  if(!data?.length){ cont.innerHTML='<div class="no-data">Your inbox is empty.</div>'; return; }
   // Batch-fetch client names for any linked submissions
   const subIds=[...new Set(data.map(n=>n.related_submission_id).filter(Boolean))];
   const subMap={};
@@ -2224,16 +2227,43 @@ async function loadInbox(portal){
       ?'<span style="font-size:9px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">SENT</span>'
       :'<span style="font-size:9px;font-weight:700;color:var(--teal);background:rgba(0,201,177,0.1);border:1px solid var(--teal);border-radius:3px;padding:1px 5px;">IN</span>';
   };
-  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
+  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th><th></th></tr></thead><tbody>${data.map(n=>{
     const isSent=isSender&&n.sender_id===currentUser.id;
     const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
-    const confirmBtn=needsConfirm?`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`:'—';
+    let actionCell;
+    if(n.confirmed_at) actionCell='<span style="color:#22c55e;font-size:11px;font-weight:600;">✓ Completed</span>';
+    else if(needsConfirm) actionCell=`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`;
+    else if(n.type==='submission_confirmed') actionCell='<span style="color:var(--teal);font-size:11px;font-weight:600;">✓ Agent Confirmed</span>';
+    else actionCell=`<span style="font-size:11px;color:var(--muted);">${n.status==='read'?'Read':'New'}</span>`;
     const relClient=n.related_submission_id?subMap[n.related_submission_id]||'—':'—';
-    return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
+    return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${actionCell}</td><td><button onclick="deleteNotification('${n.id}','${portal}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 6px;line-height:1;" title="Delete">×</button></td></tr>`;
   }).join('')}</tbody></table>`;
   // Mark unread received notifications as read
   const unreadIds=data.filter(n=>n.status==='unread'&&n.recipient_id===currentUser.id).map(n=>n.id);
   if(unreadIds.length){ await db.from('lb_notifications').update({status:'read'}).in('id',unreadIds); fetchUnreadCount(); }
+}
+
+async function deleteNotification(id,portal){
+  await db.from('lb_notifications').delete().eq('id',id);
+  if(portal) loadInbox(portal);
+  fetchUnreadCount();
+}
+
+async function deleteBellNotif(id,portal){
+  await db.from('lb_notifications').delete().eq('id',id);
+  fetchUnreadCount();
+  const listEl=document.getElementById(portal+'DropdownList');
+  if(!listEl)return;
+  const {data}=await db.from('lb_notifications').select('*').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(5);
+  if(!data?.length){ listEl.innerHTML='<div class="notif-empty">No notifications yet.</div>'; return; }
+  listEl.innerHTML=data.map(n=>`<div class="notif-item${n.status==='unread'?' unread':''}" style="position:relative;">\
+<div onclick="openNotifDetail('${n.id}','${portal}')" style="cursor:pointer;padding-right:24px;">\
+<div class="notif-item-title">${n.title}</div>\
+<div class="notif-item-msg">${n.message}</div>\
+<div class="notif-item-time">${notifTimeAgo(n.created_at)}</div>\
+</div>\
+<button onclick="event.stopPropagation();deleteBellNotif('${n.id}','${portal}')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0;" title="Delete">×</button>\
+</div>`).join('');
 }
 
 function switchInboxSubTab(portal, sub){
@@ -2318,13 +2348,21 @@ async function confirmSubmission(notifId){
   const {data:n}=await db.from('lb_notifications').select('*').eq('id',notifId).single();
   if(!n)return;
   await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
+  if(n.related_submission_id){
+    await db.from('lb_submissions').update({carrier_status:'processed'}).eq('id',n.related_submission_id);
+  }
   if(n.sender_id){
+    let clientLabel='';
+    if(n.related_submission_id){
+      const {data:sub}=await db.from('lb_submissions').select('customer_first_name,customer_last_name').eq('id',n.related_submission_id).single();
+      if(sub) clientLabel=' for '+[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ');
+    }
     await db.from('lb_notifications').insert({
       recipient_id:n.sender_id,
       sender_id:currentUser.id,
       type:'submission_confirmed',
       title:'Submission Confirmed',
-      message:`${currentUser.agentName} confirmed the submission.`,
+      message:`${currentUser.agentName} confirmed the submission${clientLabel}. Policy marked as Processed.`,
       related_submission_id:n.related_submission_id||null,
       status:'unread',
       requires_confirmation:false,
