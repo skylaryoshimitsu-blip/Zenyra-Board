@@ -559,6 +559,10 @@ tbody td:not(:first-child){text-align:right;}
       </div>
     </div>
   </div>
+  <div id="agent-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox — Notifications</div>
+    <div id="agent-inbox-content"><div class="no-data">Loading…</div></div>
+  </div>
   <div class="footer">
     <span class="footer-left" id="a_lastUpdated">—</span>
     <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
@@ -719,10 +723,6 @@ tbody td:not(:first-child){text-align:right;}
         <button class="btn-cancel" onclick="cancelSubmit()">Cancel</button>
       </div>
     </div>
-  </div>
-  <div id="agent-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
-    <div id="agent-inbox-content"><div class="no-data">Loading…</div></div>
   </div>
 </div>
 
@@ -978,9 +978,17 @@ tbody td:not(:first-child){text-align:right;}
       <div id="pb_output"></div>
     </div>
   </div>
-  <div id="admin-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
-    <div id="admin-inbox-content"><div class="no-data">Loading…</div></div>
+  <div id="admin-inbox-panel" style="display:none;flex:1;flex-direction:column;padding:20px 24px;">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;">
+      <button id="adminInboxTab_notif" onclick="switchInboxSubTab('admin','notif')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Notifications</button>
+      <button id="adminInboxTab_remind" onclick="switchInboxSubTab('admin','remind')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Send Reminder</button>
+    </div>
+    <div id="admin-inbox-notif" style="flex:1;overflow-y:auto;">
+      <div id="admin-inbox-content"><div class="no-data">Loading…</div></div>
+    </div>
+    <div id="admin-inbox-remind" style="display:none;flex:1;overflow-y:auto;">
+      <div id="admin-remind-form"></div>
+    </div>
   </div>
   <div id="admin-eod-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">End of Day Summary</div>
@@ -1182,9 +1190,17 @@ tbody td:not(:first-child){text-align:right;}
     </div>
     <div id="policySubs_content"><div class="no-data">Select a date range and click Load.</div></div>
   </div>
-  <div id="dialer-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox</div>
-    <div id="dialer-inbox-content"><div class="no-data">Loading…</div></div>
+  <div id="dialer-inbox-panel" style="display:none;flex:1;flex-direction:column;padding:20px 24px;">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;">
+      <button id="dialerInboxTab_notif" onclick="switchInboxSubTab('dialer','notif')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Notifications</button>
+      <button id="dialerInboxTab_remind" onclick="switchInboxSubTab('dialer','remind')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Send Reminder</button>
+    </div>
+    <div id="dialer-inbox-notif" style="flex:1;overflow-y:auto;">
+      <div id="dialer-inbox-content"><div class="no-data">Loading…</div></div>
+    </div>
+    <div id="dialer-inbox-remind" style="display:none;flex:1;overflow-y:auto;">
+      <div id="dialer-remind-form"></div>
+    </div>
   </div>
   <div id="dialer-eod-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
     <div class="section-eyebrow" style="margin-bottom:16px;">End of Day Summary</div>
@@ -1278,6 +1294,17 @@ tbody td:not(:first-child){text-align:right;}
     <div id="bv_content"></div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeModal('beneficiaryModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- POLICY SUBMISSION DETAIL MODAL -->
+<div class="modal-overlay" id="policySubDetailModal">
+  <div class="modal-box wide">
+    <div class="modal-title">Submission Detail</div>
+    <div id="psub_content"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('policySubDetailModal')">Close</button>
     </div>
   </div>
 </div>
@@ -1738,7 +1765,7 @@ function switchAdminTab(tab){
   if(tab==='scorer')  { populateScorerAgents(); loadRecentScores(); }
   if(tab==='agents')  renderAgentManagement();
   if(tab==='reports') populateReportAgents();
-  if(tab==='inbox')   loadInbox('admin');
+  if(tab==='inbox')   { switchInboxSubTab('admin','notif'); loadInbox('admin'); }
   if(tab==='eod'){    const d=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}); document.getElementById('eod_date').value=d; renderEODSummary(d); }
 }
 
@@ -2172,21 +2199,123 @@ async function loadInbox(portal){
   const cont=document.getElementById(contentId);
   if(!cont||!currentUser)return;
   cont.innerHTML='<div class="no-data">Loading…</div>';
-  const {data}=await db.from('lb_notifications').select('*,lb_submissions(client_name)').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
-  if(!data?.length){ cont.innerHTML='<div class="no-data">Your inbox is empty.</div>'; return; }
-  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Related</th><th>Received</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
+  // Agents see only received notifications; dialer/admin see received + sent (paper trail)
+  const isSender=portal==='dialer'||portal==='admin';
+  // Use same bare select('*') pattern as the bell count — no joins to avoid PostgREST FK issues
+  let q=db.from('lb_notifications').select('*').order('created_at',{ascending:false}).limit(100);
+  if(isSender){
+    q=q.or(`recipient_id.eq.${currentUser.id},sender_id.eq.${currentUser.id}`);
+  } else {
+    q=q.eq('recipient_id',currentUser.id);
+  }
+  const {data,error}=await q;
+  if(error){ cont.innerHTML=`<div class="no-data">Failed to load: ${error.message}</div>`; return; }
+  if(!data?.length){ cont.innerHTML=`<div class="no-data">Your inbox is empty.</div><div style="font-size:10px;color:var(--muted);margin-top:8px;">debug — user id: ${currentUser.id} | rows returned: ${data ? data.length : 'null'} | error: ${error ? error.message : 'none'}</div>`; return; }
+  // Batch-fetch client names for any linked submissions
+  const subIds=[...new Set(data.map(n=>n.related_submission_id).filter(Boolean))];
+  const subMap={};
+  if(subIds.length){
+    const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name').in('id',subIds);
+    (subs||[]).forEach(s=>{ subMap[s.id]=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'; });
+  }
+  const dirLabel=(n)=>{
+    if(!isSender) return '';
+    return n.sender_id===currentUser.id
+      ?'<span style="font-size:9px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">SENT</span>'
+      :'<span style="font-size:9px;font-weight:700;color:var(--teal);background:rgba(0,201,177,0.1);border:1px solid var(--teal);border-radius:3px;padding:1px 5px;">IN</span>';
+  };
+  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
+    const isSent=isSender&&n.sender_id===currentUser.id;
     const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
     const confirmBtn=needsConfirm?`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`:'—';
-    const relClient=n.lb_submissions?.client_name||'—';
-    return`<tr class="${n.status==='unread'?'unread':''}"><td style="width:8px;padding:0;"></td><td style="font-weight:${n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
+    const relClient=n.related_submission_id?subMap[n.related_submission_id]||'—':'—';
+    return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
   }).join('')}</tbody></table>`;
-  // Mark any unread as read now that user has opened the inbox
-  const unreadIds=data.filter(n=>n.status==='unread').map(n=>n.id);
+  // Mark unread received notifications as read
+  const unreadIds=data.filter(n=>n.status==='unread'&&n.recipient_id===currentUser.id).map(n=>n.id);
   if(unreadIds.length){ await db.from('lb_notifications').update({status:'read'}).in('id',unreadIds); fetchUnreadCount(); }
 }
 
+function switchInboxSubTab(portal, sub){
+  ['notif','remind'].forEach(s=>{
+    const pane=document.getElementById(portal+'-inbox-'+s);
+    const btn=document.getElementById(portal+'InboxTab_'+s);
+    if(pane) pane.style.display=s===sub?'block':'none';
+    if(btn){ btn.style.borderBottomColor=s===sub?'var(--teal)':'transparent'; btn.style.color=s===sub?'var(--white)':'var(--muted)'; }
+  });
+  if(sub==='remind') loadRemindForm(portal);
+}
+
+let remindAgentMap={}; // lb_users.id → lb_agents.id (agent_id on lb_submissions)
+
+async function loadRemindForm(portal){
+  const formEl=document.getElementById(portal+'-remind-form');
+  if(!formEl)return;
+  formEl.innerHTML='<div class="no-data">Loading agents…</div>';
+  // Source from lb_users so we have recipient IDs directly; join lb_agents for display name
+  const {data:users}=await db.from('lb_users').select('id,display_name,agent_id').eq('role','agent').order('display_name');
+  if(!users?.length){ formEl.innerHTML='<div class="no-data">No agent accounts found.</div>'; return; }
+  remindAgentMap={};
+  users.forEach(u=>{ remindAgentMap[u.id]=u.agent_id; });
+  const sel=(id,opts,onch='')=>`<select id="${id}" onchange="${onch}" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;width:100%;">${opts}</select>`;
+  const lbl=(text)=>`<label style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);display:block;margin-bottom:4px;">${text}</label>`;
+  const agentOpts='<option value="">— Select Agent —</option>'+users.map(u=>`<option value="${u.id}">${u.display_name}</option>`).join('');
+  formEl.innerHTML=`
+    <div style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
+      <div>${lbl('Agent')}${sel('remind_agent',agentOpts,`loadReminderSubs('${portal}')`)}
+      </div>
+      <div>${lbl('Related Submission (optional)')}${sel('remind_sub','<option value="">— Select Submission —</option>')}
+      </div>
+      <div>${lbl('Message')}
+        <textarea id="remind_msg" rows="4" placeholder="e.g. Please confirm this submission is complete." style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;width:100%;resize:vertical;box-sizing:border-box;"></textarea>
+      </div>
+      <button onclick="sendReminder('${portal}')" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-start;">Send Reminder</button>
+      <div id="remind_status"></div>
+    </div>`;
+}
+
+async function loadReminderSubs(portal){
+  const userId=document.getElementById('remind_agent').value;
+  const subSel=document.getElementById('remind_sub');
+  if(!userId||!subSel)return;
+  const lbAgentId=remindAgentMap[userId];
+  if(!lbAgentId){ subSel.innerHTML='<option value="">— No submissions found —</option>'; return; }
+  subSel.innerHTML='<option value="">Loading…</option>';
+  const {data}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,submitted_at').eq('agent_id',lbAgentId).eq('status','live').order('submitted_at',{ascending:false}).limit(50);
+  subSel.innerHTML='<option value="">— Select Submission —</option>'+(data||[]).map(r=>{
+    const name=[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+    const date=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'';
+    return`<option value="${r.id}">${name} — ${r.carrier_name||'?'} (${date})</option>`;
+  }).join('');
+}
+
+async function sendReminder(portal){
+  const recipientId=document.getElementById('remind_agent').value;
+  const subId=document.getElementById('remind_sub').value;
+  const msg=document.getElementById('remind_msg').value.trim();
+  const statusEl=document.getElementById('remind_status');
+  if(!recipientId){ statusEl.textContent='Please select an agent.'; return; }
+  if(!msg){ statusEl.textContent='Please enter a message.'; return; }
+  const {error}=await db.from('lb_notifications').insert({
+    recipient_id: recipientId,
+    sender_id: currentUser.id,
+    type: 'reminder',
+    title: 'Reminder from ' + (currentUser.agentName||'Lent'),
+    message: msg,
+    related_submission_id: subId||null,
+    status: 'unread',
+    requires_confirmation: true,
+  });
+  if(error){ statusEl.textContent='Failed: '+error.message; return; }
+  document.getElementById('remind_msg').value='';
+  document.getElementById('remind_agent').value='';
+  document.getElementById('remind_sub').innerHTML='<option value="">— Select Submission —</option>';
+  statusEl.innerHTML='<span style="color:var(--green);font-weight:600;">✓ Reminder sent.</span>';
+  fetchUnreadCount();
+}
+
 async function confirmSubmission(notifId){
-  const {data:n}=await db.from('lb_notifications').select('*,lb_submissions(client_name)').eq('id',notifId).single();
+  const {data:n}=await db.from('lb_notifications').select('*').eq('id',notifId).single();
   if(!n)return;
   await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
   if(n.sender_id){
@@ -2195,7 +2324,7 @@ async function confirmSubmission(notifId){
       sender_id:currentUser.id,
       type:'submission_confirmed',
       title:'Submission Confirmed',
-      message:`${currentUser.agentName} confirmed the submission${n.lb_submissions?.client_name?' for '+n.lb_submissions.client_name:''}.`,
+      message:`${currentUser.agentName} confirmed the submission.`,
       related_submission_id:n.related_submission_id||null,
       status:'unread',
       requires_confirmation:false,
@@ -2790,7 +2919,7 @@ function switchDialerTab(tab){
   if(tab==='wow')         renderDialerWoW();
   if(tab==='reports')     { populateDialerReportAgents(); populateReportAgents('dl_perf_'); }
   if(tab==='subs')        loadPolicySubs();
-  if(tab==='inbox')       loadInbox('dialer');
+  if(tab==='inbox')       { switchInboxSubTab('dialer','notif'); loadInbox('dialer'); }
   if(tab==='eod')         { const d=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}); document.getElementById('eod_date_d').value=d; renderEODSummary(d,'dialer'); }
 }
 const CARRIER_STATUSES=[['awaiting_window','Awaiting Window'],['ready_to_submit','Ready to Submit'],['submitted_to_carrier','Submitted to Carrier'],['processed','Processed']];
@@ -2802,7 +2931,7 @@ function isInHeartlandWindow(r){
   return days>=0&&days<=10;
 }
 
-let policySubsRawData=null; let policySubsCanEdit=false;
+let policySubsRawData=null; let policySubsCanEdit=false; let policySubsRowMap={};
 
 async function loadPolicySubs(){
   const cont=document.getElementById('policySubs_content');
@@ -2851,6 +2980,8 @@ function applyPolicySubsFilters(){
 }
 
 function renderPolicySubsTable(rows, canEdit, cont){
+  policySubsRowMap={};
+  rows.forEach(r=>{ policySubsRowMap[r.id]=r; });
   const hasBanking=canEdit&&rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
   const bankingCols=hasBanking?'<th>Banking Institution</th><th>Routing #</th><th>Account #</th><th>Mother\'s Maiden</th>':'';
   cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Effective</th><th>Premium</th><th>AP</th><th>Carrier Status</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{
@@ -2861,8 +2992,90 @@ function renderPolicySubsTable(rows, canEdit, cont){
       ?`<select onchange="updateCarrierStatus('${r.id}',this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--white);font-size:11px;font-family:'Inter',sans-serif;outline:none;">${CARRIER_STATUSES.map(([k,l])=>`<option value="${k}"${r.carrier_status===k?' selected':''}>${l}</option>`).join('')}</select>`
       :(r.carrier_status?carrierStatusLabel(r.carrier_status):'—');
     const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';
-    return`<tr><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;">${statusCell}</td>${bankCells}</tr>`;
+    return`<tr style="cursor:pointer;" onclick="openPolicySubModal('${r.id}')"><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;" onclick="event.stopPropagation()">${statusCell}</td>${bankCells}</tr>`;
   }).join('')}</tbody></table></div>`;
+}
+
+function openPolicySubModal(id){
+  const r=policySubsRowMap[id]; if(!r)return;
+  const canSeeBanking=policySubsCanEdit;
+  const sec=(title)=>`<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);margin:18px 0 10px;border-top:1px solid var(--border);padding-top:14px;">${title}</div>`;
+  const field=(label,val)=>`<div style="display:flex;flex-direction:column;gap:3px;"><div style="font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${label}</div><div style="font-size:13px;color:var(--white);">${val||'—'}</div></div>`;
+  const grid=(fields)=>`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px 20px;">${fields}</div>`;
+  const windowBadge=isInHeartlandWindow(r)?'<span style="background:rgba(251,191,36,0.2);color:#fbbf24;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;margin-left:6px;">⚠ IN WINDOW</span>':'';
+  const submitted=r.submitted_at?new Date(r.submitted_at).toLocaleString('en-US',{timeZone:'America/New_York'}):'—';
+
+  let html='';
+
+  // ── Customer ──
+  html+=sec('Customer Information');
+  html+=grid(
+    field('First Name',r.customer_first_name)+
+    field('Last Name',r.customer_last_name)+
+    field('Date of Birth',r.customer_dob)+
+    field('Gender',r.customer_gender)+
+    field('Phone',r.customer_phone)+
+    field('Email',r.customer_email)
+  );
+
+  // ── Address ──
+  html+=sec('Address');
+  html+=grid(
+    field('Street',r.customer_street)+
+    field('City',r.customer_city)+
+    field('State',r.customer_state)+
+    field('Postal Code',r.customer_postal_code)
+  );
+
+  // ── Product & Policy ──
+  html+=sec('Product & Policy');
+  html+=grid(
+    field('Product Type',r.product_type)+
+    field('Policy Number',r.policy_number)+
+    field('Carrier',(r.carrier_name||'—')+windowBadge)+
+    field('Plan',r.plan_name)+
+    field('Monthly Premium',r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):null)+
+    field('Annual Premium',r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):null)+
+    field('Effective Date',r.effective_date)+
+    field('Draft Date',r.draft_date)+
+    field('Recurring Draft Day',r.recurring_draft_day)+
+    field('Carrier Status',carrierStatusLabel(r.carrier_status))+
+    field('Submitted',submitted)+
+    field('Agent',r.lb_agents?.name)
+  );
+
+  // ── Agent ──
+  html+=sec('Writing Agent');
+  html+=grid(
+    field('First Name',r.agent_first_name)+
+    field('Last Name',r.agent_last_name)+
+    field('Email',r.agent_email)+
+    field('NPN',r.agent_npn)
+  );
+
+  // ── Medical ──
+  if(r.pcp_name||r.specialist_name||r.medications){
+    html+=sec('Medical');
+    html+=grid(
+      field('PCP',r.pcp_name)+
+      field('Specialist',r.specialist_name)+
+      field('Medications',r.medications)
+    );
+  }
+
+  // ── Banking (admin/dialer with canSeeBanking only) ──
+  if(canSeeBanking){
+    html+=sec('Banking Information');
+    html+=grid(
+      field('Institution',r.banking_institution)+
+      field('Routing Number',r.routing_number)+
+      field('Account Number',r.account_number)+
+      field("Mother's Maiden Name",r.mothers_maiden_name)
+    );
+  }
+
+  document.getElementById('psub_content').innerHTML=html;
+  openModal('policySubDetailModal');
 }
 async function updateCarrierStatus(id,val){
   await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
