@@ -35,11 +35,19 @@ export default async function handler(req, res) {
 
   // Fetch submissions in the requested date range (by submitted_at)
   const selectFields = [
-    'id', 'submitted_at', 'agent_id',
+    'id', 'submitted_at', 'agent_id', 'created_at',
+    // customer
     'customer_first_name', 'customer_last_name',
-    'carrier_name', 'plan_name', 'customer_state',
+    'customer_phone', 'customer_email', 'customer_dob', 'customer_gender',
+    'customer_street', 'customer_city', 'customer_state', 'customer_postal_code',
+    // product
+    'product_type', 'policy_number', 'carrier_name', 'plan_name',
     'monthly_premium', 'annual_premium',
-    'effective_date', 'carrier_status', 'created_at',
+    'recurring_draft_day', 'draft_date', 'effective_date', 'carrier_status',
+    // agent
+    'agent_first_name', 'agent_last_name', 'agent_email', 'agent_npn',
+    // medical
+    'pcp_name', 'specialist_name', 'medications',
     'lb_agents(name)',
     ...(canSeeBanking ? BANKING_FIELDS : [])
   ].join(',');
