@@ -2199,16 +2199,36 @@ async function loadInbox(portal){
   const cont=document.getElementById(contentId);
   if(!cont||!currentUser)return;
   cont.innerHTML='<div class="no-data">Loading…</div>';
-  const {data}=await db.from('lb_notifications').select('*,lb_submissions(client_name)').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(50);
+  // Agents see only received notifications; dialer/admin see received + sent (paper trail)
+  const isSender=portal==='dialer'||portal==='admin';
+  let q=db.from('lb_notifications')
+    .select('*,lb_submissions(customer_first_name,customer_last_name),lb_users!sender_id(display_name)')
+    .order('created_at',{ascending:false}).limit(100);
+  if(isSender){
+    q=q.or(`recipient_id.eq.${currentUser.id},sender_id.eq.${currentUser.id}`);
+  } else {
+    q=q.eq('recipient_id',currentUser.id);
+  }
+  const {data,error}=await q;
+  if(error){ cont.innerHTML=`<div class="no-data">Failed to load: ${error.message}</div>`; return; }
   if(!data?.length){ cont.innerHTML='<div class="no-data">Your inbox is empty.</div>'; return; }
-  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Related</th><th>Received</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
+  const dirLabel=(n)=>{
+    if(!isSender) return '';
+    return n.sender_id===currentUser.id
+      ?'<span style="font-size:9px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">SENT</span>'
+      :'<span style="font-size:9px;font-weight:700;color:var(--teal);background:rgba(0,201,177,0.1);border:1px solid var(--teal);border-radius:3px;padding:1px 5px;">IN</span>';
+  };
+  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>From</th><th>Time</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
+    const isSent=isSender&&n.sender_id===currentUser.id;
     const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
     const confirmBtn=needsConfirm?`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`:'—';
-    const relClient=n.lb_submissions?.client_name||'—';
-    return`<tr class="${n.status==='unread'?'unread':''}"><td style="width:8px;padding:0;"></td><td style="font-weight:${n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
+    const sub=n.lb_submissions;
+    const relClient=sub?[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—':'—';
+    const fromName=n['lb_users']?.display_name||'—';
+    return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:240px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${fromName}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
   }).join('')}</tbody></table>`;
-  // Mark any unread as read now that user has opened the inbox
-  const unreadIds=data.filter(n=>n.status==='unread').map(n=>n.id);
+  // Mark unread received notifications as read
+  const unreadIds=data.filter(n=>n.status==='unread'&&n.recipient_id===currentUser.id).map(n=>n.id);
   if(unreadIds.length){ await db.from('lb_notifications').update({status:'read'}).in('id',unreadIds); fetchUnreadCount(); }
 }
 
@@ -2291,7 +2311,7 @@ async function sendReminder(portal){
 }
 
 async function confirmSubmission(notifId){
-  const {data:n}=await db.from('lb_notifications').select('*,lb_submissions(client_name)').eq('id',notifId).single();
+  const {data:n}=await db.from('lb_notifications').select('*,lb_submissions(customer_first_name,customer_last_name)').eq('id',notifId).single();
   if(!n)return;
   await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
   if(n.sender_id){
@@ -2300,7 +2320,7 @@ async function confirmSubmission(notifId){
       sender_id:currentUser.id,
       type:'submission_confirmed',
       title:'Submission Confirmed',
-      message:`${currentUser.agentName} confirmed the submission${n.lb_submissions?.client_name?' for '+n.lb_submissions.client_name:''}.`,
+      message:`${currentUser.agentName} confirmed the submission${n.lb_submissions?` for ${[(n.lb_submissions.customer_first_name||'').trim(),(n.lb_submissions.customer_last_name||'').trim()].filter(Boolean).join(' ')||''}`.trimEnd():''}.`,
       related_submission_id:n.related_submission_id||null,
       status:'unread',
       requires_confirmation:false,
