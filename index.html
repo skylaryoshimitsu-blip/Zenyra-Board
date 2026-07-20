@@ -2201,9 +2201,8 @@ async function loadInbox(portal){
   cont.innerHTML='<div class="no-data">Loading…</div>';
   // Agents see only received notifications; dialer/admin see received + sent (paper trail)
   const isSender=portal==='dialer'||portal==='admin';
-  let q=db.from('lb_notifications')
-    .select('*,lb_submissions(customer_first_name,customer_last_name)')
-    .order('created_at',{ascending:false}).limit(100);
+  // Use same bare select('*') pattern as the bell count — no joins to avoid PostgREST FK issues
+  let q=db.from('lb_notifications').select('*').order('created_at',{ascending:false}).limit(100);
   if(isSender){
     q=q.or(`recipient_id.eq.${currentUser.id},sender_id.eq.${currentUser.id}`);
   } else {
@@ -2212,6 +2211,13 @@ async function loadInbox(portal){
   const {data,error}=await q;
   if(error){ cont.innerHTML=`<div class="no-data">Failed to load: ${error.message}</div>`; return; }
   if(!data?.length){ cont.innerHTML='<div class="no-data">Your inbox is empty.</div>'; return; }
+  // Batch-fetch client names for any linked submissions
+  const subIds=[...new Set(data.map(n=>n.related_submission_id).filter(Boolean))];
+  const subMap={};
+  if(subIds.length){
+    const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name').in('id',subIds);
+    (subs||[]).forEach(s=>{ subMap[s.id]=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'; });
+  }
   const dirLabel=(n)=>{
     if(!isSender) return '';
     return n.sender_id===currentUser.id
@@ -2222,8 +2228,7 @@ async function loadInbox(portal){
     const isSent=isSender&&n.sender_id===currentUser.id;
     const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
     const confirmBtn=needsConfirm?`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`:'—';
-    const sub=n.lb_submissions;
-    const relClient=sub?[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—':'—';
+    const relClient=n.related_submission_id?subMap[n.related_submission_id]||'—':'—';
     return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${confirmBtn}</td></tr>`;
   }).join('')}</tbody></table>`;
   // Mark unread received notifications as read
@@ -2310,7 +2315,7 @@ async function sendReminder(portal){
 }
 
 async function confirmSubmission(notifId){
-  const {data:n}=await db.from('lb_notifications').select('*,lb_submissions(customer_first_name,customer_last_name)').eq('id',notifId).single();
+  const {data:n}=await db.from('lb_notifications').select('*').eq('id',notifId).single();
   if(!n)return;
   await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
   if(n.sender_id){
@@ -2319,7 +2324,7 @@ async function confirmSubmission(notifId){
       sender_id:currentUser.id,
       type:'submission_confirmed',
       title:'Submission Confirmed',
-      message:`${currentUser.agentName} confirmed the submission${n.lb_submissions?` for ${[(n.lb_submissions.customer_first_name||'').trim(),(n.lb_submissions.customer_last_name||'').trim()].filter(Boolean).join(' ')||''}`.trimEnd():''}.`,
+      message:`${currentUser.agentName} confirmed the submission.`,
       related_submission_id:n.related_submission_id||null,
       status:'unread',
       requires_confirmation:false,
