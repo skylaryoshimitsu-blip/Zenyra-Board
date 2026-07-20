@@ -1165,6 +1165,18 @@ tbody td:not(:first-child){text-align:right;}
           <input type="date" id="policySubs_to" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"/>
         </div>
       </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Carrier</label>
+        <select id="policySubs_carrier" onchange="applyPolicySubsFilters()" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;min-width:160px;">
+          <option value="all">All Carriers</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);">Agent</label>
+        <select id="policySubs_agent" onchange="applyPolicySubsFilters()" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;min-width:140px;">
+          <option value="all">All Agents</option>
+        </select>
+      </div>
       <button onclick="loadPolicySubs()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;">Load</button>
       <button onclick="exportPolicyCsv()" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;">&#x2B07; Export CSV</button>
     </div>
@@ -2790,6 +2802,8 @@ function isInHeartlandWindow(r){
   return days>=0&&days<=10;
 }
 
+let policySubsRawData=null; let policySubsCanEdit=false;
+
 async function loadPolicySubs(){
   const cont=document.getElementById('policySubs_content');
   if(!cont||!currentUser) return;
@@ -2806,25 +2820,49 @@ async function loadPolicySubs(){
     const res=await fetch('/api/policy-submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,from,to})});
     const json=await res.json();
     if(!res.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||res.statusText}</div>`; return; }
-    const rows=json.data||[];
-    if(!rows.length){ cont.innerHTML='<div class="no-data">No submissions found for this range.</div>'; return; }
-    const canEdit=json.canSeeBanking;
-    const hasBanking=canEdit&&rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
-    const bankingCols=hasBanking?'<th>Banking Institution</th><th>Routing #</th><th>Account #</th><th>Mother\'s Maiden</th>':'';
-    const statusOpts=CARRIER_STATUSES.map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
-    cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Effective</th><th>Premium</th><th>AP</th><th>Carrier Status</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{
-      const dateStr=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'—';
-      const client=[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
-      const windowBadge=isInHeartlandWindow(r)?'<span style="margin-left:6px;background:rgba(251,191,36,0.2);color:#fbbf24;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:middle;">⚠ IN WINDOW</span>':'';
-      const statusCell=canEdit&&r.carrier_name==='Heartland'
-        ?`<select onchange="updateCarrierStatus('${r.id}',this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--white);font-size:11px;font-family:'Inter',sans-serif;outline:none;">${CARRIER_STATUSES.map(([k,l])=>`<option value="${k}"${r.carrier_status===k?' selected':''}>${l}</option>`).join('')}</select>`
-        :(r.carrier_status?carrierStatusLabel(r.carrier_status):'—');
-      const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';
-      return`<tr><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;">${statusCell}</td>${bankCells}</tr>`;
-    }).join('')}</tbody></table></div>`;
+    policySubsRawData=json.data||[];
+    policySubsCanEdit=json.canSeeBanking;
+    // Populate carrier dropdown; default to Heartland if present
+    const carriers=[...new Set(policySubsRawData.map(r=>r.carrier_name).filter(Boolean))].sort();
+    const carrierSel=document.getElementById('policySubs_carrier');
+    carrierSel.innerHTML='<option value="all">All Carriers</option>'+carriers.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(carriers.includes('Heartland')) carrierSel.value='Heartland';
+    // Populate agent dropdown
+    const agents=[...new Set(policySubsRawData.map(r=>r.lb_agents?.name).filter(Boolean))].sort();
+    const agentSel=document.getElementById('policySubs_agent');
+    agentSel.innerHTML='<option value="all">All Agents</option>'+agents.map(a=>`<option value="${a}">${a}</option>`).join('');
+    agentSel.value='all';
+    applyPolicySubsFilters();
   }catch(err){
     cont.innerHTML=`<div class="no-data">Request failed: ${err.message}</div>`;
   }
+}
+
+function applyPolicySubsFilters(){
+  const cont=document.getElementById('policySubs_content');
+  if(!policySubsRawData||!cont) return;
+  const carrier=document.getElementById('policySubs_carrier').value;
+  const agent=document.getElementById('policySubs_agent').value;
+  let rows=policySubsRawData;
+  if(carrier!=='all') rows=rows.filter(r=>r.carrier_name===carrier);
+  if(agent!=='all') rows=rows.filter(r=>r.lb_agents?.name===agent);
+  if(!rows.length){ cont.innerHTML='<div class="no-data">No submissions match the selected filters.</div>'; return; }
+  renderPolicySubsTable(rows, policySubsCanEdit, cont);
+}
+
+function renderPolicySubsTable(rows, canEdit, cont){
+  const hasBanking=canEdit&&rows.some(r=>r.banking_institution!=null||r.routing_number!=null);
+  const bankingCols=hasBanking?'<th>Banking Institution</th><th>Routing #</th><th>Account #</th><th>Mother\'s Maiden</th>':'';
+  cont.innerHTML=`<div style="overflow-x:auto;"><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>State</th><th>Effective</th><th>Premium</th><th>AP</th><th>Carrier Status</th>${bankingCols}</tr></thead><tbody>${rows.map(r=>{
+    const dateStr=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'—';
+    const client=[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+    const windowBadge=isInHeartlandWindow(r)?'<span style="margin-left:6px;background:rgba(251,191,36,0.2);color:#fbbf24;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;vertical-align:middle;">⚠ IN WINDOW</span>':'';
+    const statusCell=canEdit&&r.carrier_name==='Heartland'
+      ?`<select onchange="updateCarrierStatus('${r.id}',this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3px 6px;color:var(--white);font-size:11px;font-family:'Inter',sans-serif;outline:none;">${CARRIER_STATUSES.map(([k,l])=>`<option value="${k}"${r.carrier_status===k?' selected':''}>${l}</option>`).join('')}</select>`
+      :(r.carrier_status?carrierStatusLabel(r.carrier_status):'—');
+    const bankCells=hasBanking?`<td>${r.banking_institution||'—'}</td><td>${r.routing_number||'—'}</td><td>${r.account_number||'—'}</td><td>${r.mothers_maiden_name||'—'}</td>`:'';
+    return`<tr><td style="white-space:nowrap;">${dateStr}</td><td>${r.lb_agents?.name||'—'}</td><td>${client}</td><td>${r.carrier_name||'—'}${windowBadge}</td><td>${r.plan_name||'—'}</td><td>${r.customer_state||'—'}</td><td style="white-space:nowrap;">${r.effective_date||'—'}</td><td>${r.monthly_premium!=null?'$'+Number(r.monthly_premium).toFixed(2):'—'}</td><td>${r.annual_premium!=null?'$'+Number(r.annual_premium).toFixed(2):'—'}</td><td style="min-width:160px;">${statusCell}</td>${bankCells}</tr>`;
+  }).join('')}</tbody></table></div>`;
 }
 async function updateCarrierStatus(id,val){
   await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
