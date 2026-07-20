@@ -2210,7 +2210,7 @@ async function loadInbox(portal){
   }
   const {data,error}=await q;
   if(error){ cont.innerHTML=`<div class="no-data">Failed to load: ${error.message}</div>`; return; }
-  if(!data?.length){ cont.innerHTML='<div class="no-data">Your inbox is empty.</div>'; return; }
+  if(!data?.length){ cont.innerHTML=`<div class="no-data">Your inbox is empty.</div><div style="font-size:10px;color:var(--muted);margin-top:8px;">debug — user id: ${currentUser.id} | rows returned: ${data ? data.length : 'null'} | error: ${error ? error.message : 'none'}</div>`; return; }
   // Batch-fetch client names for any linked submissions
   const subIds=[...new Set(data.map(n=>n.related_submission_id).filter(Boolean))];
   const subMap={};
