@@ -2330,7 +2330,7 @@ async function sendReminder(portal){
   const statusEl=document.getElementById('remind_status');
   if(!recipientId){ statusEl.textContent='Please select an agent.'; return; }
   if(!msg){ statusEl.textContent='Please enter a message.'; return; }
-  const {error}=await db.from('lb_notifications').insert({
+  const {data:inserted,error}=await db.from('lb_notifications').insert({
     recipient_id: recipientId,
     sender_id: currentUser.id,
     type: 'reminder',
@@ -2339,12 +2339,20 @@ async function sendReminder(portal){
     related_submission_id: subId||null,
     status: 'unread',
     requires_confirmation: true,
-  });
+  }).select('id').single();
   if(error){ statusEl.textContent='Failed: '+error.message; return; }
+  // Schedule auto-escalation after 4 hours if agent hasn't confirmed
+  if(inserted?.id){
+    fetch('/api/schedule-escalation',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({notificationId:inserted.id,userId:currentUser.id,escalateAfterHours:4})
+    }).catch(()=>{}); // fire-and-forget; escalation failure doesn't block the UI
+  }
   document.getElementById('remind_msg').value='';
   document.getElementById('remind_agent').value='';
   document.getElementById('remind_sub').innerHTML='<option value="">— Select Submission —</option>';
-  statusEl.innerHTML='<span style="color:var(--green);font-weight:600;">✓ Reminder sent.</span>';
+  statusEl.innerHTML='<span style="color:var(--green);font-weight:600;">✓ Reminder sent. Agent will be escalated if no response within 4 hours.</span>';
   fetchUnreadCount();
 }
 

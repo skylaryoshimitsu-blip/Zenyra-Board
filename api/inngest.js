@@ -1,12 +1,13 @@
 // api/inngest.js
 import { inngest } from '../inngest/client.js';
 import { scoreAncillaryCall } from '../inngest/functions/scoreAncillaryCall.js';
+import { escalateOverdueReminder } from '../inngest/functions/escalateOverdueReminder.js';
 
 export const config = { api: { bodyParser: false } };
 
 async function getHandler() {
   const { serve } = await import('inngest/next');
-  return serve({ client: inngest, functions: [scoreAncillaryCall] });
+  return serve({ client: inngest, functions: [scoreAncillaryCall, escalateOverdueReminder] });
 }
 
 let handler = null;
