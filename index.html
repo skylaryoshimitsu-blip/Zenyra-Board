@@ -2348,21 +2348,28 @@ async function confirmSubmission(notifId){
   const {data:n}=await db.from('lb_notifications').select('*').eq('id',notifId).single();
   if(!n)return;
   await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
+  let clientLabel='';
+  let processedOk=false;
   if(n.related_submission_id){
-    await db.from('lb_submissions').update({carrier_status:'processed'}).eq('id',n.related_submission_id);
+    const {data:sub}=await db.from('lb_submissions').select('customer_first_name,customer_last_name').eq('id',n.related_submission_id).single();
+    if(sub) clientLabel=' for '+[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ');
+    // Use service-key endpoint so agent RLS cannot block the status update
+    const r=await fetch('/api/update-carrier-status',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({submissionId:n.related_submission_id,status:'processed',userId:currentUser.id})
+    });
+    processedOk=r.ok;
+    if(!r.ok){ const e=await r.json().catch(()=>{}); console.error('carrier status update failed',e); }
   }
   if(n.sender_id){
-    let clientLabel='';
-    if(n.related_submission_id){
-      const {data:sub}=await db.from('lb_submissions').select('customer_first_name,customer_last_name').eq('id',n.related_submission_id).single();
-      if(sub) clientLabel=' for '+[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ');
-    }
+    const suffix=processedOk?' Policy marked as Processed.':'';
     await db.from('lb_notifications').insert({
       recipient_id:n.sender_id,
       sender_id:currentUser.id,
       type:'submission_confirmed',
       title:'Submission Confirmed',
-      message:`${currentUser.agentName} confirmed the submission${clientLabel}. Policy marked as Processed.`,
+      message:`${currentUser.agentName} confirmed the submission${clientLabel}.${suffix}`,
       related_submission_id:n.related_submission_id||null,
       status:'unread',
       requires_confirmation:false,
@@ -2886,20 +2893,21 @@ async function renderEODSummary(date,portal='admin'){
   cont.innerHTML='<div class="no-data">Loading…</div>';
   if(dlBtn)dlBtn.style.display='none';
   try{
-    const [subsRes,heartlandRes,notifRes]=await Promise.all([
+    const [subsRes,heartlandRes,processedRes,notifRes]=await Promise.all([
       db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').gte('submitted_at',date+'T00:00:00').lte('submitted_at',date+'T23:59:59').order('submitted_at',{ascending:false}),
       db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_name','Heartland').or('carrier_status.is.null,carrier_status.eq.awaiting_window,carrier_status.eq.ready_to_submit'),
+      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_status','processed').order('effective_date',{ascending:true}),
       db.from('lb_notifications').select('id,title,message,created_at,lb_users!recipient_id(display_name)').eq('escalated',true).gte('created_at',date+'T00:00:00').lte('created_at',date+'T23:59:59')
     ]);
     const todaySubs=subsRes.data||[];
     const allHeartland=heartlandRes.data||[];
+    const processedAll=processedRes.data||[];
     const escalatedNotifs=notifRes.data||[];
-    const processedToday=todaySubs.filter(r=>r.carrier_status==='processed');
     const inWindow=allHeartland.filter(r=>isInHeartlandWindow(r));
     const awaitingWindow=allHeartland.filter(r=>r.carrier_status==='awaiting_window'||r.carrier_status==null);
     const byAgent={};
     todaySubs.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={apps:0,mp:0,ap:0}; byAgent[n].apps++; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); });
-    eodData={date,todaySubs,processedToday,inWindow,awaitingWindow,escalatedNotifs,byAgent};
+    eodData={date,todaySubs,processedAll,inWindow,awaitingWindow,escalatedNotifs,byAgent};
     const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
     const totalAP=todaySubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
     const subHdr=`<thead><tr><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>Effective</th><th>Monthly $</th><th>Annual AP</th><th>Status</th></tr></thead>`;
@@ -2910,8 +2918,8 @@ async function renderEODSummary(date,portal='admin'){
     html+=sec('📊','Submissions by Agent — '+date);
     html+=Object.keys(byAgent).length?`<table class="submissions-table"><thead><tr><th>Agent</th><th>Apps</th><th>Total Monthly</th><th>Total AP</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([n,v])=>`<tr><td style="font-weight:600;color:var(--white);">${n}</td><td>${v.apps}</td><td style="color:var(--teal);">${fmt$2(v.mp)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:14px;">${fmt$(v.ap)}</td></tr>`).join('')}</tbody></table>`:noData('No submissions on this date.');
     if(todaySubs.length){ html+=sec('📋','All Submissions — '+date); html+=`<table class="submissions-table">${subHdr}<tbody>${todaySubs.map(subRow).join('')}</tbody></table>`; }
-    html+=sec('✅','Processed — '+date);
-    html+=processedToday.length?`<table class="submissions-table">${subHdr}<tbody>${processedToday.map(subRow).join('')}</tbody></table>`:noData('None marked Processed on this date.');
+    html+=sec('✅','Processed — All Time');
+    html+=processedAll.length?`<table class="submissions-table">${subHdr}<tbody>${processedAll.map(subRow).join('')}</tbody></table>`:noData('No submissions marked Processed yet.');
     html+=sec('⚠','Urgent: Heartland In 10-Day Window (Not Yet Submitted)');
     html+=inWindow.length?`<table class="submissions-table">${subHdr}<tbody>${inWindow.map(subRow).join('')}</tbody></table>`:noData('No Heartland policies currently in the 10-day window.');
     html+=sec('🕐','Awaiting Window — Heartland (All)');
@@ -2924,7 +2932,7 @@ async function renderEODSummary(date,portal='admin'){
 }
 function downloadEODSummary(){
   if(!eodData)return;
-  const{date,todaySubs,processedToday,inWindow,awaitingWindow,escalatedNotifs,byAgent}=eodData;
+  const{date,todaySubs,processedAll,inWindow,awaitingWindow,escalatedNotifs,byAgent}=eodData;
   const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
   const totalAP=todaySubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
   const sr=r=>`<tr><td>${r.lb_agents?.name||'—'}</td><td>${[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'}</td><td>${r.carrier_name||'—'}</td><td>${r.plan_name||'—'}</td><td>${r.effective_date||'—'}</td><td>$${Number(r.monthly_premium||0).toFixed(2)}</td><td>$${Number(r.annual_premium||0).toFixed(2)}</td><td>${carrierStatusLabel(r.carrier_status)}</td></tr>`;
@@ -2938,7 +2946,7 @@ function downloadEODSummary(){
   h+=sec('📊','Submissions by Agent — '+date);
   h+=Object.keys(byAgent).length?`<table><tr><th>Agent</th><th>Apps</th><th>Total Monthly</th><th>Total AP</th></tr>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([n,v])=>`<tr><td><b>${n}</b></td><td>${v.apps}</td><td>$${v.mp.toFixed(2)}</td><td>$${v.ap.toFixed(2)}</td></tr>`).join('')}</table>`:nd('No submissions on this date.');
   if(todaySubs.length){h+=sec('📋','All Submissions — '+date);h+=tbl(`<tr>${sth}</tr>`,todaySubs);}
-  h+=sec('✅','Processed — '+date);h+=processedToday.length?tbl(`<tr>${sth}</tr>`,processedToday):nd('None marked Processed on this date.');
+  h+=sec('✅','Processed — All Time');h+=processedAll.length?tbl(`<tr>${sth}</tr>`,processedAll):nd('No submissions marked Processed yet.');
   h+=sec('⚠','Urgent: Heartland In 10-Day Window');h+=inWindow.length?tbl(`<tr>${sth}</tr>`,inWindow):nd('No Heartland policies currently in the 10-day window.');
   h+=sec('🕐','Awaiting Window — Heartland (All)');h+=awaitingWindow.length?tbl(`<tr>${sth}</tr>`,awaitingWindow):nd('No Heartland policies awaiting window.');
   h+=sec('🚨','Escalated Notifications — '+date);
