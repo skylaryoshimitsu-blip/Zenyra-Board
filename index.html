@@ -1326,6 +1326,7 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const DAILY_GOAL = 8000;
 const ADMIN_CODE = 'bigbrothereye';
 const COMM_RATE  = 0.1125;
+const HEARTLAND_PROCESS_START_DATE = '2026-07-20';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -2916,7 +2917,7 @@ async function renderEODSummary(date,portal='admin'){
     const processedAll=processedRes.data||[];
     const escalatedNotifs=notifRes.data||[];
     const inWindow=allHeartland.filter(r=>isInHeartlandWindow(r));
-    const awaitingWindow=allHeartland.filter(r=>r.carrier_status==='awaiting_window'||r.carrier_status==null);
+    const awaitingWindow=allHeartland.filter(r=>(r.carrier_status==='awaiting_window'||r.carrier_status==null)&&r.submitted_at>=HEARTLAND_PROCESS_START_DATE);
     const byAgent={};
     todaySubs.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={apps:0,mp:0,ap:0}; byAgent[n].apps++; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); });
     eodData={date,todaySubs,processedAll,inWindow,awaitingWindow,escalatedNotifs,byAgent};
@@ -3032,6 +3033,7 @@ function applyPolicySubsFilters(){
   const agent=document.getElementById('policySubs_agent').value;
   let rows=policySubsRawData;
   if(carrier!=='all') rows=rows.filter(r=>r.carrier_name===carrier);
+  rows=rows.filter(r=>r.carrier_name!=='Heartland'||r.submitted_at>=HEARTLAND_PROCESS_START_DATE);
   if(agent!=='all') rows=rows.filter(r=>r.lb_agents?.name===agent);
   if(!rows.length){ cont.innerHTML='<div class="no-data">No submissions match the selected filters.</div>'; return; }
   renderPolicySubsTable(rows, policySubsCanEdit, cont);
