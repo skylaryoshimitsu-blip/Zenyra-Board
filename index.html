@@ -2222,15 +2222,20 @@ function switchInboxSubTab(portal, sub){
   if(sub==='remind') loadRemindForm(portal);
 }
 
+let remindAgentMap={}; // lb_users.id → lb_agents.id (agent_id on lb_submissions)
+
 async function loadRemindForm(portal){
   const formEl=document.getElementById(portal+'-remind-form');
   if(!formEl)return;
   formEl.innerHTML='<div class="no-data">Loading agents…</div>';
-  const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true).order('name');
-  if(!agents?.length){ formEl.innerHTML='<div class="no-data">No active agents found.</div>'; return; }
+  // Source from lb_users so we have recipient IDs directly; join lb_agents for display name
+  const {data:users}=await db.from('lb_users').select('id,display_name,agent_id').eq('role','agent').order('display_name');
+  if(!users?.length){ formEl.innerHTML='<div class="no-data">No agent accounts found.</div>'; return; }
+  remindAgentMap={};
+  users.forEach(u=>{ remindAgentMap[u.id]=u.agent_id; });
   const sel=(id,opts,onch='')=>`<select id="${id}" onchange="${onch}" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;width:100%;">${opts}</select>`;
   const lbl=(text)=>`<label style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label);display:block;margin-bottom:4px;">${text}</label>`;
-  const agentOpts='<option value="">— Select Agent —</option>'+agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  const agentOpts='<option value="">— Select Agent —</option>'+users.map(u=>`<option value="${u.id}">${u.display_name}</option>`).join('');
   formEl.innerHTML=`
     <div style="max-width:520px;display:flex;flex-direction:column;gap:16px;">
       <div>${lbl('Agent')}${sel('remind_agent',agentOpts,`loadReminderSubs('${portal}')`)}
@@ -2246,11 +2251,13 @@ async function loadRemindForm(portal){
 }
 
 async function loadReminderSubs(portal){
-  const agentId=document.getElementById('remind_agent').value;
+  const userId=document.getElementById('remind_agent').value;
   const subSel=document.getElementById('remind_sub');
-  if(!agentId||!subSel)return;
+  if(!userId||!subSel)return;
+  const lbAgentId=remindAgentMap[userId];
+  if(!lbAgentId){ subSel.innerHTML='<option value="">— No submissions found —</option>'; return; }
   subSel.innerHTML='<option value="">Loading…</option>';
-  const {data}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,submitted_at').eq('agent_id',agentId).eq('status','live').order('submitted_at',{ascending:false}).limit(50);
+  const {data}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,submitted_at').eq('agent_id',lbAgentId).eq('status','live').order('submitted_at',{ascending:false}).limit(50);
   subSel.innerHTML='<option value="">— Select Submission —</option>'+(data||[]).map(r=>{
     const name=[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
     const date=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'';
@@ -2259,17 +2266,14 @@ async function loadReminderSubs(portal){
 }
 
 async function sendReminder(portal){
-  const agentId=document.getElementById('remind_agent').value;
+  const recipientId=document.getElementById('remind_agent').value;
   const subId=document.getElementById('remind_sub').value;
   const msg=document.getElementById('remind_msg').value.trim();
   const statusEl=document.getElementById('remind_status');
-  if(!agentId){ statusEl.textContent='Please select an agent.'; return; }
+  if(!recipientId){ statusEl.textContent='Please select an agent.'; return; }
   if(!msg){ statusEl.textContent='Please enter a message.'; return; }
-  // Look up the lb_users row for this agent
-  const {data:targetUser}=await db.from('lb_users').select('id').eq('agent_id',agentId).single();
-  if(!targetUser){ statusEl.textContent='Could not find a user account for this agent.'; return; }
   const {error}=await db.from('lb_notifications').insert({
-    recipient_id: targetUser.id,
+    recipient_id: recipientId,
     sender_id: currentUser.id,
     type: 'reminder',
     title: 'Reminder from ' + (currentUser.agentName||'Lent'),
