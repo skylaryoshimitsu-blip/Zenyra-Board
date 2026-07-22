@@ -1326,6 +1326,7 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const DAILY_GOAL = 8000;
 const ADMIN_CODE = 'bigbrothereye';
 const COMM_RATE  = 0.1125;
+const HEARTLAND_PROCESS_START_DATE = '2026-07-20';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 
@@ -2141,7 +2142,7 @@ function toggleTranscript(){ const body=document.getElementById('res_transcript'
 
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function openBeneficiaryModal(s){ const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
+function openBeneficiaryModal(s){ const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}${fld('Carrier Status',s.carrier_status?carrierStatusLabel(s.carrier_status):null)}</div><div class="form-section-title">Banking Information</div><div class="form-grid">${fld('Institution',s.banking_institution)}${fld('Routing Number',s.routing_number)}${fld('Account Number',s.account_number)}${fld("Mother\'s Maiden Name",s.mothers_maiden_name)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
 function openMAPDBeneficiaryModal(s){ const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
 
 function startRealtime(){
@@ -2218,8 +2219,11 @@ async function loadInbox(portal){
   const subIds=[...new Set(data.map(n=>n.related_submission_id).filter(Boolean))];
   const subMap={};
   if(subIds.length){
-    const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name').in('id',subIds);
-    (subs||[]).forEach(s=>{ subMap[s.id]=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'; });
+    const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_status').in('id',subIds);
+    (subs||[]).forEach(s=>{
+      subMap[s.id]=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+      subMap[s.id+'_status']=s.carrier_status;
+    });
   }
   const dirLabel=(n)=>{
     if(!isSender) return '';
@@ -2229,10 +2233,11 @@ async function loadInbox(portal){
   };
   cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th><th></th></tr></thead><tbody>${data.map(n=>{
     const isSent=isSender&&n.sender_id===currentUser.id;
-    const needsConfirm=n.requires_confirmation&&!n.confirmed_at&&portal==='agent';
+    const subStatus=n.related_submission_id?subMap[n.related_submission_id+'_status']:null;
+    const needsConfirm=n.requires_confirmation&&portal==='agent'&&subStatus!=='processed';
     let actionCell;
-    if(n.confirmed_at) actionCell='<span style="color:#22c55e;font-size:11px;font-weight:600;">✓ Completed</span>';
-    else if(needsConfirm) actionCell=`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`;
+    if(needsConfirm) actionCell=`<button class="btn-confirm" onclick="confirmSubmission('${n.id}')">Submission Complete</button>`;
+    else if(n.confirmed_at||subStatus==='processed') actionCell='<span style="color:#22c55e;font-size:11px;font-weight:600;">✓ Completed</span>';
     else if(n.type==='submission_confirmed') actionCell='<span style="color:var(--teal);font-size:11px;font-weight:600;">✓ Agent Confirmed</span>';
     else actionCell=`<span style="font-size:11px;color:var(--muted);">${n.status==='read'?'Read':'New'}</span>`;
     const relClient=n.related_submission_id?subMap[n.related_submission_id]||'—':'—';
@@ -2326,7 +2331,7 @@ async function sendReminder(portal){
   const statusEl=document.getElementById('remind_status');
   if(!recipientId){ statusEl.textContent='Please select an agent.'; return; }
   if(!msg){ statusEl.textContent='Please enter a message.'; return; }
-  const {error}=await db.from('lb_notifications').insert({
+  const {data:inserted,error}=await db.from('lb_notifications').insert({
     recipient_id: recipientId,
     sender_id: currentUser.id,
     type: 'reminder',
@@ -2335,12 +2340,20 @@ async function sendReminder(portal){
     related_submission_id: subId||null,
     status: 'unread',
     requires_confirmation: true,
-  });
+  }).select('id').single();
   if(error){ statusEl.textContent='Failed: '+error.message; return; }
+  // Schedule auto-escalation after 4 hours if agent hasn't confirmed
+  if(inserted?.id){
+    fetch('/api/schedule-escalation',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({notificationId:inserted.id,userId:currentUser.id,escalateAfterHours:4})
+    }).catch(()=>{}); // fire-and-forget; escalation failure doesn't block the UI
+  }
   document.getElementById('remind_msg').value='';
   document.getElementById('remind_agent').value='';
   document.getElementById('remind_sub').innerHTML='<option value="">— Select Submission —</option>';
-  statusEl.innerHTML='<span style="color:var(--green);font-weight:600;">✓ Reminder sent.</span>';
+  statusEl.innerHTML='<span style="color:var(--green);font-weight:600;">✓ Reminder sent. Agent will be escalated if no response within 4 hours.</span>';
   fetchUnreadCount();
 }
 
@@ -2348,21 +2361,28 @@ async function confirmSubmission(notifId){
   const {data:n}=await db.from('lb_notifications').select('*').eq('id',notifId).single();
   if(!n)return;
   await db.from('lb_notifications').update({confirmed_at:new Date().toISOString(),status:'read'}).eq('id',notifId);
+  let clientLabel='';
+  let processedOk=false;
   if(n.related_submission_id){
-    await db.from('lb_submissions').update({carrier_status:'processed'}).eq('id',n.related_submission_id);
+    const {data:sub}=await db.from('lb_submissions').select('customer_first_name,customer_last_name').eq('id',n.related_submission_id).single();
+    if(sub) clientLabel=' for '+[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ');
+    // Use service-key endpoint so agent RLS cannot block the status update
+    const r=await fetch('/api/update-carrier-status',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({submissionId:n.related_submission_id,status:'processed',userId:currentUser.id})
+    });
+    processedOk=r.ok;
+    if(!r.ok){ const e=await r.json().catch(()=>{}); console.error('carrier status update failed',e); }
   }
   if(n.sender_id){
-    let clientLabel='';
-    if(n.related_submission_id){
-      const {data:sub}=await db.from('lb_submissions').select('customer_first_name,customer_last_name').eq('id',n.related_submission_id).single();
-      if(sub) clientLabel=' for '+[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ');
-    }
+    const suffix=processedOk?' Policy marked as Processed.':'';
     await db.from('lb_notifications').insert({
       recipient_id:n.sender_id,
       sender_id:currentUser.id,
       type:'submission_confirmed',
       title:'Submission Confirmed',
-      message:`${currentUser.agentName} confirmed the submission${clientLabel}. Policy marked as Processed.`,
+      message:`${currentUser.agentName} confirmed the submission${clientLabel}.${suffix}`,
       related_submission_id:n.related_submission_id||null,
       status:'unread',
       requires_confirmation:false,
@@ -2886,20 +2906,21 @@ async function renderEODSummary(date,portal='admin'){
   cont.innerHTML='<div class="no-data">Loading…</div>';
   if(dlBtn)dlBtn.style.display='none';
   try{
-    const [subsRes,heartlandRes,notifRes]=await Promise.all([
+    const [subsRes,heartlandRes,processedRes,notifRes]=await Promise.all([
       db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').gte('submitted_at',date+'T00:00:00').lte('submitted_at',date+'T23:59:59').order('submitted_at',{ascending:false}),
       db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_name','Heartland').or('carrier_status.is.null,carrier_status.eq.awaiting_window,carrier_status.eq.ready_to_submit'),
+      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_status','processed').order('effective_date',{ascending:true}),
       db.from('lb_notifications').select('id,title,message,created_at,lb_users!recipient_id(display_name)').eq('escalated',true).gte('created_at',date+'T00:00:00').lte('created_at',date+'T23:59:59')
     ]);
     const todaySubs=subsRes.data||[];
     const allHeartland=heartlandRes.data||[];
+    const processedAll=processedRes.data||[];
     const escalatedNotifs=notifRes.data||[];
-    const processedToday=todaySubs.filter(r=>r.carrier_status==='processed');
     const inWindow=allHeartland.filter(r=>isInHeartlandWindow(r));
-    const awaitingWindow=allHeartland.filter(r=>r.carrier_status==='awaiting_window'||r.carrier_status==null);
+    const awaitingWindow=allHeartland.filter(r=>(r.carrier_status==='awaiting_window'||r.carrier_status==null)&&r.submitted_at>=HEARTLAND_PROCESS_START_DATE);
     const byAgent={};
     todaySubs.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={apps:0,mp:0,ap:0}; byAgent[n].apps++; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); });
-    eodData={date,todaySubs,processedToday,inWindow,awaitingWindow,escalatedNotifs,byAgent};
+    eodData={date,todaySubs,processedAll,inWindow,awaitingWindow,escalatedNotifs,byAgent};
     const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
     const totalAP=todaySubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
     const subHdr=`<thead><tr><th>Agent</th><th>Client</th><th>Carrier</th><th>Plan</th><th>Effective</th><th>Monthly $</th><th>Annual AP</th><th>Status</th></tr></thead>`;
@@ -2910,8 +2931,8 @@ async function renderEODSummary(date,portal='admin'){
     html+=sec('📊','Submissions by Agent — '+date);
     html+=Object.keys(byAgent).length?`<table class="submissions-table"><thead><tr><th>Agent</th><th>Apps</th><th>Total Monthly</th><th>Total AP</th></tr></thead><tbody>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([n,v])=>`<tr><td style="font-weight:600;color:var(--white);">${n}</td><td>${v.apps}</td><td style="color:var(--teal);">${fmt$2(v.mp)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:14px;">${fmt$(v.ap)}</td></tr>`).join('')}</tbody></table>`:noData('No submissions on this date.');
     if(todaySubs.length){ html+=sec('📋','All Submissions — '+date); html+=`<table class="submissions-table">${subHdr}<tbody>${todaySubs.map(subRow).join('')}</tbody></table>`; }
-    html+=sec('✅','Processed — '+date);
-    html+=processedToday.length?`<table class="submissions-table">${subHdr}<tbody>${processedToday.map(subRow).join('')}</tbody></table>`:noData('None marked Processed on this date.');
+    html+=sec('✅','Processed — All Time');
+    html+=processedAll.length?`<table class="submissions-table">${subHdr}<tbody>${processedAll.map(subRow).join('')}</tbody></table>`:noData('No submissions marked Processed yet.');
     html+=sec('⚠','Urgent: Heartland In 10-Day Window (Not Yet Submitted)');
     html+=inWindow.length?`<table class="submissions-table">${subHdr}<tbody>${inWindow.map(subRow).join('')}</tbody></table>`:noData('No Heartland policies currently in the 10-day window.');
     html+=sec('🕐','Awaiting Window — Heartland (All)');
@@ -2924,7 +2945,7 @@ async function renderEODSummary(date,portal='admin'){
 }
 function downloadEODSummary(){
   if(!eodData)return;
-  const{date,todaySubs,processedToday,inWindow,awaitingWindow,escalatedNotifs,byAgent}=eodData;
+  const{date,todaySubs,processedAll,inWindow,awaitingWindow,escalatedNotifs,byAgent}=eodData;
   const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
   const totalAP=todaySubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
   const sr=r=>`<tr><td>${r.lb_agents?.name||'—'}</td><td>${[(r.customer_first_name||'').trim(),(r.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—'}</td><td>${r.carrier_name||'—'}</td><td>${r.plan_name||'—'}</td><td>${r.effective_date||'—'}</td><td>$${Number(r.monthly_premium||0).toFixed(2)}</td><td>$${Number(r.annual_premium||0).toFixed(2)}</td><td>${carrierStatusLabel(r.carrier_status)}</td></tr>`;
@@ -2938,7 +2959,7 @@ function downloadEODSummary(){
   h+=sec('📊','Submissions by Agent — '+date);
   h+=Object.keys(byAgent).length?`<table><tr><th>Agent</th><th>Apps</th><th>Total Monthly</th><th>Total AP</th></tr>${Object.entries(byAgent).sort((a,b)=>b[1].ap-a[1].ap).map(([n,v])=>`<tr><td><b>${n}</b></td><td>${v.apps}</td><td>$${v.mp.toFixed(2)}</td><td>$${v.ap.toFixed(2)}</td></tr>`).join('')}</table>`:nd('No submissions on this date.');
   if(todaySubs.length){h+=sec('📋','All Submissions — '+date);h+=tbl(`<tr>${sth}</tr>`,todaySubs);}
-  h+=sec('✅','Processed — '+date);h+=processedToday.length?tbl(`<tr>${sth}</tr>`,processedToday):nd('None marked Processed on this date.');
+  h+=sec('✅','Processed — All Time');h+=processedAll.length?tbl(`<tr>${sth}</tr>`,processedAll):nd('No submissions marked Processed yet.');
   h+=sec('⚠','Urgent: Heartland In 10-Day Window');h+=inWindow.length?tbl(`<tr>${sth}</tr>`,inWindow):nd('No Heartland policies currently in the 10-day window.');
   h+=sec('🕐','Awaiting Window — Heartland (All)');h+=awaitingWindow.length?tbl(`<tr>${sth}</tr>`,awaitingWindow):nd('No Heartland policies awaiting window.');
   h+=sec('🚨','Escalated Notifications — '+date);
@@ -2988,7 +3009,7 @@ async function loadPolicySubs(){
     const json=await res.json();
     if(!res.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||res.statusText}</div>`; return; }
     policySubsRawData=json.data||[];
-    policySubsCanEdit=json.canSeeBanking;
+    policySubsCanEdit=json.canEdit??json.canSeeBanking;
     // Populate carrier dropdown; default to Heartland if present
     const carriers=[...new Set(policySubsRawData.map(r=>r.carrier_name).filter(Boolean))].sort();
     const carrierSel=document.getElementById('policySubs_carrier');
@@ -3012,6 +3033,7 @@ function applyPolicySubsFilters(){
   const agent=document.getElementById('policySubs_agent').value;
   let rows=policySubsRawData;
   if(carrier!=='all') rows=rows.filter(r=>r.carrier_name===carrier);
+  rows=rows.filter(r=>r.carrier_name!=='Heartland'||r.submitted_at>=HEARTLAND_PROCESS_START_DATE);
   if(agent!=='all') rows=rows.filter(r=>r.lb_agents?.name===agent);
   if(!rows.length){ cont.innerHTML='<div class="no-data">No submissions match the selected filters.</div>'; return; }
   renderPolicySubsTable(rows, policySubsCanEdit, cont);
@@ -3116,7 +3138,9 @@ function openPolicySubModal(id){
   openModal('policySubDetailModal');
 }
 async function updateCarrierStatus(id,val){
-  await db.from('lb_submissions').update({carrier_status:val}).eq('id',id);
+  const r=await fetch('/api/update-carrier-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submissionId:id,status:val,userId:currentUser.id})});
+  if(!r.ok){ const e=await r.json().catch(()=>{}); alert('Failed to update status: '+(e?.error||r.statusText)); }
+  else { if(policySubsRawData){ const row=policySubsRawData.find(x=>x.id===id); if(row) row.carrier_status=val; } }
 }
 async function exportPolicyCsv(){
   if(!currentUser)return;
