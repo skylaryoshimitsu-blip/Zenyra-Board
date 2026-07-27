@@ -353,6 +353,20 @@ tbody td:not(:first-child){text-align:right;}
 .wow-mi-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:4px;}
 .wow-mi-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--white);}
 .wow-mi-stat{font-size:13px;color:var(--body);}
+.msg-bubble{max-width:72%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;word-wrap:break-word;margin-bottom:2px;}
+.msg-bubble.sent{align-self:flex-end;background:var(--teal-dim);color:var(--white);border-bottom-right-radius:3px;}
+.msg-bubble.recv{align-self:flex-start;background:var(--card);color:var(--body);border-bottom-left-radius:3px;}
+.msg-meta{font-size:10px;color:var(--muted);margin-bottom:10px;}
+.msg-meta.sent{text-align:right;}
+.msg-meta.recv{text-align:left;}
+.msg-thread{display:flex;flex-direction:column;padding:12px;overflow-y:auto;flex:1;gap:2px;}
+.msg-compose{border-top:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.msg-conv-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.msg-conv-item:hover,.msg-conv-item.active{background:var(--surface);}
+.msg-conv-name{font-size:13px;font-weight:600;color:var(--white);}
+.msg-conv-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.msg-conv-time{font-size:10px;color:var(--label);margin-top:2px;}
+.msg-badge{display:inline-block;background:var(--teal);color:var(--navy);font-size:9px;font-weight:700;border-radius:99px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -559,9 +573,21 @@ tbody td:not(:first-child){text-align:right;}
       </div>
     </div>
   </div>
-  <div id="agent-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Inbox — Notifications</div>
-    <div id="agent-inbox-content"><div class="no-data">Loading…</div></div>
+  <div id="agent-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;padding:20px 24px;">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;flex-shrink:0;">
+      <button id="agentInboxTab_notif" onclick="switchInboxSubTab('agent','notif')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Notifications</button>
+      <button id="agentInboxTab_msgs" onclick="switchInboxSubTab('agent','msgs')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Messages</button>
+    </div>
+    <div id="agent-inbox-notif" style="flex:1;overflow-y:auto;">
+      <div id="agent-inbox-content"><div class="no-data">Loading…</div></div>
+    </div>
+    <div id="agent-inbox-msgs" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+      <div id="agent-msgs-thread" class="msg-thread"></div>
+      <div class="msg-compose">
+        <textarea id="agent-msgs-input" rows="3" placeholder="Write a message…" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;width:100%;"></textarea>
+        <button onclick="sendMessage('agent')" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-end;">Send</button>
+      </div>
+    </div>
   </div>
   <div class="footer">
     <span class="footer-left" id="a_lastUpdated">—</span>
@@ -1190,16 +1216,30 @@ tbody td:not(:first-child){text-align:right;}
     </div>
     <div id="policySubs_content"><div class="no-data">Select a date range and click Load.</div></div>
   </div>
-  <div id="dialer-inbox-panel" style="display:none;flex:1;flex-direction:column;padding:20px 24px;">
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;">
+  <div id="dialer-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;padding:20px 24px;">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;flex-shrink:0;">
       <button id="dialerInboxTab_notif" onclick="switchInboxSubTab('dialer','notif')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Notifications</button>
       <button id="dialerInboxTab_remind" onclick="switchInboxSubTab('dialer','remind')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Send Reminder</button>
+      <button id="dialerInboxTab_msgs" onclick="switchInboxSubTab('dialer','msgs')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Messages</button>
     </div>
     <div id="dialer-inbox-notif" style="flex:1;overflow-y:auto;">
       <div id="dialer-inbox-content"><div class="no-data">Loading…</div></div>
     </div>
     <div id="dialer-inbox-remind" style="display:none;flex:1;overflow-y:auto;">
       <div id="dialer-remind-form"></div>
+    </div>
+    <div id="dialer-inbox-msgs" style="display:none;flex:1;overflow:hidden;">
+      <div style="display:flex;height:100%;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <div id="dialer-msgs-convlist" style="width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+          <div id="dialer-msgs-thread" class="msg-thread"></div>
+          <div class="msg-compose">
+            <select id="dialer-msgs-sub" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--white);font-size:12px;font-family:'Inter',sans-serif;outline:none;"><option value="">Link to submission (optional)</option></select>
+            <textarea id="dialer-msgs-input" rows="3" placeholder="Write a message…" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;width:100%;"></textarea>
+            <button onclick="sendMessage('dialer')" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-end;">Send</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="dialer-eod-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
@@ -1656,7 +1696,7 @@ function switchAgentView(view){
   if(view==='wow')      renderAgentWoW();
   if(view==='mysubs')   loadMySubmissions();
   if(view==='intel')    { populateIntelAgentSelects(); switchIntelView('agent'); }
-  if(view==='inbox')    loadInbox('agent');
+  if(view==='inbox')    { switchInboxSubTab('agent','notif'); loadInbox('agent'); }
 }
 
 async function renderAgentBoard(){
@@ -1707,7 +1747,7 @@ async function loadMySubmissions(){
   document.getElementById('my_summary').innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
   const tblEl=document.getElementById('my_subs_table');
   if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
-  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal(${JSON.stringify(s).replace(/"/g,'&quot;')})" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
 }
 
 let adminBoardView='anc';
@@ -1731,13 +1771,13 @@ async function renderAdminSubmissions(){
   const subs=await fetchAllSubs();
   const cont=document.getElementById('admin-subs-content');
   if(!subs.length){ cont.innerHTML='<div class="no-data">No submissions yet.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr data-id="${s.id}" onclick="openBeneficiaryModal(${JSON.stringify(s).replace(/"/g,'&quot;')})" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="event.stopPropagation();openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="event.stopPropagation();deleteSubmission('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>PCP</th><th>Meds</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr data-id="${s.id}" onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:16px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td style="font-size:11px;color:var(--muted);max-width:100px;">${s.medications||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="event.stopPropagation();openEditSub(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="event.stopPropagation();deleteSubmission('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
 async function renderAdminMAPD(){
   const subs=await fetchAllMAPD();
   const cont=document.getElementById('admin-mapd-content');
   if(!subs.length){ cont.innerHTML='<div class="no-data">No MAPD submissions yet.</div>'; return; }
-  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openMAPDBeneficiaryModal(${JSON.stringify(s).replace(/"/g,'&quot;')})" style="cursor:pointer;"><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="event.stopPropagation();deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
+  cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openMAPDBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="event.stopPropagation();deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
 async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))return; await db.from('lb_mapd_submissions').update({status:'deleted'}).eq('id',id); renderAdminMAPD(); }
 function openEditSub(s){ document.getElementById('editSubId').value=s.id; document.getElementById('es_cFirstName').value=s.customer_first_name||''; document.getElementById('es_cLastName').value=s.customer_last_name||''; document.getElementById('es_productType').value=s.product_type||''; document.getElementById('es_carrier').value=s.carrier_name||''; document.getElementById('es_planName').value=s.plan_name||''; document.getElementById('es_monthlyPremium').value=s.monthly_premium||''; document.getElementById('es_policyNum').value=s.policy_number||''; document.getElementById('es_effectiveDate').value=s.effective_date||''; document.getElementById('es_aNPN').value=s.agent_npn||''; document.getElementById('es_pcp').value=s.pcp_name||''; document.getElementById('es_medications').value=s.medications||''; openModal('editSubModal'); }
@@ -2142,12 +2182,13 @@ function toggleTranscript(){ const body=document.getElementById('res_transcript'
 
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function openBeneficiaryModal(s){ const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}${fld('Carrier Status',s.carrier_status?carrierStatusLabel(s.carrier_status):null)}</div><div class="form-section-title">Banking Information</div><div class="form-grid">${fld('Institution',s.banking_institution)}${fld('Routing Number',s.routing_number)}${fld('Account Number',s.account_number)}${fld("Mother\'s Maiden Name",s.mothers_maiden_name)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
-function openMAPDBeneficiaryModal(s){ const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
+async function openBeneficiaryModal(id){ const {data:s}=await db.from('lb_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}${fld('Carrier Status',s.carrier_status?carrierStatusLabel(s.carrier_status):null)}</div><div class="form-section-title">Banking Information</div><div class="form-grid">${fld('Institution',s.banking_institution)}${fld('Routing Number',s.routing_number)}${fld('Account Number',s.account_number)}${fld("Mother\'s Maiden Name",s.mothers_maiden_name)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
+async function openMAPDBeneficiaryModal(id){ const {data:s}=await db.from('lb_mapd_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
 
 function startRealtime(){
   db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'&&currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
   db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); else if(currentUser?.role==='dialer'&&currentDialerTab==='leaderboard'&&currentDialerBoardView==='mapd')renderDialerMAPD(); }).subscribe();
+  db.channel('lb_notif_live').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_notifications'},payload=>{ onNewNotification(payload.new); }).subscribe();
 }
 
 // ── NOTIFICATIONS ──────────────────────────────────────────────────────────
@@ -2155,9 +2196,21 @@ function notifTimeAgo(ts){ const diff=Date.now()-new Date(ts).getTime(); const m
 
 async function fetchUnreadCount(){
   if(!currentUser)return;
-  const {count}=await db.from('lb_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',currentUser.id).eq('status','unread');
-  const n=count||0;
+  const [{count:notifCount},{count:msgCount}]=await Promise.all([
+    db.from('lb_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',currentUser.id).eq('status','unread').neq('type','direct_message'),
+    db.from('lb_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',currentUser.id).eq('status','unread').eq('type','direct_message'),
+  ]);
+  const n=notifCount||0;
+  const m=msgCount||0;
   ['agent','admin','dialer'].forEach(p=>{ const badge=document.getElementById(p+'Badge'); if(!badge)return; badge.style.display=n>0?'flex':'none'; badge.textContent=n>9?'9+':n; });
+  ['agent','dialer'].forEach(p=>{
+    const btn=document.getElementById(p+'InboxTab_msgs');
+    if(!btn)return;
+    const existing=btn.querySelector('.msg-badge');
+    if(existing)existing.remove();
+    btn.textContent='Messages';
+    if(m>0){ const b=document.createElement('span'); b.className='msg-badge'; b.textContent=m>9?'9+':m; btn.appendChild(b); }
+  });
 }
 
 async function toggleNotifDropdown(portal){
@@ -2272,13 +2325,15 @@ async function deleteBellNotif(id,portal){
 }
 
 function switchInboxSubTab(portal, sub){
-  ['notif','remind'].forEach(s=>{
+  const tabs=portal==='agent'?['notif','msgs']:['notif','remind','msgs'];
+  tabs.forEach(s=>{
     const pane=document.getElementById(portal+'-inbox-'+s);
     const btn=document.getElementById(portal+'InboxTab_'+s);
-    if(pane) pane.style.display=s===sub?'block':'none';
+    if(pane){ pane.style.display=s===sub?(s==='msgs'?(portal==='agent'?'flex':'flex'):'block'):'none'; }
     if(btn){ btn.style.borderBottomColor=s===sub?'var(--teal)':'transparent'; btn.style.color=s===sub?'var(--white)':'var(--muted)'; }
   });
   if(sub==='remind') loadRemindForm(portal);
+  if(sub==='msgs')   loadMessages(portal);
 }
 
 let remindAgentMap={}; // lb_users.id → lb_agents.id (agent_id on lb_submissions)
@@ -2355,6 +2410,211 @@ async function sendReminder(portal){
   document.getElementById('remind_sub').innerHTML='<option value="">— Select Submission —</option>';
   statusEl.innerHTML='<span style="color:var(--green);font-weight:600;">✓ Reminder sent. Agent will be escalated if no response within 4 hours.</span>';
   fetchUnreadCount();
+}
+
+// ── DIRECT MESSAGES ────────────────────────────────────────────────────────
+
+let dmState={ portal:null, agentUserId:null, agentName:null, dialerUserId:null };
+
+function onNewNotification(row){
+  if(!currentUser||row.type!=='direct_message')return;
+  if(row.recipient_id!==currentUser.id)return;
+  fetchUnreadCount();
+  const portal=currentUser.role==='dialer'?'dialer':'agent';
+  const msgsPane=document.getElementById(portal+'-inbox-msgs');
+  if(!msgsPane||msgsPane.style.display==='none')return;
+  // Only append if this conversation is open
+  if(row.sender_id!==dmState.agentUserId&&row.sender_id!==dmState.dialerUserId)return;
+  appendMessageBubble(portal===  'dialer'?'dialer-msgs-thread':'agent-msgs-thread', row, currentUser.id);
+  markMessagesRead(row.sender_id);
+}
+
+async function loadMessages(portal){
+  if(portal==='dialer') await loadDialerMessages();
+  else await loadAgentMessages();
+}
+
+async function loadDialerMessages(){
+  dmState.portal='dialer';
+  const convList=document.getElementById('dialer-msgs-convlist');
+  const thread=document.getElementById('dialer-msgs-thread');
+  convList.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
+  thread.innerHTML='';
+
+  // Fetch active agents (active=true, daily_goal>0) joined to lb_users for their user id
+  const {data:agents}=await db.from('lb_agents').select('id,name,lb_users(id)').eq('active',true).gt('daily_goal',0).order('name');
+  if(!agents?.length){ convList.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">No agents found.</div>'; return; }
+
+  // Get dialer's own user id
+  dmState.dialerUserId=currentUser.id;
+
+  // Fetch all direct_message notifications involving the dialer
+  const {data:allMsgs}=await db.from('lb_notifications').select('*').eq('type','direct_message').or(`sender_id.eq.${currentUser.id},recipient_id.eq.${currentUser.id}`).order('created_at',{ascending:true});
+  const msgs=allMsgs||[];
+
+  // Build per-agent summary
+  const agentRows=agents.map(ag=>{
+    const agUserId=ag.lb_users?.[0]?.id||null;
+    const thread=msgs.filter(m=>(m.sender_id===currentUser.id&&m.recipient_id===agUserId)||(m.sender_id===agUserId&&m.recipient_id===currentUser.id));
+    const last=thread[thread.length-1]||null;
+    const unread=thread.filter(m=>m.sender_id===agUserId&&m.status==='unread').length;
+    return{agentId:ag.id, agUserId, name:ag.name, last, unread, thread};
+  }).sort((a,b)=>{
+    const at=a.last?new Date(a.last.created_at).getTime():0;
+    const bt=b.last?new Date(b.last.created_at).getTime():0;
+    return bt-at;
+  });
+
+  // Render conversation list
+  convList.innerHTML=agentRows.map(ag=>`<div class="msg-conv-item" id="conv-${ag.agUserId}" onclick="openDialerConversation('${ag.agUserId}','${ag.name.replace(/'/g,"\\'")}')">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="msg-conv-name">${ag.name}</div>
+      ${ag.unread>0?`<span class="msg-badge">${ag.unread}</span>`:''}
+    </div>
+    <div class="msg-conv-preview">${ag.last?ag.last.message:'No messages yet'}</div>
+    <div class="msg-conv-time">${ag.last?notifTimeAgo(ag.last.created_at):''}</div>
+  </div>`).join('');
+
+  // Auto-open most recently active conversation
+  const first=agentRows[0];
+  if(first?.agUserId) openDialerConversation(first.agUserId, first.name);
+}
+
+async function openDialerConversation(agUserId, agName){
+  dmState.agentUserId=agUserId;
+  dmState.agentName=agName;
+
+  // Highlight active conversation
+  document.querySelectorAll('.msg-conv-item').forEach(el=>el.classList.remove('active'));
+  const item=document.getElementById('conv-'+agUserId);
+  if(item) item.classList.add('active');
+
+  const thread=document.getElementById('dialer-msgs-thread');
+  thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
+
+  const {data:msgs}=await db.from('lb_notifications').select('*').eq('type','direct_message').or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${agUserId}),and(sender_id.eq.${agUserId},recipient_id.eq.${currentUser.id})`).order('created_at',{ascending:true});
+
+  thread.innerHTML='';
+  (msgs||[]).forEach(m=>appendMessageBubble('dialer-msgs-thread',m,currentUser.id));
+  thread.scrollTop=thread.scrollHeight;
+
+  // Load submission dropdown for this agent
+  loadDmSubDropdown(agUserId);
+
+  // Mark unread
+  await markMessagesRead(agUserId);
+  fetchUnreadCount();
+}
+
+async function loadDmSubDropdown(agUserId){
+  const sel=document.getElementById('dialer-msgs-sub');
+  if(!sel)return;
+  sel.innerHTML='<option value="">Link to submission (optional)</option>';
+  // Find agent_id from lb_users
+  const {data:usr}=await db.from('lb_users').select('agent_id').eq('id',agUserId).single();
+  if(!usr?.agent_id)return;
+  const {data:subs}=await db.from('lb_submissions').select('id,customer_first_name,customer_last_name,submitted_at').eq('agent_id',usr.agent_id).eq('status','live').order('submitted_at',{ascending:false}).limit(50);
+  (subs||[]).forEach(s=>{
+    const name=[(s.customer_first_name||'').trim(),(s.customer_last_name||'').trim()].filter(Boolean).join(' ')||'—';
+    const date=s.submitted_at?new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'}):'';
+    const opt=document.createElement('option');
+    opt.value=s.id; opt.textContent=`${name} (${date})`; sel.appendChild(opt);
+  });
+}
+
+async function loadAgentMessages(){
+  dmState.portal='agent';
+  const thread=document.getElementById('agent-msgs-thread');
+  thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
+
+  // Find dialer's user id
+  const {data:dialerUser}=await db.from('lb_users').select('id,display_name').eq('role','dialer').order('created_at',{ascending:false}).limit(1).single();
+  if(!dialerUser){ thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">No dialer account found.</div>'; return; }
+  dmState.dialerUserId=dialerUser.id;
+
+  const {data:msgs}=await db.from('lb_notifications').select('*').eq('type','direct_message').or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${dialerUser.id}),and(sender_id.eq.${dialerUser.id},recipient_id.eq.${currentUser.id})`).order('created_at',{ascending:true});
+
+  thread.innerHTML='';
+  (msgs||[]).forEach(m=>appendMessageBubble('agent-msgs-thread',m,currentUser.id));
+  thread.scrollTop=thread.scrollHeight;
+
+  await markMessagesRead(dialerUser.id);
+  fetchUnreadCount();
+}
+
+function appendMessageBubble(containerId, msg, myUserId){
+  const container=document.getElementById(containerId);
+  if(!container)return;
+  const isSent=msg.sender_id===myUserId;
+  const wrap=document.createElement('div');
+  wrap.style.display='flex';
+  wrap.style.flexDirection='column';
+  wrap.style.alignItems=isSent?'flex-end':'flex-start';
+  const bubble=document.createElement('div');
+  bubble.className='msg-bubble '+(isSent?'sent':'recv');
+  bubble.textContent=msg.message;
+  const meta=document.createElement('div');
+  meta.className='msg-meta '+(isSent?'sent':'recv');
+  meta.textContent=notifTimeAgo(msg.created_at);
+  wrap.appendChild(bubble);
+  wrap.appendChild(meta);
+  container.appendChild(wrap);
+}
+
+async function sendMessage(portal){
+  if(!currentUser)return;
+  let recipientId, senderLabel, threadId, subId=null;
+  if(portal==='dialer'){
+    if(!dmState.agentUserId){ alert('Select a conversation first.'); return; }
+    recipientId=dmState.agentUserId;
+    senderLabel='Message from '+currentUser.displayName;
+    threadId='dialer-msgs-thread';
+    subId=document.getElementById('dialer-msgs-sub')?.value||null;
+  } else {
+    if(!dmState.dialerUserId){ alert('Messages not loaded yet — please wait.'); return; }
+    recipientId=dmState.dialerUserId;
+    senderLabel='Message from '+(currentUser.agentName||currentUser.displayName||'Agent');
+    threadId='agent-msgs-thread';
+  }
+  const inputEl=document.getElementById(portal+'-msgs-input');
+  const text=(inputEl?.value||'').trim();
+  if(!text)return;
+
+  const row={
+    sender_id:currentUser.id,
+    recipient_id:recipientId,
+    type:'direct_message',
+    title:senderLabel,
+    message:text,
+    related_submission_id:subId||null,
+    status:'unread',
+  };
+  const {data:inserted,error}=await db.from('lb_notifications').insert(row).select('*').single();
+  if(error){ alert('Failed to send: '+error.message); return; }
+  inputEl.value='';
+  if(portal==='dialer'){ const s=document.getElementById('dialer-msgs-sub'); if(s)s.value=''; }
+  appendMessageBubble(threadId, inserted, currentUser.id);
+  const thread=document.getElementById(threadId);
+  if(thread) thread.scrollTop=thread.scrollHeight;
+  // Refresh conversation list preview
+  if(portal==='dialer') refreshConvPreview(recipientId, text);
+}
+
+function refreshConvPreview(agUserId, lastText){
+  const item=document.getElementById('conv-'+agUserId);
+  if(!item)return;
+  const prev=item.querySelector('.msg-conv-preview');
+  const time=item.querySelector('.msg-conv-time');
+  if(prev) prev.textContent=lastText;
+  if(time) time.textContent='just now';
+  // Move to top
+  const list=document.getElementById('dialer-msgs-convlist');
+  if(list&&item.parentNode===list) list.prepend(item);
+}
+
+async function markMessagesRead(otherUserId){
+  if(!currentUser||!otherUserId)return;
+  await db.from('lb_notifications').update({status:'read'}).eq('recipient_id',currentUser.id).eq('sender_id',otherUserId).eq('type','direct_message').eq('status','unread');
 }
 
 async function confirmSubmission(notifId){

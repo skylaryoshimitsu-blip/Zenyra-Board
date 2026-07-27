@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
   if (userErr || !user) return res.status(401).json({ error: 'Unknown user' });
 
-  const canSeeBanking = user.role === 'admin';
+  const canSeeBanking = user.role === 'admin' || user.role === 'dialer';
   const canEdit = user.role === 'admin' || user.role === 'dialer';
 
   // Fetch submissions in the requested date range (by submitted_at)
