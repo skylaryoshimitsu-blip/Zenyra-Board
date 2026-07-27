@@ -359,7 +359,7 @@ tbody td:not(:first-child){text-align:right;}
 .msg-meta{font-size:10px;color:var(--muted);margin-bottom:10px;}
 .msg-meta.sent{text-align:right;}
 .msg-meta.recv{text-align:left;}
-.msg-thread{display:flex;flex-direction:column;padding:12px;overflow-y:auto;flex:1;gap:2px;}
+.msg-thread{display:flex;flex-direction:column;padding:12px;overflow-y:auto;flex:1;gap:2px;min-height:0;}
 .msg-compose{border-top:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
 .msg-conv-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
 .msg-conv-item:hover,.msg-conv-item.active{background:var(--surface);}
@@ -582,7 +582,7 @@ tbody td:not(:first-child){text-align:right;}
       <div id="agent-inbox-content"><div class="no-data">Loading…</div></div>
     </div>
     <div id="agent-inbox-msgs" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
-      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;"><span class="section-eyebrow" style="font-size:9px;">TO: Lent Corteza — Dialer</span></div>
+      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;"><span id="agent-msgs-to-label" class="section-eyebrow" style="font-size:9px;">TO: Lent Corteza — Dialer</span></div>
       <div id="agent-msgs-thread" class="msg-thread"></div>
       <div class="msg-compose">
         <textarea id="agent-msgs-input" rows="3" placeholder="Write a message…" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;width:100%;"></textarea>
@@ -2529,9 +2529,11 @@ async function loadAgentMessages(){
   thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
 
   // Find dialer's user id
-  const {data:dialerUser}=await db.from('lb_users').select('id,display_name').eq('role','dialer').order('created_at',{ascending:false}).limit(1).single();
+  const {data:dialerUser}=await db.from('lb_users').select('id,display_name').eq('role','dialer').single();
   if(!dialerUser){ thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">No dialer account found.</div>'; return; }
   dmState.dialerUserId=dialerUser.id;
+  const lbl=document.getElementById('agent-msgs-to-label');
+  if(lbl) lbl.textContent='TO: '+(dialerUser.display_name||'Lent Corteza')+' — Dialer';
 
   const {data:msgs}=await db.from('lb_notifications').select('*').eq('type','direct_message').or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${dialerUser.id}),and(sender_id.eq.${dialerUser.id},recipient_id.eq.${currentUser.id})`).order('created_at',{ascending:true});
 
