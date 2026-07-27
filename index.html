@@ -1229,8 +1229,8 @@ tbody td:not(:first-child){text-align:right;}
     <div id="dialer-inbox-remind" style="display:none;flex:1;overflow-y:auto;">
       <div id="dialer-remind-form"></div>
     </div>
-    <div id="dialer-inbox-msgs" style="display:none;flex:1;overflow:hidden;">
-      <div style="display:flex;height:100%;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+    <div id="dialer-inbox-msgs" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+      <div style="flex:1;display:flex;min-height:0;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
         <div id="dialer-msgs-convlist" style="width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;"></div>
         <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
           <div id="dialer-msgs-thread" class="msg-thread"></div>
@@ -2260,7 +2260,7 @@ async function loadInbox(portal){
   // Agents see only received notifications; dialer/admin see received + sent (paper trail)
   const isSender=portal==='dialer'||portal==='admin';
   // Use same bare select('*') pattern as the bell count — no joins to avoid PostgREST FK issues
-  let q=db.from('lb_notifications').select('*').order('created_at',{ascending:false}).limit(100);
+  let q=db.from('lb_notifications').select('*').neq('type','direct_message').order('created_at',{ascending:false}).limit(100);
   if(isSender){
     q=q.or(`recipient_id.eq.${currentUser.id},sender_id.eq.${currentUser.id}`);
   } else {
@@ -2442,9 +2442,14 @@ async function loadDialerMessages(){
   convList.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
   thread.innerHTML='';
 
-  // Fetch active agents (active=true, daily_goal>0) joined to lb_users for their user id
-  const {data:agents}=await db.from('lb_agents').select('id,name,lb_users(id)').eq('active',true).gt('daily_goal',0).order('name');
+  // Fetch active agents (active=true, daily_goal>0)
+  const {data:agents}=await db.from('lb_agents').select('id,name').eq('active',true).gt('daily_goal',0).order('name');
   if(!agents?.length){ convList.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">No agents found.</div>'; return; }
+
+  // Fetch lb_users for agents to get user IDs (FK is lb_users.agent_id → lb_agents.id)
+  const {data:agentUsers}=await db.from('lb_users').select('id,agent_id').eq('role','agent');
+  const agentUserMap={};
+  (agentUsers||[]).forEach(u=>{ if(u.agent_id) agentUserMap[u.agent_id]=u.id; });
 
   // Get dialer's own user id
   dmState.dialerUserId=currentUser.id;
@@ -2455,7 +2460,7 @@ async function loadDialerMessages(){
 
   // Build per-agent summary
   const agentRows=agents.map(ag=>{
-    const agUserId=ag.lb_users?.[0]?.id||null;
+    const agUserId=agentUserMap[ag.id]||null;
     const thread=msgs.filter(m=>(m.sender_id===currentUser.id&&m.recipient_id===agUserId)||(m.sender_id===agUserId&&m.recipient_id===currentUser.id));
     const last=thread[thread.length-1]||null;
     const unread=thread.filter(m=>m.sender_id===agUserId&&m.status==='unread').length;
