@@ -1290,6 +1290,63 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- AGENT EDIT SUBMISSION MODAL -->
+<div class="modal-overlay" id="agentEditSubModal">
+  <div class="modal-box wide">
+    <div class="modal-title">Edit Submission</div>
+    <input type="hidden" id="ase_id"/>
+    <div id="ase_success" class="submit-success" style="display:none;margin-bottom:12px;">Changes saved successfully.</div>
+    <div class="form-section-title">Customer Information</div>
+    <div class="form-grid">
+      <div class="field-sm"><label>First Name</label><input type="text" id="ase_cFirstName"/></div>
+      <div class="field-sm"><label>Last Name</label><input type="text" id="ase_cLastName"/></div>
+      <div class="field-sm"><label>Phone</label><input type="text" id="ase_phone"/></div>
+      <div class="field-sm"><label>Email</label><input type="email" id="ase_email"/></div>
+      <div class="field-sm"><label>Date of Birth</label><input type="text" id="ase_dob" placeholder="YYYY-MM-DD"/></div>
+      <div class="field-sm"><label>Gender</label>
+        <select id="ase_gender"><option value="">Select…</option><option>Male</option><option>Female</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="form-grid full" style="margin-top:12px;">
+      <div class="field-sm"><label>Street Address</label><input type="text" id="ase_street"/></div>
+    </div>
+    <div class="form-grid three" style="margin-top:12px;">
+      <div class="field-sm"><label>City</label><input type="text" id="ase_city"/></div>
+      <div class="field-sm"><label>State</label><input type="text" id="ase_state" maxlength="2"/></div>
+      <div class="field-sm"><label>Postal Code</label><input type="text" id="ase_postal"/></div>
+    </div>
+    <div class="form-section-title">Policy Details</div>
+    <div class="form-grid">
+      <div class="field-sm"><label>Product Type</label>
+        <select id="ase_productType"><option value="">Select…</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select>
+      </div>
+      <div class="field-sm"><label>Policy Number</label><input type="text" id="ase_policyNum"/></div>
+      <div class="field-sm"><label>Carrier Name</label><input type="text" id="ase_carrier"/></div>
+      <div class="field-sm"><label>Plan Name</label><input type="text" id="ase_planName"/></div>
+      <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="ase_monthlyPremium" step="0.01" min="0"/></div>
+      <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="ase_draftDay" min="1" max="31"/></div>
+      <div class="field-sm"><label>Effective Date</label><input type="date" id="ase_effectiveDate"/></div>
+      <div class="field-sm"><label>Draft Date</label><input type="date" id="ase_draftDate"/></div>
+    </div>
+    <div class="form-section-title">Clinical Info</div>
+    <div class="form-grid">
+      <div class="field-sm"><label>PCP Name</label><input type="text" id="ase_pcp"/></div>
+      <div class="field-sm"><label>Specialist Name</label><input type="text" id="ase_specialist"/></div>
+    </div>
+    <div class="form-grid full" style="margin-top:12px;">
+      <div class="field-sm"><label>Medications</label><textarea id="ase_medications" style="min-height:60px;"></textarea></div>
+    </div>
+    <div class="form-section-title">Agent Info</div>
+    <div class="form-grid">
+      <div class="field-sm"><label>Agent NPN</label><input type="text" id="ase_npn"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveAgentSubEdit()">Save Changes</button>
+      <button class="btn-modal-cancel" onclick="closeModal('agentEditSubModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT DIALER LOG MODAL -->
 <div class="modal-overlay" id="editDialerModal">
   <div class="modal-box">
@@ -1748,7 +1805,7 @@ async function loadMySubmissions(){
   document.getElementById('my_summary').innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
   const tblEl=document.getElementById('my_subs_table');
   if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
-  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td><button class="btn-edit-sm" onclick="event.stopPropagation();openAgentEditSub('${s.id}')">Edit</button></td></tr>`).join('')}</tbody></table>`;
 }
 
 let adminBoardView='anc';
@@ -1784,6 +1841,83 @@ async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))retur
 function openEditSub(s){ document.getElementById('editSubId').value=s.id; document.getElementById('es_cFirstName').value=s.customer_first_name||''; document.getElementById('es_cLastName').value=s.customer_last_name||''; document.getElementById('es_productType').value=s.product_type||''; document.getElementById('es_carrier').value=s.carrier_name||''; document.getElementById('es_planName').value=s.plan_name||''; document.getElementById('es_monthlyPremium').value=s.monthly_premium||''; document.getElementById('es_policyNum').value=s.policy_number||''; document.getElementById('es_effectiveDate').value=s.effective_date||''; document.getElementById('es_aNPN').value=s.agent_npn||''; document.getElementById('es_pcp').value=s.pcp_name||''; document.getElementById('es_medications').value=s.medications||''; openModal('editSubModal'); }
 async function saveSubEdit(){ const id=document.getElementById('editSubId').value; const mp=parseFloat(document.getElementById('es_monthlyPremium').value); const {error}=await db.from('lb_submissions').update({customer_first_name:document.getElementById('es_cFirstName').value,customer_last_name:document.getElementById('es_cLastName').value,product_type:document.getElementById('es_productType').value,carrier_name:document.getElementById('es_carrier').value,plan_name:document.getElementById('es_planName').value,monthly_premium:mp||null,policy_number:document.getElementById('es_policyNum').value,effective_date:document.getElementById('es_effectiveDate').value||null,agent_npn:document.getElementById('es_aNPN').value,pcp_name:document.getElementById('es_pcp').value,medications:document.getElementById('es_medications').value}).eq('id',id); if(error){alert('Save failed: '+error.message);return;} closeModal('editSubModal'); renderAdminSubmissions(); renderAdminBoard(); }
 async function deleteSubmission(id){ if(!confirm('Delete this submission?'))return; await db.from('lb_submissions').update({status:'deleted'}).eq('id',id); renderAdminSubmissions(); renderAdminBoard(); }
+
+async function openAgentEditSub(id){
+  const {data:s,error}=await db.from('lb_submissions').select('*').eq('id',id).single();
+  if(error||!s){ alert('Could not load submission.'); return; }
+  document.getElementById('ase_id').value=s.id;
+  document.getElementById('ase_cFirstName').value=s.customer_first_name||'';
+  document.getElementById('ase_cLastName').value=s.customer_last_name||'';
+  document.getElementById('ase_phone').value=s.customer_phone||'';
+  document.getElementById('ase_email').value=s.customer_email||'';
+  document.getElementById('ase_dob').value=s.customer_dob||'';
+  document.getElementById('ase_gender').value=s.customer_gender||'';
+  document.getElementById('ase_street').value=s.customer_street||'';
+  document.getElementById('ase_city').value=s.customer_city||'';
+  document.getElementById('ase_state').value=s.customer_state||'';
+  document.getElementById('ase_postal').value=s.customer_postal_code||'';
+  document.getElementById('ase_productType').value=s.product_type||'';
+  document.getElementById('ase_policyNum').value=s.policy_number||'';
+  document.getElementById('ase_carrier').value=s.carrier_name||'';
+  document.getElementById('ase_planName').value=s.plan_name||'';
+  document.getElementById('ase_monthlyPremium').value=s.monthly_premium||'';
+  document.getElementById('ase_draftDay').value=s.recurring_draft_day||'';
+  document.getElementById('ase_effectiveDate').value=s.effective_date||'';
+  document.getElementById('ase_draftDate').value=s.draft_date||'';
+  document.getElementById('ase_pcp').value=s.pcp_name||'';
+  document.getElementById('ase_specialist').value=s.specialist_name||'';
+  document.getElementById('ase_medications').value=s.medications||'';
+  document.getElementById('ase_npn').value=s.agent_npn||'';
+  document.getElementById('ase_success').style.display='none';
+  openModal('agentEditSubModal');
+}
+
+async function saveAgentSubEdit(){
+  const id=document.getElementById('ase_id').value;
+  const mp=parseFloat(document.getElementById('ase_monthlyPremium').value);
+  if(!mp||mp<=0){ alert('Monthly premium must be a positive number.'); return; }
+  const ap=Math.round(mp*12*100)/100;
+  const payload={
+    customer_first_name:document.getElementById('ase_cFirstName').value,
+    customer_last_name:document.getElementById('ase_cLastName').value,
+    customer_phone:document.getElementById('ase_phone').value,
+    customer_email:document.getElementById('ase_email').value,
+    customer_dob:document.getElementById('ase_dob').value||null,
+    customer_gender:document.getElementById('ase_gender').value||null,
+    customer_street:document.getElementById('ase_street').value,
+    customer_city:document.getElementById('ase_city').value,
+    customer_state:document.getElementById('ase_state').value,
+    customer_postal_code:document.getElementById('ase_postal').value,
+    product_type:document.getElementById('ase_productType').value||null,
+    policy_number:document.getElementById('ase_policyNum').value,
+    carrier_name:document.getElementById('ase_carrier').value,
+    plan_name:document.getElementById('ase_planName').value,
+    monthly_premium:mp,
+    annual_premium:ap,
+    recurring_draft_day:parseInt(document.getElementById('ase_draftDay').value)||null,
+    effective_date:document.getElementById('ase_effectiveDate').value||null,
+    draft_date:document.getElementById('ase_draftDate').value||null,
+    pcp_name:document.getElementById('ase_pcp').value,
+    specialist_name:document.getElementById('ase_specialist').value,
+    medications:document.getElementById('ase_medications').value,
+    agent_npn:document.getElementById('ase_npn').value,
+  };
+  const {data:updated,error}=await db.from('lb_submissions').update(payload).eq('id',id).eq('agent_id',currentUser.agent_id).select('id');
+  if(error){ alert('Save failed: '+error.message); return; }
+  if(!updated?.length){ alert('You can only edit your own submissions.'); return; }
+  // Audit trail
+  const firstName=payload.customer_first_name;
+  const lastName=payload.customer_last_name;
+  await db.from('lb_notifications').insert({
+    sender_id:currentUser.id, recipient_id:currentUser.id,
+    type:'submission_edit', title:'Submission edited',
+    message:`${currentUser.agentName} edited submission for ${firstName} ${lastName}`,
+    related_submission_id:id, status:'read',
+  });
+  const succ=document.getElementById('ase_success');
+  succ.style.display='block';
+  setTimeout(()=>{ closeModal('agentEditSubModal'); succ.style.display='none'; loadMySubmissions(); },1500);
+}
 
 async function renderAgentManagement(){ const {data:agents}=await db.from('lb_agents').select('*').order('name'); const {data:emailRows}=await db.from('lb_submissions').select('agent_id,agent_email,submitted_at').not('agent_email','is',null).neq('agent_email','').order('submitted_at',{ascending:false}); const emailMap={}; (emailRows||[]).forEach(r=>{ if(r.agent_id&&!emailMap[r.agent_id]) emailMap[r.agent_id]=r.agent_email; }); const cont=document.getElementById('admin-agents-content'); if(!agents?.length){cont.innerHTML='<div class="no-data">No agents found.</div>';return;} cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td style="font-size:12px;color:var(--body);">${emailMap[a.id]||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`; }
 function openAgentModal(agent){ document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent'; document.getElementById('agentModalId').value=agent?.id||''; document.getElementById('am_name').value=agent?.name||''; document.getElementById('am_phone').value=agent?.phone||''; document.getElementById('am_dailyGoal').value=agent?.daily_goal||1600; document.getElementById('am_monthlyGoal').value=agent?.monthly_goal||160000; openModal('agentModal'); }
