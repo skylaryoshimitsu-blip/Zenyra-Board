@@ -456,6 +456,7 @@ tbody td:not(:first-child){text-align:right;}
           </tr></thead>
           <tbody id="a_leaderboardBody"></tbody>
         </table>
+        <div style="margin-top:20px;" id="a_teamAlerts"></div>
         <div style="margin-top:20px;">
           <div class="section-eyebrow">Team Insights</div>
           <div id="a_teamInsights"></div>
@@ -793,6 +794,7 @@ tbody td:not(:first-child){text-align:right;}
           <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
           <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Calls Today</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th></tr></thead>
           <tbody id="ad_leaderboardBody"></tbody></table>
+          <div style="margin-top:20px;" id="ad_teamAlerts"></div>
           <div style="margin-top:20px;">
             <div class="section-eyebrow">Team Insights</div>
             <div id="ad_teamInsights"></div>
@@ -1720,6 +1722,45 @@ function switchAgentView(view){
 }
 
 let teamInsightsCache=null, teamInsightsFetch=0;
+function buildCarrierConcentrationAlert(subs){
+  const groupBy=(arr,keyFn)=>arr.reduce((acc,r)=>{ const k=keyFn(r)||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; },{});
+  const sumAP=arr=>arr.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const totalAP=sumAP(subs);
+  if(!totalAP) return '';
+  const byCarrier=groupBy(subs,r=>r.carrier_name);
+  const entries=Object.entries(byCarrier).filter(([k])=>k&&k!=='Unknown');
+  if(entries.length<2) return '';
+  const top=entries.map(([k,arr])=>({carrier:k,ap:sumAP(arr)})).sort((a,b)=>b.ap-a.ap)[0];
+  const share=top.ap/totalAP;
+  if(share<0.75) return '';
+  const isCrit=share>=0.85;
+  const cardClass=isCrit?'warn':'amber';
+  const badgeClass=isCrit?'badge-red':'badge-amber';
+  return `<div class="intel-card ${cardClass}" style="margin-top:16px;"><div style="display:flex;align-items:flex-start;gap:10px;"><span style="font-size:18px;">${isCrit?'⚠️':'📊'}</span><div><div style="font-weight:700;color:var(--white);font-size:13px;margin-bottom:4px;">Carrier Concentration — ${top.carrier}</div><div style="font-size:12px;color:var(--body);">${top.carrier} accounts for ${Math.round(share*100)}% of all AP. A change in commissions, underwriting, or appointments with this carrier would have an outsized impact.</div><div class="intel-badge ${badgeClass}" style="margin-top:6px;">${isCrit?'High concentration risk':'Monitor diversification'}</div></div></div></div>`;
+}
+let boardAlertsSubsCache=null, boardAlertsSubsFetch=0;
+async function fetchBoardAlertsSubs(){
+  const now=Date.now();
+  if(boardAlertsSubsCache&&(now-boardAlertsSubsFetch)<60000) return boardAlertsSubsCache;
+  const {data}=await db.from('lb_submissions').select('carrier_name,annual_premium').eq('status','live');
+  boardAlertsSubsCache=data||[]; boardAlertsSubsFetch=now;
+  return boardAlertsSubsCache;
+}
+async function renderBoardAlerts(stats,elId,isAdmin){
+  const el=document.getElementById(elId); if(!el)return;
+  const alerts=detectSlumpsAndStreaks(stats);
+  const subs=await fetchBoardAlertsSubs();
+  const carrierCard=buildCarrierConcentrationAlert(subs);
+  const alertsHTML=renderAlerts(alerts,isAdmin);
+  if(alerts.length){
+    el.innerHTML=alertsHTML+carrierCard+'</div>';
+  } else if(carrierCard){
+    el.innerHTML=`<div class="intel-section"><div class="intel-section-title">Performance Alerts</div>${carrierCard}</div>`;
+  } else {
+    el.innerHTML=alertsHTML;
+  }
+}
+
 async function fetchTeamInsightsData(){
   const now=Date.now();
   if(teamInsightsCache&&(now-teamInsightsFetch)<60000) return teamInsightsCache;
@@ -1794,6 +1835,7 @@ async function renderAgentBoard(){
   buildPulse(stats,'a_');
   buildLeaderboard(stats,'a_leaderboardBody',topMap,callMap);
   buildSidebar(stats,'a_sidebar','a_lastUpdated');
+  renderBoardAlerts(stats,'a_teamAlerts',false);
   renderTeamInsights('a_teamInsights');
   const subs=await fetchRecentSubs(8);
   const rsEl=document.getElementById('a_recentSales');
@@ -1852,7 +1894,7 @@ function switchAdminBoardView(view){
   if(view==='mapd')     renderMAPDBoard();
   if(view==='combined') renderAdminCombined();
 }
-async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); const callMap=await fetchCallCountsToday(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap,callMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); renderTeamInsights('ad_teamInsights'); }
+async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); const callMap=await fetchCallCountsToday(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap,callMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); renderBoardAlerts(stats,'ad_teamAlerts',true); renderTeamInsights('ad_teamInsights'); }
 async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); const topMap=await fetchTopStateCarrier('lb_mapd_submissions'); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody',topMap); }
 async function renderAdminCombined(){ const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]); buildCombined(anc,mapd,'ad_combinedContent'); }
 
