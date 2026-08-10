@@ -1360,6 +1360,17 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- AGENT DETAIL MODAL -->
+<div class="modal-overlay" id="agentDetailModal">
+  <div class="modal-box wide">
+    <div class="modal-title" id="agentDetail_title">Agent Detail</div>
+    <div id="agentDetail_content"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('agentDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // SANDBOX BRANCH — do NOT merge this file to main. Production values are in git history on main.
 const SUPABASE_URL  = 'https://srbchkzxynltaqcddwtu.supabase.co';
@@ -1641,7 +1652,7 @@ function buildLeaderboard(stats,tbodyId,topMap,callMap){
     const plLabel=ps==='ahead'?'Ahead':ps==='on'?'On Pace':ps==='off'?'Behind':'Critical';
     const plClass=ps==='ahead'?'pace-ahead':ps==='on'?'pace-on':ps==='off'?'pace-off':'pace-crit';
     const wow=Number(agent.week_ap)-Number(agent.last_week_ap);
-    tbody.innerHTML+=`<tr><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'&#x25b2;':'&#x25bc;'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td>${callMap[agent.id]||0}</td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).state||'—'}</span></td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).carrier||'—'}</span></td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
+    tbody.innerHTML+=`<tr onclick="openAgentDetailModal('${agent.id}','${agent.name.replace(/'/g,"\\'")}')" style="cursor:pointer;"><td><div class="agent-cell"><div class="rank-badge ${rClass}">${rank}</div><div><div class="agent-name">${agent.name}</div><div class="agent-trend ${wow>=0?'trend-up':'trend-down'}">${wow>=0?'&#x25b2;':'&#x25bc;'} ${fmt$(Math.abs(wow))} WoW</div></div></div></td><td><span class="ap-val">${fmt$(agent.daily_ap)}</span></td><td><span class="daily-pace ${plClass}">${plLabel}</span></td><td><span class="ap-val">${fmt$(agent.month_ap)}</span></td><td><div class="goal-bar-wrap"><span class="goal-pct-label ${pClass}">${fmtPct(mPct)}</span><div class="mini-bar-track"><div class="mini-bar-fill ${fClass}" style="width:${Math.min(mPct,100)}%"></div></div></div></td><td>${agent.apps_today}</td><td>${callMap[agent.id]||0}</td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).state||'—'}</span></td><td><span style="font-size:12px;color:var(--label);">${(topMap[agent.id]||{}).carrier||'—'}</span></td><td><span class="comm-val">${fmt$2(estComm(agent.month_ap))}</span></td></tr>`;
   });
 }
 function buildMAPDLeaderboard(mapd,tbodyId,topMap){
@@ -2185,6 +2196,46 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 async function openBeneficiaryModal(id){ const {data:s}=await db.from('lb_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}${fld('Carrier Status',s.carrier_status?carrierStatusLabel(s.carrier_status):null)}</div><div class="form-section-title">Banking Information</div><div class="form-grid">${fld('Institution',s.banking_institution)}${fld('Routing Number',s.routing_number)}${fld('Account Number',s.account_number)}${fld("Mother\'s Maiden Name",s.mothers_maiden_name)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
 async function openMAPDBeneficiaryModal(id){ const {data:s}=await db.from('lb_mapd_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
+
+async function openAgentDetailModal(agentId, agentName){
+  document.getElementById('agentDetail_title').textContent = agentName + ' — Performance Detail';
+  document.getElementById('agentDetail_content').innerHTML = '<div class="no-data">Loading…</div>';
+  openModal('agentDetailModal');
+  const {data:subs} = await db.from('lb_submissions').select('customer_state,product_type,carrier_name,annual_premium,submitted_at').eq('agent_id',agentId).eq('status','live');
+  renderAgentDetail(subs||[]);
+}
+function timeWindowET(ts){
+  const h=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(new Date(ts)));
+  if(h<9)return'Pre-9AM'; if(h<12)return'Morning (9-12)'; if(h<15)return'Early Afternoon (12-3)'; if(h<18)return'Late Afternoon (3-6)'; if(h<21)return'Evening (6-9)'; return'Post-9PM';
+}
+function renderAgentDetail(subs){
+  const el=document.getElementById('agentDetail_content');
+  if(!subs.length){ el.innerHTML='<div class="no-data">No submissions found for this agent.</div>'; return; }
+  const groupBy=(arr,keyFn)=>arr.reduce((acc,r)=>{ const k=keyFn(r)||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; },{});
+  const sumAP=arr=>arr.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const sec=title=>`<div class="form-section-title">${title}</div>`;
+  const lowN=n=>n<5?' <span style="font-size:10px;color:var(--muted);">(low sample)</span>':'';
+  const tbl=(headers,rows)=>`<table class="submissions-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const breakdown=keyFn=>{
+    const grouped=groupBy(subs,keyFn);
+    return Object.keys(grouped).sort((a,b)=>sumAP(grouped[b])-sumAP(grouped[a])).map(k=>{
+      const arr=grouped[k]; const ap=sumAP(arr);
+      return [k, arr.length+lowN(arr.length), fmt$(ap), fmt$(ap/arr.length)];
+    });
+  };
+  const stateRows=breakdown(r=>r.customer_state);
+  const productRows=breakdown(r=>r.product_type);
+  const carrierRows=breakdown(r=>r.carrier_name);
+  const windowOrder=['Pre-9AM','Morning (9-12)','Early Afternoon (12-3)','Late Afternoon (3-6)','Evening (6-9)','Post-9PM'];
+  const byWindow=groupBy(subs,r=>timeWindowET(r.submitted_at));
+  const windowRows=windowOrder.filter(w=>byWindow[w]).map(w=>{
+    const arr=byWindow[w]; const ap=sumAP(arr);
+    return [w, arr.length+lowN(arr.length), fmt$(ap), fmt$(ap/arr.length)];
+  });
+  const totalAP=sumAP(subs);
+  const headers=['Group','Subs','Total AP','Avg AP'];
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div class="stat-card-val">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total AP</div><div class="stat-card-val">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div class="stat-card-val">${fmt$(totalAP/subs.length)}</div></div></div>${sec('By State')}${tbl(headers,stateRows)}${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
+}
 
 function startRealtime(){
   db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'&&currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
