@@ -457,6 +457,10 @@ tbody td:not(:first-child){text-align:right;}
           <tbody id="a_leaderboardBody"></tbody>
         </table>
         <div style="margin-top:20px;">
+          <div class="section-eyebrow">Team Insights</div>
+          <div id="a_teamInsights"></div>
+        </div>
+        <div style="margin-top:20px;">
           <div class="section-eyebrow">Recent Sales</div>
           <div id="a_recentSales" style="display:flex;flex-direction:column;gap:6px;"></div>
         </div>
@@ -789,6 +793,10 @@ tbody td:not(:first-child){text-align:right;}
           <div class="section-eyebrow">Agent Leaderboard — Ancillary</div>
           <table><thead><tr><th>Agent</th><th>Daily AP</th><th>Pace</th><th>Month AP</th><th>% Goal</th><th>Apps</th><th>Calls Today</th><th>Top State</th><th>Top Carrier</th><th>Est. Comm</th></tr></thead>
           <tbody id="ad_leaderboardBody"></tbody></table>
+          <div style="margin-top:20px;">
+            <div class="section-eyebrow">Team Insights</div>
+            <div id="ad_teamInsights"></div>
+          </div>
         </div>
         <div class="sidebar" id="ad_sidebar"></div>
       </div>
@@ -1711,6 +1719,74 @@ function switchAgentView(view){
   if(view==='inbox')    { switchInboxSubTab('agent','notif'); loadInbox('agent'); }
 }
 
+let teamInsightsCache=null, teamInsightsFetch=0;
+async function fetchTeamInsightsData(){
+  const now=Date.now();
+  if(teamInsightsCache&&(now-teamInsightsFetch)<60000) return teamInsightsCache;
+  const {data}=await db.from('lb_submissions').select('customer_state,product_type,carrier_name,annual_premium,submitted_at').eq('status','live');
+  teamInsightsCache=data||[]; teamInsightsFetch=now;
+  return teamInsightsCache;
+}
+async function renderTeamInsights(elId){
+  const el=document.getElementById(elId); if(!el)return;
+  const subs=await fetchTeamInsightsData();
+  if(!subs.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">Not enough data yet.</div>'; return; }
+  const groupBy=(arr,keyFn)=>arr.reduce((acc,r)=>{ const k=keyFn(r)||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; },{});
+  const sumAP=arr=>arr.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const avgAP=arr=>arr.length?sumAP(arr)/arr.length:0;
+  const totalAP=sumAP(subs);
+  const overallAvg=totalAP/subs.length;
+  const recs=[];
+
+  const byState=groupBy(subs,r=>r.customer_state);
+  const stateCandidates=Object.entries(byState).filter(([k,arr])=>arr.length>=5&&k&&k!=='Unknown');
+  if(stateCandidates.length){
+    const worst=stateCandidates.map(([k,arr])=>({state:k,n:arr.length,avg:avgAP(arr)})).sort((a,b)=>a.avg-b.avg)[0];
+    if(worst&&worst.avg<overallAvg*0.85){
+      const pctBelow=Math.round((1-worst.avg/overallAvg)*100);
+      recs.push(`<b>${worst.state}</b> trails the team's overall avg AP by ${pctBelow}% (${fmt$(worst.avg)} vs ${fmt$(overallAvg)} team avg, ${worst.n} submissions) — worth a coaching conversation with agents writing there.`);
+    }
+  }
+
+  const byProduct=groupBy(subs,r=>r.product_type);
+  const hh=byProduct['Home Health'], hi=byProduct['Hospital Indemnity'];
+  if(hh&&hi&&hh.length>=5&&hi.length>=5){
+    const hhAvg=avgAP(hh), hiAvg=avgAP(hi);
+    if(Math.abs(hhAvg-hiAvg)>50){
+      const higher=hhAvg>hiAvg?'Home Health':'Hospital Indemnity';
+      const lower=hhAvg>hiAvg?'Hospital Indemnity':'Home Health';
+      const diff=Math.abs(hhAvg-hiAvg);
+      const lowerArr=hhAvg>hiAvg?hi:hh;
+      recs.push(`<b>${higher}</b> averages ${fmt$(diff)} more per sale than ${lower} team-wide. Shifting even a handful of ${lower} sales (${lowerArr.length} written this period) toward ${higher} would add roughly ${fmt$(diff)} in AP per sale shifted.`);
+    }
+  }
+
+  const windowOrder=['Pre-9AM','Morning (9-12)','Early Afternoon (12-3)','Late Afternoon (3-6)','Evening (6-9)','Post-9PM'];
+  const byWindow=groupBy(subs,r=>timeWindowET(r.submitted_at));
+  const windowCandidates=windowOrder.map(w=>byWindow[w]?{window:w,n:byWindow[w].length,avg:avgAP(byWindow[w])}:null).filter(w=>w&&w.n>=5);
+  if(windowCandidates.length>=2){
+    const best=[...windowCandidates].sort((a,b)=>b.avg-a.avg)[0];
+    const byVolume=[...windowCandidates].sort((a,b)=>b.n-a.n)[0];
+    if(best.window!==byVolume.window){
+      recs.push(`<b>${best.window}</b> produces the highest avg AP (${fmt$(best.avg)}, ${best.n} subs), but <b>${byVolume.window}</b> gets the most volume (${byVolume.n} subs) — protecting ${best.window} from meetings/admin work may be worth more than adding volume elsewhere.`);
+    }
+  }
+
+  const byCarrier=groupBy(subs,r=>r.carrier_name);
+  const carrierEntries=Object.entries(byCarrier).filter(([k])=>k&&k!=='Unknown');
+  if(carrierEntries.length>1){
+    const top=carrierEntries.map(([k,arr])=>({carrier:k,ap:sumAP(arr)})).sort((a,b)=>b.ap-a.ap)[0];
+    const share=top.ap/totalAP;
+    if(share>=0.75){
+      recs.push(`<b>${top.carrier}</b> accounts for ${Math.round(share*100)}% of all AP — significant concentration risk if commissions, underwriting, or appointments change with that carrier.`);
+    }
+  }
+
+  el.innerHTML=recs.length
+    ?`<div class="intel-ai-box">${recs.map(r=>`<div style="font-size:13px;color:var(--body);line-height:1.7;margin-bottom:${recs.length>1?'10px':'0'};">→ ${r}</div>`).join('')}</div>`
+    :`<div class="intel-ai-box" style="color:var(--muted);font-size:12px;">No strong team-wide patterns yet — sample sizes are still building up.</div>`;
+}
+
 async function renderAgentBoard(){
   const stats=await fetchStats();
   const topMap=await fetchTopStateCarrier('lb_submissions');
@@ -1718,6 +1794,7 @@ async function renderAgentBoard(){
   buildPulse(stats,'a_');
   buildLeaderboard(stats,'a_leaderboardBody',topMap,callMap);
   buildSidebar(stats,'a_sidebar','a_lastUpdated');
+  renderTeamInsights('a_teamInsights');
   const subs=await fetchRecentSubs(8);
   const rsEl=document.getElementById('a_recentSales');
   if(rsEl){
@@ -1775,7 +1852,7 @@ function switchAdminBoardView(view){
   if(view==='mapd')     renderMAPDBoard();
   if(view==='combined') renderAdminCombined();
 }
-async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); const callMap=await fetchCallCountsToday(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap,callMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); }
+async function renderAdminBoard(){ const stats=await fetchStats(); const topMap=await fetchTopStateCarrier('lb_submissions'); const callMap=await fetchCallCountsToday(); buildPulse(stats,'ad_'); buildLeaderboard(stats,'ad_leaderboardBody',topMap,callMap); buildSidebar(stats,'ad_sidebar','ad_lastUpdated'); renderTeamInsights('ad_teamInsights'); }
 async function renderMAPDBoard(){ const mapd=await fetchMAPDStats(); const topMap=await fetchTopStateCarrier('lb_mapd_submissions'); buildMAPDPulse(mapd,'ad_mapd_pulse'); buildMAPDLeaderboard(mapd,'ad_mapdBody',topMap); }
 async function renderAdminCombined(){ const [anc,mapd]=await Promise.all([fetchStats(),fetchMAPDStats()]); buildCombined(anc,mapd,'ad_combinedContent'); }
 
@@ -2213,6 +2290,7 @@ function renderAgentDetail(subs){
   if(!subs.length){ el.innerHTML='<div class="no-data">No submissions found for this agent.</div>'; return; }
   const groupBy=(arr,keyFn)=>arr.reduce((acc,r)=>{ const k=keyFn(r)||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; },{});
   const sumAP=arr=>arr.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const avgAP=arr=>arr.length?sumAP(arr)/arr.length:0;
   const sec=title=>`<div class="form-section-title">${title}</div>`;
   const lowN=n=>n<5?' <span style="font-size:10px;color:var(--muted);">(low sample)</span>':'';
   const tbl=(headers,rows)=>`<table class="submissions-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -2223,18 +2301,56 @@ function renderAgentDetail(subs){
       return [k, arr.length+lowN(arr.length), fmt$(ap), fmt$(ap/arr.length)];
     });
   };
+  const byState=groupBy(subs,r=>r.customer_state);
+  const byProduct=groupBy(subs,r=>r.product_type);
+  const byCarrier=groupBy(subs,r=>r.carrier_name);
+  const windowOrder=['Pre-9AM','Morning (9-12)','Early Afternoon (12-3)','Late Afternoon (3-6)','Evening (6-9)','Post-9PM'];
+  const byWindow=groupBy(subs,r=>timeWindowET(r.submitted_at));
   const stateRows=breakdown(r=>r.customer_state);
   const productRows=breakdown(r=>r.product_type);
   const carrierRows=breakdown(r=>r.carrier_name);
-  const windowOrder=['Pre-9AM','Morning (9-12)','Early Afternoon (12-3)','Late Afternoon (3-6)','Evening (6-9)','Post-9PM'];
-  const byWindow=groupBy(subs,r=>timeWindowET(r.submitted_at));
   const windowRows=windowOrder.filter(w=>byWindow[w]).map(w=>{
     const arr=byWindow[w]; const ap=sumAP(arr);
     return [w, arr.length+lowN(arr.length), fmt$(ap), fmt$(ap/arr.length)];
   });
   const totalAP=sumAP(subs);
+  const overallAvg=totalAP/subs.length;
   const headers=['Group','Subs','Total AP','Avg AP'];
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div class="stat-card-val">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total AP</div><div class="stat-card-val">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div class="stat-card-val">${fmt$(totalAP/subs.length)}</div></div></div>${sec('By State')}${tbl(headers,stateRows)}${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
+
+  // ── Recommendations (n>=5 gate on every insight) ──
+  const recs=[];
+  const stateCandidates=Object.entries(byState).filter(([k,arr])=>arr.length>=5&&k!=='Unknown'&&k);
+  if(stateCandidates.length){
+    const worst=stateCandidates.map(([k,arr])=>({state:k,n:arr.length,avg:avgAP(arr)})).sort((a,b)=>a.avg-b.avg)[0];
+    if(worst&&worst.avg<overallAvg*0.85){
+      const pctBelow=Math.round((1-worst.avg/overallAvg)*100);
+      recs.push(`<b>${worst.state}</b> is trailing your overall avg AP by ${pctBelow}% (${fmt$(worst.avg)} vs your ${fmt$(overallAvg)} average, ${worst.n} submissions) — worth reviewing recent ${worst.state} enrollments for plan selection.`);
+    }
+  }
+  const hh=byProduct['Home Health'], hi=byProduct['Hospital Indemnity'];
+  if(hh&&hi&&hh.length>=5&&hi.length>=5){
+    const hhAvg=avgAP(hh), hiAvg=avgAP(hi);
+    if(Math.abs(hhAvg-hiAvg)>50){
+      const higher=hhAvg>hiAvg?'Home Health':'Hospital Indemnity';
+      const lower=hhAvg>hiAvg?'Hospital Indemnity':'Home Health';
+      const diff=Math.abs(hhAvg-hiAvg);
+      recs.push(`<b>${higher}</b> averages ${fmt$(diff)} more per sale than ${lower} for this agent — each sale shifted from ${lower} to ${higher} is worth roughly that difference in AP.`);
+    }
+  }
+  const windowCandidates=windowOrder.map(w=>byWindow[w]?{window:w,n:byWindow[w].length,avg:avgAP(byWindow[w])}:null).filter(w=>w&&w.n>=5);
+  if(windowCandidates.length>=2){
+    const best=[...windowCandidates].sort((a,b)=>b.avg-a.avg)[0];
+    const others=windowCandidates.filter(w=>w.window!==best.window);
+    const othersAvg=others.reduce((s,w)=>s+w.avg,0)/others.length;
+    if(best.avg>othersAvg*1.15){
+      recs.push(`<b>${best.window}</b> is this agent's highest-value window at ${fmt$(best.avg)} avg AP (${best.n} subs) — meaningfully above their ${fmt$(othersAvg)} average in other windows.`);
+    }
+  }
+  const recsHTML=recs.length
+    ?`<div class="intel-ai-box" style="margin-bottom:20px;">${recs.map(r=>`<div style="font-size:13px;color:var(--body);line-height:1.7;margin-bottom:${recs.length>1?'10px':'0'};">→ ${r}</div>`).join('')}</div>`
+    :`<div class="intel-ai-box" style="margin-bottom:20px;color:var(--muted);font-size:12px;">No strong patterns yet — sample sizes across categories are too small for reliable recommendations.</div>`;
+
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div class="stat-card-val">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total AP</div><div class="stat-card-val">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div class="stat-card-val">${fmt$(overallAvg)}</div></div></div>${sec('Recommendations')}${recsHTML}${sec('By State')}${tbl(headers,stateRows)}${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
 }
 
 function startRealtime(){
