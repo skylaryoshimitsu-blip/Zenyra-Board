@@ -1361,8 +1361,9 @@ tbody td:not(:first-child){text-align:right;}
 </div>
 
 <script>
-const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+// SANDBOX BRANCH — do NOT merge this file to main. Production values are in git history on main.
+const SUPABASE_URL  = 'https://srbchkzxynltaqcddwtu.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYmNoa3p4eW5sdGFxY2Rkd3R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMzY2NzAsImV4cCI6MjEwMTkxMjY3MH0.UnukrJe-56h5Ihl8kxqUX_Q2VuRmNEgMw458nBQ6L1M';
 const DAILY_GOAL = 8000;
 const ADMIN_CODE = 'bigbrothereye';
 const COMM_RATE  = 0.1125;
@@ -2047,8 +2048,8 @@ async function scoreCall(){
     const createRes = await fetch('/api/upload', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'create-job', agentName, agentId, fileName: scorerFile.name }) });
     if(!createRes.ok){ const t=await createRes.text(); throw new Error('Job creation failed: '+t); }
     const { jobId, uploadPath } = await createRes.json();
-    const SUPA_URL='https://fodkldiqwbnmzdmgrfmr.supabase.co';
-    const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+    const SUPA_URL=SUPABASE_URL;
+    const SUPA_ANON=SUPABASE_ANON;
     const storageRes = await fetch(SUPA_URL+'/storage/v1/object/lb-scorer-audio/'+uploadPath, { method:'POST', headers:{ 'Authorization':'Bearer '+SUPA_ANON, 'Content-Type': scorerFile.type||'audio/mpeg', 'x-upsert':'false' }, body: scorerFile });
     if(!storageRes.ok){ const t=await storageRes.text(); throw new Error('Storage upload failed: '+t); }
     setStep('step_upload','done'); setStep('step_transcribe','active');
