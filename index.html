@@ -390,6 +390,7 @@ tbody td:not(:first-child){text-align:right;}
         <div class="portal-desc">Log call data & reports</div>
       </div>
     </div>
+    <p style="margin-top:28px;font-size:12px;color:var(--muted);text-align:center;">Already a Zenyra subscriber? <span onclick="showAuth('solo')" style="color:var(--label);cursor:pointer;text-decoration:underline;">Sign in to your account →</span></p>
   </div>
 </div>
 
@@ -1397,15 +1398,24 @@ function showScreen(id){
 let authRole='agent';
 async function showAuth(role){
   authRole=role;
-  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':'Dialer Portal';
-  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':'VA call logging access';
+  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':role==='dialer'?'Dialer Portal':'Your Zenyra Account';
+  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':role==='dialer'?'VA call logging access':'Sign in to your personal dashboard';
   document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
   document.getElementById('authError').style.display='none';
+  document.getElementById('tabRegister').style.display=role==='solo'?'none':'';
   if(role==='dialer'){
     document.getElementById('loginNameField').style.display='none';
     document.getElementById('registerNameField').style.display='none';
     document.getElementById('loginDialerField').style.display='block';
     document.getElementById('registerDialerField').style.display='block';
+  } else if(role==='solo'){
+    document.getElementById('loginNameField').style.display='block';
+    document.getElementById('registerNameField').style.display='none';
+    document.getElementById('loginDialerField').style.display='none';
+    document.getElementById('registerDialerField').style.display='none';
+    const {data:soloUsers}=await db.from('lb_users').select('id,display_name').eq('role','solo').order('display_name');
+    const opts=(soloUsers||[]).map(u=>`<option value="${u.id}">${u.display_name}</option>`).join('');
+    document.getElementById('loginName').innerHTML=opts;
   } else {
     document.getElementById('loginNameField').style.display='block';
     document.getElementById('registerNameField').style.display='block';
@@ -1442,6 +1452,14 @@ async function doLogin(){
     return;
   }
   const agentId=document.getElementById('loginName').value;
+  if(authRole==='solo'){
+    const {data,error}=await db.from('lb_users').select('*').eq('id',agentId).eq('role','solo').eq('password_hash',hash).single();
+    if(error||!data) return showAuthError('Incorrect password. Try again.');
+    await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
+    saveSession({...data,agentName:data.display_name});
+    enterDashboard('solo');
+    return;
+  }
   const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).eq('role',authRole).eq('password_hash',hash).single();
   if(error||!data) return showAuthError('Incorrect password. Try again or register.');
   await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
