@@ -390,7 +390,6 @@ tbody td:not(:first-child){text-align:right;}
         <div class="portal-desc">Log call data & reports</div>
       </div>
     </div>
-    <p style="margin-top:28px;font-size:12px;color:var(--muted);text-align:center;">Already a Zenyra subscriber? <span onclick="showAuth('solo')" style="color:var(--label);cursor:pointer;text-decoration:underline;">Sign in to your account →</span></p>
   </div>
 </div>
 
@@ -592,6 +591,94 @@ tbody td:not(:first-child){text-align:right;}
   </div>
   <div class="footer">
     <span class="footer-left" id="a_lastUpdated">—</span>
+    <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
+  </div>
+</div>
+
+<!-- SOLO DASHBOARD -->
+<div id="solo-dashboard" class="screen">
+  <div class="header">
+    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Performance Command Center</span></div>
+    <div class="header-right">
+      <span class="live-dot">Live</span>
+      <span class="clock" id="soloClock"></span>
+      <span class="user-badge">Signed in as <span id="soloUserName">—</span></span>
+      <div class="notif-bell-wrap"><button class="notif-bell" id="soloBell" onclick="toggleNotifDropdown('solo')">🔔<span class="notif-badge" id="soloBadge" style="display:none"></span></button><div class="notif-dropdown" id="soloDropdown"><div class="notif-dropdown-header">Notifications</div><div id="soloDropdownList"></div></div></div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="view-tabs">
+    <div class="view-tab active" id="soloTab_mydash" onclick="switchSoloView('mydash')">My Dashboard</div>
+    <div class="view-tab" id="soloTab_mysubs" onclick="switchSoloView('mysubs')">My Submissions</div>
+    <div class="view-tab" id="soloTab_wow" onclick="switchSoloView('wow')">Week Over Week</div>
+    <div class="view-tab" id="soloTab_inbox" onclick="switchSoloView('inbox')">Inbox</div>
+  </div>
+  <!-- My Dashboard panel -->
+  <div id="solo-mydash-panel" style="display:flex;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div id="solo_mydash_content"><div class="no-data">Loading…</div></div>
+  </div>
+  <!-- My Submissions panel -->
+  <div id="solo-mysubs-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+    <div class="my-subs-wrap">
+      <div class="filter-bar">
+        <div class="filter-field">
+          <label>Date Range</label>
+          <select id="solo_my_range" onchange="toggleSoloCustomDates()">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="7">Last 7 Days</option>
+            <option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div class="filter-field" id="solo_my_from_wrap" style="display:none;">
+          <label>From</label><input type="date" id="solo_my_from"/>
+        </div>
+        <div class="filter-field" id="solo_my_to_wrap" style="display:none;">
+          <label>To</label><input type="date" id="solo_my_to"/>
+        </div>
+        <div class="filter-field">
+          <label>Product Type</label>
+          <select id="solo_my_product">
+            <option value="all">All Products</option>
+            <option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option>
+            <option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option>
+          </select>
+        </div>
+        <button class="btn-filter" onclick="loadSoloMySubmissions()">Apply</button>
+      </div>
+      <div id="solo_my_summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;"></div>
+      <div id="solo_my_subs_table"></div>
+    </div>
+  </div>
+  <!-- Week Over Week panel -->
+  <div id="solo-wow-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:16px;">Week Over Week — Personal</div>
+    <div id="solo_wow_content"></div>
+  </div>
+  <!-- Inbox panel -->
+  <div id="solo-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;padding:20px 24px;">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;flex-shrink:0;">
+      <button id="soloInboxTab_notif" onclick="switchSoloInboxSubTab('notif')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Notifications</button>
+      <button id="soloInboxTab_msgs" onclick="switchSoloInboxSubTab('msgs')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Messages</button>
+    </div>
+    <div id="solo-inbox-notif" style="flex:1;overflow-y:auto;">
+      <div id="solo-inbox-content"><div class="no-data">Loading…</div></div>
+    </div>
+    <div id="solo-inbox-msgs" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <span id="solo-msgs-to-label" class="section-eyebrow" style="font-size:9px;">TO: Dialer</span>
+      </div>
+      <div id="solo-msgs-thread" class="msg-thread"></div>
+      <div class="msg-compose">
+        <textarea id="solo-msgs-input" rows="3" placeholder="Write a message…" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;width:100%;"></textarea>
+        <button onclick="sendMessage('solo')" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-end;">Send</button>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="footer-left" id="solo_lastUpdated">—</span>
     <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
   </div>
 </div>
@@ -1398,24 +1485,15 @@ function showScreen(id){
 let authRole='agent';
 async function showAuth(role){
   authRole=role;
-  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':role==='dialer'?'Dialer Portal':'Your Zenyra Account';
-  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':role==='dialer'?'VA call logging access':'Sign in to your personal dashboard';
+  document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':'Dialer Portal';
+  document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':'VA call logging access';
   document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
   document.getElementById('authError').style.display='none';
-  document.getElementById('tabRegister').style.display=role==='solo'?'none':'';
   if(role==='dialer'){
     document.getElementById('loginNameField').style.display='none';
     document.getElementById('registerNameField').style.display='none';
     document.getElementById('loginDialerField').style.display='block';
     document.getElementById('registerDialerField').style.display='block';
-  } else if(role==='solo'){
-    document.getElementById('loginNameField').style.display='block';
-    document.getElementById('registerNameField').style.display='none';
-    document.getElementById('loginDialerField').style.display='none';
-    document.getElementById('registerDialerField').style.display='none';
-    const {data:soloUsers}=await db.from('lb_users').select('id,display_name').eq('role','solo').order('display_name');
-    const opts=(soloUsers||[]).map(u=>`<option value="${u.id}">${u.display_name}</option>`).join('');
-    document.getElementById('loginName').innerHTML=opts;
   } else {
     document.getElementById('loginNameField').style.display='block';
     document.getElementById('registerNameField').style.display='block';
@@ -1452,15 +1530,7 @@ async function doLogin(){
     return;
   }
   const agentId=document.getElementById('loginName').value;
-  if(authRole==='solo'){
-    const {data,error}=await db.from('lb_users').select('*').eq('id',agentId).eq('role','solo').eq('password_hash',hash).single();
-    if(error||!data) return showAuthError('Incorrect password. Try again.');
-    await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
-    saveSession({...data,agentName:data.display_name});
-    enterDashboard('solo');
-    return;
-  }
-  const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).eq('role',authRole).eq('password_hash',hash).single();
+  const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).in('role',authRole==='agent'?['agent','solo']:[authRole]).eq('password_hash',hash).single();
   if(error||!data) return showAuthError('Incorrect password. Try again or register.');
   await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
   const agent=allAgents.find(a=>a.id===agentId);
@@ -1507,6 +1577,10 @@ function enterDashboard(role){
     document.getElementById('dialerUserName').textContent=currentUser.agentName;
     showScreen('dialer-dashboard');
     switchDialerTab('log');
+  } else if(role==='solo'){
+    document.getElementById('soloUserName').textContent=currentUser.agentName;
+    showScreen('solo-dashboard');
+    switchSoloView('mydash');
   } else {
     document.getElementById('agentUserName').textContent=currentUser.agentName;
     showScreen('agent-dashboard');
@@ -1766,6 +1840,193 @@ async function loadMySubmissions(){
   const tblEl=document.getElementById('my_subs_table');
   if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
   tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── SOLO DASHBOARD ─────────────────────────────────────────────────────────
+
+let soloSubmissionsCache = null;
+let currentSoloView = 'mydash';
+
+const soloViews = ['mydash','mysubs','wow','inbox'];
+function switchSoloView(view){
+  currentSoloView=view;
+  soloViews.forEach(v=>{
+    const panel=document.getElementById('solo-'+v+'-panel');
+    if(panel) panel.style.display=v===view?'flex':'none';
+    const tab=document.getElementById('soloTab_'+v);
+    if(tab) tab.classList.toggle('active',v===view);
+  });
+  if(view==='mydash') renderSoloDashboard();
+  if(view==='mysubs') loadSoloMySubmissions();
+  if(view==='wow')    renderSoloWoW();
+  if(view==='inbox')  { switchSoloInboxSubTab('notif'); loadInbox('solo'); }
+}
+
+function switchSoloInboxSubTab(sub){
+  ['notif','msgs'].forEach(s=>{
+    const pane=document.getElementById('solo-inbox-'+s);
+    const btn=document.getElementById('soloInboxTab_'+s);
+    if(pane) pane.style.display=s===sub?(s==='msgs'?'flex':'block'):'none';
+    if(btn){ btn.style.borderBottomColor=s===sub?'var(--teal)':'transparent'; btn.style.color=s===sub?'var(--white)':'var(--muted)'; }
+  });
+  if(sub==='msgs') loadSoloMessages();
+}
+
+function toggleSoloCustomDates(){ const v=document.getElementById('solo_my_range').value; ['solo_my_from_wrap','solo_my_to_wrap'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=v==='custom'?'flex':'none'; }); }
+
+async function loadSoloMySubmissions(){
+  if(!currentUser?.agent_id) return;
+  const range=document.getElementById('solo_my_range').value;
+  const product=document.getElementById('solo_my_product').value;
+  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
+  let from=null, to=null;
+  if(range==='today'){ from=today.toISOString(); to=new Date(today.getTime()+86400000-1).toISOString(); }
+  else if(range==='7'){ from=new Date(today-6*86400000).toISOString(); }
+  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1).toISOString(); }
+  else if(range==='30'){ from=new Date(today-29*86400000).toISOString(); }
+  else if(range==='custom'){ from=document.getElementById('solo_my_from').value?new Date(document.getElementById('solo_my_from').value).toISOString():null; to=document.getElementById('solo_my_to').value?new Date(document.getElementById('solo_my_to').value+'T23:59:59').toISOString():null; }
+  let q=db.from('lb_submissions').select('*').eq('agent_id',currentUser.agent_id).eq('status','live');
+  if(from) q=q.gte('submitted_at',from);
+  if(to)   q=q.lte('submitted_at',to);
+  if(product&&product!=='all') q=q.eq('product_type',product);
+  const {data:subs}=await q.order('submitted_at',{ascending:false});
+  const rows=subs||[];
+  const totalMP=rows.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
+  const totalAP=rows.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
+  document.getElementById('solo_my_summary').innerHTML=statBox(rows.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
+  const tblEl=document.getElementById('solo_my_subs_table');
+  if(!rows.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${rows.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+async function renderSoloWoW(){
+  if(!currentUser?.agent_id) return;
+  const el=document.getElementById('solo_wow_content');
+  el.innerHTML='<div class="no-data">Loading…</div>';
+  const thisWeekISO=startOfWeekET_ISO();
+  const lastWeekISO=new Date(new Date(thisWeekISO).getTime()-7*86400000).toISOString();
+  const thisMonStr=new Date(thisWeekISO).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const lastMonStr=new Date(new Date(thisWeekISO).getTime()-7*86400000).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+  const [{data:subs},{data:calls}]=await Promise.all([
+    db.from('lb_submissions').select('annual_premium,submitted_at').eq('agent_id',currentUser.agent_id).eq('status','live').gte('submitted_at',lastWeekISO),
+    db.from('lb_dialer_activity').select('total_calls,billable_calls,log_date').eq('agent_id',currentUser.agent_id).gte('log_date',lastMonStr),
+  ]);
+  const thisWeekSubs=(subs||[]).filter(s=>s.submitted_at>=thisWeekISO);
+  const lastWeekSubs=(subs||[]).filter(s=>s.submitted_at>=lastWeekISO&&s.submitted_at<thisWeekISO);
+  const thisAP=thisWeekSubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const lastAP=lastWeekSubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const apDelta=thisAP-lastAP;
+  const apPct=lastAP>0?((apDelta/lastAP)*100).toFixed(1):null;
+  const thisWeekCalls=(calls||[]).filter(c=>c.log_date>=thisMonStr).reduce((s,c)=>s+Number(c.total_calls||0),0);
+  const lastWeekCalls=(calls||[]).filter(c=>c.log_date>=lastMonStr&&c.log_date<thisMonStr).reduce((s,c)=>s+Number(c.total_calls||0),0);
+  const wkBillable=(calls||[]).filter(c=>c.log_date>=thisMonStr).reduce((s,c)=>s+Number(c.billable_calls||0),0);
+  const conv=wkBillable>0?(thisWeekSubs.length/wkBillable*100).toFixed(1)+'%':null;
+  const dSign=v=>v>0?'+':'';
+  const dColor=v=>v>0?'var(--green)':v<0?'var(--red)':'var(--body)';
+  const sc=(lbl,val,color,sub)=>`<div class="stat-card"><div class="stat-card-label">${lbl}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${color};">${val}</div>${sub?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">${sub}</div>`:''}</div>`;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">${sc('This Week AP',fmt$(thisAP),'var(--teal)','')}${sc('Last Week AP',fmt$(lastAP),'var(--body)','')}${sc('AP Change',dSign(apDelta)+fmt$(Math.abs(apDelta)),dColor(apDelta),apPct!==null?dSign(apDelta)+apPct+'% vs last week':'')}${sc('Apps This Week',thisWeekSubs.length,'var(--white)','vs '+lastWeekSubs.length+' last week')}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${sc('Calls This Week',thisWeekCalls,'var(--label)','vs '+lastWeekCalls+' last week')}${sc('Conversion Rate',conv||'—','var(--purple)','billable calls this week')}</div>`;
+}
+
+function timeWindowET(ts){
+  const h=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(new Date(ts)));
+  if(h<9) return 'Pre-9AM';
+  if(h<12) return 'Morning (9-12)';
+  if(h<15) return 'Early Afternoon (12-3)';
+  if(h<18) return 'Late Afternoon (3-6)';
+  if(h<21) return 'Evening (6-9)';
+  return 'Post-9PM';
+}
+
+async function renderSoloDashboard(){
+  const el=document.getElementById('solo_mydash_content');
+  if(!el||!currentUser?.agent_id) return;
+  el.innerHTML='<div class="no-data">Loading…</div>';
+  if(!soloSubmissionsCache){
+    const {data}=await db.from('lb_submissions').select('customer_state,product_type,carrier_name,annual_premium,monthly_premium,submitted_at').eq('agent_id',currentUser.agent_id).eq('status','live');
+    soloSubmissionsCache=data||[];
+  }
+  renderSoloDetailContent(soloSubmissionsCache,el);
+}
+
+function renderSoloDetailContent(subs,el){
+  if(!subs.length){ el.innerHTML='<div class="no-data" style="padding:40px;">No submissions yet. Log your first sale to see your dashboard.</div>'; return; }
+  const groupBy=(arr,keyFn)=>arr.reduce((acc,r)=>{ const k=keyFn(r)||'Unknown'; (acc[k]=acc[k]||[]).push(r); return acc; },{});
+  const sumAP=arr=>arr.reduce((s,r)=>s+Number(r.annual_premium||0),0);
+  const avgAP=arr=>arr.length?sumAP(arr)/arr.length:0;
+  const sec=title=>`<div class="form-section-title" style="margin-top:24px;margin-bottom:10px;">${title}</div>`;
+  const lowN=n=>n<5?' <span style="font-size:10px;color:var(--muted);">(low sample)</span>':'';
+  const tbl=(headers,rows)=>`<table class="submissions-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const breakdown=keyFn=>{
+    const grouped=groupBy(subs,keyFn);
+    return Object.keys(grouped).sort((a,b)=>sumAP(grouped[b])-sumAP(grouped[a])).map(k=>{
+      const arr=grouped[k]; const ap=sumAP(arr);
+      return [k, arr.length+lowN(arr.length), fmt$(ap), fmt$(ap/arr.length)];
+    });
+  };
+  const byState=groupBy(subs,r=>r.customer_state);
+  const byProduct=groupBy(subs,r=>r.product_type);
+  const byCarrier=groupBy(subs,r=>r.carrier_name);
+  const windowOrder=['Pre-9AM','Morning (9-12)','Early Afternoon (12-3)','Late Afternoon (3-6)','Evening (6-9)','Post-9PM'];
+  const byWindow=groupBy(subs,r=>timeWindowET(r.submitted_at));
+  const stateRows=breakdown(r=>r.customer_state);
+  const productRows=breakdown(r=>r.product_type);
+  const carrierRows=breakdown(r=>r.carrier_name);
+  const windowRows=windowOrder.filter(w=>byWindow[w]).map(w=>{
+    const arr=byWindow[w]; const ap=sumAP(arr);
+    return [w, arr.length+lowN(arr.length), fmt$(ap), fmt$(ap/arr.length)];
+  });
+  const totalAP=sumAP(subs);
+  const overallAvg=totalAP/subs.length;
+  const headers=['Group','Subs','Total AP','Avg AP'];
+  // Recommendations
+  const recs=[];
+  const stateCandidates=Object.entries(byState).filter(([k,arr])=>arr.length>=5&&k!=='Unknown'&&k);
+  if(stateCandidates.length){
+    const worst=stateCandidates.map(([k,arr])=>({state:k,n:arr.length,avg:avgAP(arr)})).sort((a,b)=>a.avg-b.avg)[0];
+    if(worst&&worst.avg<overallAvg*0.85){
+      const pctBelow=Math.round((1-worst.avg/overallAvg)*100);
+      recs.push(`<b>${worst.state}</b> is trailing your overall avg AP by ${pctBelow}% (${fmt$(worst.avg)} vs your ${fmt$(overallAvg)} average, ${worst.n} submissions) — worth reviewing recent ${worst.state} enrollments for plan selection.`);
+    }
+  }
+  const hh=byProduct['Home Health'], hi=byProduct['Hospital Indemnity'];
+  if(hh&&hi&&hh.length>=5&&hi.length>=5){
+    const hhAvg=avgAP(hh), hiAvg=avgAP(hi);
+    if(Math.abs(hhAvg-hiAvg)>50){
+      const higher=hhAvg>hiAvg?'Home Health':'Hospital Indemnity';
+      const lower=hhAvg>hiAvg?'Hospital Indemnity':'Home Health';
+      recs.push(`<b>${higher}</b> averages ${fmt$(Math.abs(hhAvg-hiAvg))} more per sale than ${lower} — each sale shifted to ${higher} is worth roughly that difference in AP.`);
+    }
+  }
+  const windowCandidates=windowOrder.map(w=>byWindow[w]?{window:w,n:byWindow[w].length,avg:avgAP(byWindow[w])}:null).filter(w=>w&&w.n>=5);
+  if(windowCandidates.length>=2){
+    const best=[...windowCandidates].sort((a,b)=>b.avg-a.avg)[0];
+    const others=windowCandidates.filter(w=>w.window!==best.window);
+    const othersAvg=others.reduce((s,w)=>s+w.avg,0)/others.length;
+    if(best.avg>othersAvg*1.15) recs.push(`<b>${best.window}</b> is your highest-value time window at ${fmt$(best.avg)} avg AP (${best.n} submissions) — meaningfully above your ${fmt$(othersAvg)} average in other windows.`);
+  }
+  const recsHTML=recs.length
+    ?`<div class="intel-ai-box" style="margin-bottom:20px;">${recs.map(r=>`<div style="font-size:13px;color:var(--body);line-height:1.7;margin-bottom:${recs.length>1?'10px':'0'};">→ ${r}</div>`).join('')}</div>`
+    :`<div class="intel-ai-box" style="margin-bottom:20px;color:var(--muted);font-size:12px;">Not enough data yet to generate recommendations. Keep submitting — insights unlock at 5+ submissions per segment.</div>`;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--white);">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total Annual AP</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(overallAvg)}</div></div><div class="stat-card"><div class="stat-card-label">Est. Total Commission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);">${fmt$2(estComm(totalAP))}</div></div></div>${sec('Recommendations')}${recsHTML}${sec('By State')}${tbl(headers,stateRows)}${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
+}
+
+async function loadSoloMessages(){
+  dmState.portal='solo';
+  const thread=document.getElementById('solo-msgs-thread');
+  thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
+  const {data:dialerUser}=await db.from('lb_users').select('id,display_name').eq('role','dialer').order('created_at',{ascending:false}).limit(1).single();
+  if(!dialerUser){ thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">No dialer account found.</div>'; return; }
+  dmState.dialerUserId=dialerUser.id;
+  const lbl=document.getElementById('solo-msgs-to-label');
+  if(lbl) lbl.textContent='TO: '+(dialerUser.display_name||'Dialer');
+  const {data:msgs}=await db.from('lb_notifications').select('*').eq('type','direct_message').or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${dialerUser.id}),and(sender_id.eq.${dialerUser.id},recipient_id.eq.${currentUser.id})`).order('created_at',{ascending:true});
+  thread.innerHTML='';
+  (msgs||[]).forEach(m=>appendMessageBubble('solo-msgs-thread',m,currentUser.id));
+  thread.scrollTop=thread.scrollHeight;
+  await markMessagesRead(dialerUser.id);
+  fetchUnreadCount();
 }
 
 let adminBoardView='anc';
@@ -2204,6 +2465,11 @@ async function openBeneficiaryModal(id){ const {data:s}=await db.from('lb_submis
 async function openMAPDBeneficiaryModal(id){ const {data:s}=await db.from('lb_mapd_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
 
 function startRealtime(){
+  if(currentUser?.role==='solo'){
+    db.channel('lb_solo_live').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_submissions'},payload=>{ if(payload.new?.agent_id===currentUser.agent_id){ soloSubmissionsCache=null; if(currentSoloView==='mydash') renderSoloDashboard(); } }).subscribe();
+    db.channel('lb_notif_live_solo').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_notifications'},payload=>{ onNewNotification(payload.new); }).subscribe();
+    return;
+  }
   db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'&&currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
   db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); else if(currentUser?.role==='dialer'&&currentDialerTab==='leaderboard'&&currentDialerBoardView==='mapd')renderDialerMAPD(); }).subscribe();
   db.channel('lb_notif_live').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_notifications'},payload=>{ onNewNotification(payload.new); }).subscribe();
@@ -2220,8 +2486,8 @@ async function fetchUnreadCount(){
   ]);
   const n=notifCount||0;
   const m=msgCount||0;
-  ['agent','admin','dialer'].forEach(p=>{ const badge=document.getElementById(p+'Badge'); if(!badge)return; badge.style.display=n>0?'flex':'none'; badge.textContent=n>9?'9+':n; });
-  ['agent','dialer'].forEach(p=>{
+  ['agent','admin','dialer','solo'].forEach(p=>{ const badge=document.getElementById(p+'Badge'); if(!badge)return; badge.style.display=n>0?'flex':'none'; badge.textContent=n>9?'9+':n; });
+  ['agent','dialer','solo'].forEach(p=>{
     const btn=document.getElementById(p+'InboxTab_msgs');
     if(!btn)return;
     const existing=btn.querySelector('.msg-badge');
@@ -2237,7 +2503,7 @@ async function toggleNotifDropdown(portal){
   if(!dropdown||!listEl)return;
   const isOpen=dropdown.classList.contains('open');
   // Close all dropdowns first
-  ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  ['agent','admin','dialer','solo'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
   if(isOpen)return;
   dropdown.classList.add('open');
   listEl.innerHTML='<div class="notif-empty">Loading…</div>';
@@ -2261,11 +2527,12 @@ async function openNotifDetail(id, portal){
   const {data:n}=await db.from('lb_notifications').select('*').eq('id',id).single();
   if(!n)return;
   if(n.status==='unread') await db.from('lb_notifications').update({status:'read'}).eq('id',id);
-  ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  ['agent','admin','dialer','solo'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
   fetchUnreadCount();
   // Switch to inbox and highlight this notification
   if(portal==='agent') switchAgentView('inbox');
   else if(portal==='admin') switchAdminTab('inbox');
+  else if(portal==='solo') switchSoloView('inbox');
   else switchDialerTab('inbox');
 }
 
@@ -2438,7 +2705,7 @@ function onNewNotification(row){
   if(!currentUser||row.type!=='direct_message')return;
   if(row.recipient_id!==currentUser.id)return;
   fetchUnreadCount();
-  const portal=currentUser.role==='dialer'?'dialer':'agent';
+  const portal=currentUser.role==='dialer'?'dialer':currentUser.role==='solo'?'solo':'agent';
   const msgsPane=document.getElementById(portal+'-inbox-msgs');
   if(!msgsPane||msgsPane.style.display==='none')return;
   // Only append if this conversation is open
@@ -2449,6 +2716,7 @@ function onNewNotification(row){
 
 async function loadMessages(portal){
   if(portal==='dialer') await loadDialerMessages();
+  else if(portal==='solo') await loadSoloMessages();
   else await loadAgentMessages();
 }
 
@@ -2588,6 +2856,11 @@ async function sendMessage(portal){
     senderLabel='Message from '+currentUser.displayName;
     threadId='dialer-msgs-thread';
     subId=document.getElementById('dialer-msgs-sub')?.value||null;
+  } else if(portal==='solo'){
+    if(!dmState.dialerUserId){ alert('Messages not loaded yet — please wait.'); return; }
+    recipientId=dmState.dialerUserId;
+    senderLabel='Message from '+(currentUser.agentName||currentUser.displayName||'Agent');
+    threadId='solo-msgs-thread';
   } else {
     if(!dmState.dialerUserId){ alert('Messages not loaded yet — please wait.'); return; }
     recipientId=dmState.dialerUserId;
@@ -2672,11 +2945,11 @@ async function confirmSubmission(notifId){
 // Close dropdowns when clicking outside
 document.addEventListener('click', e=>{
   if(!e.target.closest('.notif-bell-wrap')){
-    ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+    ['agent','admin','dialer','solo'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
   }
 });
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser)renderAgentBoard(); fetchUnreadCount(); },30000); }
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock','soloClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent')renderAgentBoard(); fetchUnreadCount(); },30000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const dz=document.getElementById('scorerDropZone'); if(!dz)return;
