@@ -692,7 +692,7 @@ tbody td:not(:first-child){text-align:right;}
         <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
         <div class="field-sm"><label>Draft Date</label><input type="date" id="f_draftDate"/></div>
       </div>
-      <div id="heartland-fields" style="display:none;">
+      <div id="heartland-fields">
         <div class="form-section-title">Banking / Verification Details</div>
         <div class="form-grid">
           <div class="field-sm"><label>Banking Institution</label><input type="text" id="f_bankingInstitution"/></div>
@@ -1569,6 +1569,9 @@ function enterDashboard(role){
       // Show/hide tabs based on role
       ['agentTab_mydash','agentTab_scorer'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });
       ['agentTab_board','agentTab_mapd','agentTab_combined'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+      const tabStrip=document.querySelector('#agent-dashboard .view-tabs');
+      const inboxTab=document.getElementById('agentTab_inbox');
+      if(tabStrip&&inboxTab) tabStrip.appendChild(inboxTab);
       switchAgentView('mydash');
     } else {
       ['agentTab_mydash','agentTab_scorer'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
@@ -1932,7 +1935,22 @@ function renderSoloDetailContent(subs,el){
   const recsHTML=recs.length
     ?`<div class="intel-ai-box" style="margin-bottom:20px;">${recs.map(r=>`<div style="font-size:13px;color:var(--body);line-height:1.7;margin-bottom:${recs.length>1?'10px':'0'};">→ ${r}</div>`).join('')}</div>`
     :`<div class="intel-ai-box" style="margin-bottom:20px;color:var(--muted);font-size:12px;">Not enough data yet to generate recommendations. Keep submitting — insights unlock at 5+ submissions per segment.</div>`;
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--white);">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total Annual AP</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(overallAvg)}</div></div><div class="stat-card"><div class="stat-card-label">Est. Total Commission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);">${fmt$2(estComm(totalAP))}</div></div></div>${sec('Recommendations')}${recsHTML}${sec('By State')}${tbl(headers,stateRows)}${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--white);">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total Annual AP</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(overallAvg)}</div></div><div class="stat-card"><div class="stat-card-label">Est. Total Commission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);">${fmt$2(estComm(totalAP))}</div></div></div>${sec('Recommendations')}${recsHTML}${sec('By State')}<div id="solo_bystate_wrap"></div>${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
+  (function(){
+    const wrap=el.querySelector('#solo_bystate_wrap');
+    if(stateRows.length<=5){ wrap.innerHTML=tbl(headers,stateRows); return; }
+    const top5=stateRows.slice(0,5), rest=stateRows.slice(5);
+    const renderSt=rows=>tbl(headers,rows);
+    wrap.innerHTML=renderSt(top5);
+    const btn=document.createElement('span');
+    btn.textContent=`See more (${rest.length} state${rest.length===1?'':'s'})`;
+    btn.style.cssText='color:var(--teal);font-size:12px;cursor:pointer;display:inline-block;margin-top:6px;';
+    btn.onmouseover=()=>btn.style.textDecoration='underline';
+    btn.onmouseout=()=>btn.style.textDecoration='none';
+    let expanded=false;
+    btn.onclick=()=>{ expanded=!expanded; wrap.innerHTML=renderSt(expanded?stateRows:top5); wrap.appendChild(btn); btn.textContent=expanded?`See less`:`See more (${rest.length} state${rest.length===1?'':'s'})`; };
+    wrap.appendChild(btn);
+  })();
 }
 
 // ── AGENT CALL SCORER (solo) ───────────────────────────────────────────────
@@ -2191,7 +2209,6 @@ function cancelSubmit(){ showScreen('agent-dashboard'); }
 function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
 function toggleHeartlandFields(){
   const isHeartland=document.getElementById('f_carrier').value==='Heartland';
-  document.getElementById('heartland-fields').style.display=isHeartland?'block':'none';
   ['f_bankingInstitution','f_routingNumber','f_accountNumber','f_mothersMaidenName'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.required=isHeartland;
   });
