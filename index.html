@@ -440,6 +440,7 @@ tbody td:not(:first-child){text-align:right;}
       <span class="clock" id="agentClock"></span>
       <span class="user-badge">Signed in as <span id="agentUserName">—</span></span>
       <div class="notif-bell-wrap"><button class="notif-bell" id="agentBell" onclick="toggleNotifDropdown('agent')">🔔<span class="notif-badge" id="agentBadge" style="display:none"></span></button><div class="notif-dropdown" id="agentDropdown"><div class="notif-dropdown-header">Notifications</div><div id="agentDropdownList"></div></div></div>
+      <button id="btnChangePassword" class="btn-logout" onclick="openChangePasswordModal()" style="display:none;">Change Password</button>
       <button class="btn-logout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -1410,6 +1411,31 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- CHANGE PASSWORD MODAL (solo only) -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-title">Change Password</div>
+    <div class="auth-error" id="cpError" style="display:none;"></div>
+    <div class="field-sm" style="margin-bottom:16px;">
+      <label>Current Password</label>
+      <input type="password" id="cp_current" placeholder="Enter current password"/>
+    </div>
+    <div class="field-sm" style="margin-bottom:16px;">
+      <label>New Password</label>
+      <input type="password" id="cp_new" placeholder="Min 6 characters"/>
+    </div>
+    <div class="field-sm" style="margin-bottom:16px;">
+      <label>Confirm New Password</label>
+      <input type="password" id="cp_confirm" placeholder="Confirm new password"/>
+    </div>
+    <div class="submit-success" id="cpSuccess">&#x2713; Password updated successfully.</div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveNewPassword()">Save Password</button>
+      <button class="btn-modal-cancel" onclick="closeModal('changePasswordModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
@@ -1572,6 +1598,8 @@ function enterDashboard(role){
       const tabStrip=document.querySelector('#agent-dashboard .view-tabs');
       const inboxTab=document.getElementById('agentTab_inbox');
       if(tabStrip&&inboxTab) tabStrip.appendChild(inboxTab);
+      const cpBtn=document.getElementById('btnChangePassword');
+      if(cpBtn) cpBtn.style.display='inline-block';
       switchAgentView('mydash');
     } else {
       ['agentTab_mydash','agentTab_scorer'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
@@ -1585,6 +1613,38 @@ function enterDashboard(role){
   fetchUnreadCount();
 }
 function doLogout(){ clearSession(); showScreen('landing'); }
+function openChangePasswordModal(){
+  document.getElementById('cp_current').value='';
+  document.getElementById('cp_new').value='';
+  document.getElementById('cp_confirm').value='';
+  document.getElementById('cpError').style.display='none';
+  document.getElementById('cpSuccess').style.display='none';
+  openModal('changePasswordModal');
+}
+function showCpError(msg){ const el=document.getElementById('cpError'); el.textContent=msg; el.style.display='block'; }
+async function saveNewPassword(){
+  const current=document.getElementById('cp_current').value;
+  const newPw=document.getElementById('cp_new').value;
+  const confirm=document.getElementById('cp_confirm').value;
+  const errEl=document.getElementById('cpError'), sucEl=document.getElementById('cpSuccess');
+  errEl.style.display='none'; sucEl.style.display='none';
+  if(!current) return showCpError('Please enter your current password.');
+  if(!newPw||newPw.length<6) return showCpError('New password must be at least 6 characters.');
+  if(newPw!==confirm) return showCpError('New passwords do not match.');
+  if(newPw===current) return showCpError('New password must be different from current password.');
+  const currentHash=await hashPw(current);
+  const {data:userRow,error:fetchErr}=await db.from('lb_users').select('id,password_hash').eq('id',currentUser.id).single();
+  if(fetchErr||!userRow) return showCpError('Could not verify current password. Please try again.');
+  if(userRow.password_hash!==currentHash) return showCpError('Current password is incorrect.');
+  const newHash=await hashPw(newPw);
+  const {error:updateErr}=await db.from('lb_users').update({password_hash:newHash}).eq('id',currentUser.id);
+  if(updateErr) return showCpError('Failed to update password: '+updateErr.message);
+  sucEl.style.display='block';
+  document.getElementById('cp_current').value='';
+  document.getElementById('cp_new').value='';
+  document.getElementById('cp_confirm').value='';
+  setTimeout(()=>closeModal('changePasswordModal'),2000);
+}
 
 async function fetchStats(){ const {data}=await db.from('lb_daily_stats').select('*'); return data||[]; }
 async function fetchMAPDStats(){ const {data}=await db.from('lb_mapd_stats').select('*'); return data||[]; }
