@@ -1491,6 +1491,27 @@ function showScreen(id){
 
 let authRole='agent';
 async function showAuth(role){
+  if(role==='solo'){
+    authRole='solo';
+    document.getElementById('authTitle').textContent='Your Zenyra Account';
+    document.getElementById('authSub').textContent='Sign in to your personal dashboard';
+    document.getElementById('adminCodeField').style.display='none';
+    document.getElementById('tabRegister').style.display='none';
+    document.getElementById('authError').style.display='none';
+    const {data:soloAgents}=await db.from('lb_users').select('agent_id,display_name').eq('role','solo');
+    const soloAgentIds=(soloAgents||[]).map(u=>u.agent_id).filter(Boolean);
+    let opts='<option value="">Select your name...</option>';
+    if(soloAgentIds.length>0){
+      const {data:agents}=await db.from('lb_agents').select('id,name').in('id',soloAgentIds).eq('active',true).order('name');
+      opts+=(agents||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+    }
+    ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+    switchAuthTab('login');
+    showScreen('auth');
+    const registerTab=document.getElementById('tabRegister');
+    if(registerTab) registerTab.style.display='none';
+    return;
+  }
   authRole=role;
   document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':'Dialer Portal';
   document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':'VA call logging access';
@@ -1537,7 +1558,8 @@ async function doLogin(){
     return;
   }
   const agentId=document.getElementById('loginName').value;
-  const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).in('role',authRole==='agent'?['agent','solo']:[authRole]).eq('password_hash',hash).single();
+  const roleFilter=authRole==='solo'?['solo']:authRole==='agent'?['agent','solo']:[authRole];
+  const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).in('role',roleFilter).eq('password_hash',hash).single();
   if(error||!data) return showAuthError('Incorrect password. Try again or register.');
   await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
   const agent=allAgents.find(a=>a.id===agentId);
