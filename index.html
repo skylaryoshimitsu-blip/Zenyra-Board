@@ -1579,7 +1579,9 @@ async function doRegister(){
   saveSession({...data,agentName:agent?.name||data.display_name});
   enterDashboard(authRole);
 }
-function enterDashboard(role){
+async function enterDashboard(role){
+  const {data:freshUser}=await db.from('lb_users').select('role').eq('id',currentUser.id).single();
+  if(freshUser&&freshUser.role!==role){ clearSession(); showScreen('landing'); return; }
   if(role==='admin'){
     document.getElementById('adminUserName').textContent=currentUser.agentName;
     showScreen('admin-dashboard');
