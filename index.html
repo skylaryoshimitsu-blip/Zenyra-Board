@@ -444,6 +444,7 @@ tbody td:not(:first-child){text-align:right;}
     </div>
   </div>
   <div class="view-tabs">
+    <div class="view-tab" id="agentTab_mydash" onclick="switchAgentView('mydash')" style="display:none;">My Dashboard</div>
     <div class="view-tab active" id="agentTab_board" onclick="switchAgentView('board')">📊 Ancillary</div>
     <div class="view-tab" id="agentTab_mapd" onclick="switchAgentView('mapd')">🏥 MAPD</div>
     <div class="view-tab" id="agentTab_combined" onclick="switchAgentView('combined')">&#x26a1; Combined</div>
@@ -451,6 +452,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="view-tab" id="agentTab_intel" onclick="switchAgentView('intel')">&#x1F9E0; Intelligence</div>
     <div class="view-tab" id="agentTab_mysubs" onclick="switchAgentView('mysubs')">📋 My Submissions</div>
     <div class="view-tab" id="agentTab_inbox" onclick="switchAgentView('inbox')">🔔 Inbox</div>
+    <div class="view-tab" id="agentTab_scorer" onclick="switchAgentView('scorer')" style="display:none;">&#x1F3D9; Call Scorer</div>
   </div>
   <div id="agent-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
     <div class="pulse-strip" id="a_pulse"></div>
@@ -596,100 +598,53 @@ tbody td:not(:first-child){text-align:right;}
       </div>
     </div>
   </div>
+  <!-- My Dashboard panel (solo only) -->
+  <div id="agent-mydash-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
+    <div id="agent_mydash_content"><div class="no-data">Loading…</div></div>
+  </div>
+  <!-- Call Scorer panel (solo only) -->
+  <div id="agent-scorer-panel" style="display:none;flex:1;overflow-y:auto;min-height:0;">
+    <div class="scorer-wrap"><div class="scorer-inner">
+      <div class="scorer-config">
+        <div class="scorer-config-title">Call Scorer</div>
+        <div id="a_scorerDropZone" class="scorer-upload-area" onclick="document.getElementById('a_sc_file').click()">
+          <div class="scorer-upload-icon">&#x1F3A4;</div>
+          <div class="scorer-upload-text">Drop audio file here or click to upload</div>
+          <div class="scorer-upload-sub">Supports MP3, M4A, WAV, OGG, WebM (max 25MB)</div>
+          <div class="scorer-upload-filename" id="a_sc_filename" style="display:none;"></div>
+        </div>
+        <input type="file" id="a_sc_file" accept="audio/*" style="display:none;" onchange="onAgentFileSelected(this)">
+        <div class="scorer-controls">
+          <div class="scorer-field">
+            <label>Agent</label>
+            <input type="text" id="a_sc_agent_name" style="min-width:180px;" value="" readonly>
+          </div>
+          <div class="scorer-field">
+            <label>Call Type</label>
+            <select id="a_sc_calltype">
+              <option value="prospecting">Prospecting</option>
+              <option value="enrollment">Enrollment</option>
+              <option value="followup">Follow-Up</option>
+              <option value="retention">Retention</option>
+            </select>
+          </div>
+          <button class="btn-intel" id="a_sc_submitBtn" onclick="runAgentScorer()" disabled>&#x1F9E0; Score Call</button>
+        </div>
+      </div>
+      <div class="scorer-progress" id="a_sc_progress">
+        <div class="scorer-progress-title">Analyzing call…</div>
+        <div class="progress-track"><div class="progress-fill" id="a_sc_progressFill" style="width:0%"></div></div>
+        <div class="scorer-progress-sub" id="a_sc_progressSub">Uploading audio…</div>
+      </div>
+      <div id="a_sc_result"></div>
+      <div id="a_sc_history"></div>
+    </div></div>
+  </div>
   <div class="footer">
     <span class="footer-left" id="a_lastUpdated">—</span>
     <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
   </div>
 </div>
-
-<!-- SOLO DASHBOARD -->
-<div id="solo-dashboard" class="screen">
-  <div class="header">
-    <div class="header-left"><span class="brand">ZENYRA</span><span class="page-title">Performance Command Center</span></div>
-    <div class="header-right">
-      <span class="live-dot">Live</span>
-      <span class="clock" id="soloClock"></span>
-      <span class="user-badge">Signed in as <span id="soloUserName">—</span></span>
-      <div class="notif-bell-wrap"><button class="notif-bell" id="soloBell" onclick="toggleNotifDropdown('solo')">🔔<span class="notif-badge" id="soloBadge" style="display:none"></span></button><div class="notif-dropdown" id="soloDropdown"><div class="notif-dropdown-header">Notifications</div><div id="soloDropdownList"></div></div></div>
-      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
-    </div>
-  </div>
-  <div class="view-tabs">
-    <div class="view-tab active" id="soloTab_mydash" onclick="switchSoloView('mydash')">My Dashboard</div>
-    <div class="view-tab" id="soloTab_mysubs" onclick="switchSoloView('mysubs')">My Submissions</div>
-    <div class="view-tab" id="soloTab_wow" onclick="switchSoloView('wow')">Week Over Week</div>
-    <div class="view-tab" id="soloTab_inbox" onclick="switchSoloView('inbox')">Inbox</div>
-  </div>
-  <!-- My Dashboard panel -->
-  <div id="solo-mydash-panel" style="display:flex;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
-    <div id="solo_mydash_content"><div class="no-data">Loading…</div></div>
-  </div>
-  <!-- My Submissions panel -->
-  <div id="solo-mysubs-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
-    <div class="my-subs-wrap">
-      <div class="filter-bar">
-        <div class="filter-field">
-          <label>Date Range</label>
-          <select id="solo_my_range" onchange="toggleSoloCustomDates()">
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="7">Last 7 Days</option>
-            <option value="mtd">Month to Date</option>
-            <option value="30">Last 30 Days</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div class="filter-field" id="solo_my_from_wrap" style="display:none;">
-          <label>From</label><input type="date" id="solo_my_from"/>
-        </div>
-        <div class="filter-field" id="solo_my_to_wrap" style="display:none;">
-          <label>To</label><input type="date" id="solo_my_to"/>
-        </div>
-        <div class="filter-field">
-          <label>Product Type</label>
-          <select id="solo_my_product">
-            <option value="all">All Products</option>
-            <option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option>
-            <option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option>
-          </select>
-        </div>
-        <button class="btn-filter" onclick="loadSoloMySubmissions()">Apply</button>
-      </div>
-      <div id="solo_my_summary" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;"></div>
-      <div id="solo_my_subs_table"></div>
-    </div>
-  </div>
-  <!-- Week Over Week panel -->
-  <div id="solo-wow-panel" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:20px 24px;">
-    <div class="section-eyebrow" style="margin-bottom:16px;">Week Over Week — Personal</div>
-    <div id="solo_wow_content"></div>
-  </div>
-  <!-- Inbox panel -->
-  <div id="solo-inbox-panel" style="display:none;flex:1;flex-direction:column;overflow:hidden;padding:20px 24px;">
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;flex-shrink:0;">
-      <button id="soloInboxTab_notif" onclick="switchSoloInboxSubTab('notif')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--white);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Notifications</button>
-      <button id="soloInboxTab_msgs" onclick="switchSoloInboxSubTab('msgs')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;cursor:pointer;">Messages</button>
-    </div>
-    <div id="solo-inbox-notif" style="flex:1;overflow-y:auto;">
-      <div id="solo-inbox-content"><div class="no-data">Loading…</div></div>
-    </div>
-    <div id="solo-inbox-msgs" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
-      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
-        <span id="solo-msgs-to-label" class="section-eyebrow" style="font-size:9px;">TO: Dialer</span>
-      </div>
-      <div id="solo-msgs-thread" class="msg-thread"></div>
-      <div class="msg-compose">
-        <textarea id="solo-msgs-input" rows="3" placeholder="Write a message…" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--white);font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;width:100%;"></textarea>
-        <button onclick="sendMessage('solo')" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-end;">Send</button>
-      </div>
-    </div>
-  </div>
-  <div class="footer">
-    <span class="footer-left" id="solo_lastUpdated">—</span>
-    <span class="footer-left">Powered by <span class="powered-by">Zenyra</span></span>
-  </div>
-</div>
-
 <div class="fab-chooser" id="fabChooser">
   <div class="fab-choice" onclick="showSubmitForm('ancillary')">
     <span class="fab-choice-icon">💊</span>
@@ -1508,8 +1463,8 @@ async function showAuth(role){
     ['loginName','registerName'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
     switchAuthTab('login');
     showScreen('auth');
-    const registerTab=document.getElementById('tabRegister');
-    if(registerTab) registerTab.style.display='none';
+    const registerTab=document.getElementById('tabRegister'); if(registerTab) registerTab.style.display='none';
+    const loginTab=document.getElementById('tabLogin'); if(loginTab) loginTab.style.display='none';
     return;
   }
   authRole=role;
@@ -1606,15 +1561,21 @@ function enterDashboard(role){
     document.getElementById('dialerUserName').textContent=currentUser.agentName;
     showScreen('dialer-dashboard');
     switchDialerTab('log');
-  } else if(role==='solo'){
-    document.getElementById('soloUserName').textContent=currentUser.agentName;
-    showScreen('solo-dashboard');
-    switchSoloView('mydash');
   } else {
     document.getElementById('agentUserName').textContent=currentUser.agentName;
     showScreen('agent-dashboard');
-    switchAgentView('board');
-    renderAgentBoard();
+    // Solo role: show My Dashboard as the landing tab; agent role: show board
+    if(role==='solo'){
+      // Show/hide tabs based on role
+      ['agentTab_mydash','agentTab_scorer'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });
+      ['agentTab_board','agentTab_mapd','agentTab_combined'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+      switchAgentView('mydash');
+    } else {
+      ['agentTab_mydash','agentTab_scorer'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+      ['agentTab_board','agentTab_mapd','agentTab_combined'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });
+      switchAgentView('board');
+      renderAgentBoard();
+    }
   }
   startClocks();
   startRealtime();
@@ -1717,6 +1678,22 @@ function scoreColor(s){ if(s>=80)return'var(--teal)'; if(s>=60)return'var(--blue
 function gradeFromScore(s){ if(s>=85)return{label:'A — Excellent',cls:'grade-a'}; if(s>=70)return{label:'B — Good',cls:'grade-b'}; if(s>=55)return{label:'C — Needs Work',cls:'grade-c'}; return{label:'D — Critical',cls:'grade-d'}; }
 
 function buildPulse(stats,prefix){
+  if(currentUser?.role==='solo'){
+    const my=stats.filter(a=>a.id===currentUser.agent_id);
+    const mToday=my.reduce((s,a)=>s+Number(a.daily_ap),0);
+    const mWeek =my.reduce((s,a)=>s+Number(a.week_ap),0);
+    const mMonth=my.reduce((s,a)=>s+Number(a.month_ap),0);
+    const mGoal =my.reduce((s,a)=>s+Number(a.monthly_goal),0)||1;
+    const mDGoal=my.reduce((s,a)=>s+Number(a.daily_goal||0),0)||1;
+    const mWGoal=mDGoal*5;
+    const dailyPct=Math.min((mToday/mDGoal)*100,100);
+    const weekPct =Math.min((mWeek/mWGoal)*100,100);
+    const monthPct=Math.min((mMonth/mGoal)*100,100);
+    const el=document.getElementById(prefix+'pulse'); if(!el)return;
+    const goalRow=(cur,goal,pct,label,color)=>`<div style="margin-top:10px;"><div class="pulse-meta"><span class="pulse-label">&nbsp;</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(cur)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(goal)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">${label}</span></div><span class="pulse-pct on-pace">${fmtPct(pct)} to goal</span></div></div><div class="pulse-bar-track"><div style="height:100%;width:${pct}%;border-radius:99px;background:${color};transition:width 1s ease;"></div></div></div>`;
+    el.innerHTML=`<div class="pulse-meta"><span class="pulse-label">My Goal Pulse</span><div style="display:flex;align-items:center;gap:12px;"><div class="pulse-numbers"><span class="pulse-current">${fmt$(mToday)}</span><span class="pulse-sep">/</span><span class="pulse-goal">${fmt$(mDGoal)}</span><span style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-left:6px;">Daily Goal</span></div><span class="pulse-pct on-pace">${fmtPct(dailyPct)} to goal</span></div></div><div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:${dailyPct}%"></div></div>${goalRow(mWeek,mWGoal,weekPct,'Weekly Goal','var(--amber)')}${goalRow(mMonth,mGoal,monthPct,'Monthly Goal','var(--green)')}`;
+    return;
+  }
   const tToday=stats.reduce((s,a)=>s+Number(a.daily_ap),0);
   const tWeek =stats.reduce((s,a)=>s+Number(a.week_ap),0);
   const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
@@ -1748,7 +1725,8 @@ function buildMAPDPulse(mapd,elId){
 function buildLeaderboard(stats,tbodyId,topMap,callMap){
   topMap=topMap||{};
   callMap=callMap||{};
-  const ranked=[...stats].filter(a=>Number(a.monthly_goal)>0).sort((a,b)=>b.month_ap-a.month_ap);
+  const displayStats=currentUser?.role==='solo'?stats.filter(a=>a.id===currentUser.agent_id):stats;
+  const ranked=[...displayStats].filter(a=>Number(a.monthly_goal)>0).sort((a,b)=>b.month_ap-a.month_ap);
   const dp=getDayProgress();
   const tbody=document.getElementById(tbodyId); if(!tbody)return;
   tbody.innerHTML='';
@@ -1787,6 +1765,7 @@ function buildCombined(anc,mapd,elId){
 }
 
 function buildSidebar(stats,sidebarId,updatedId){
+  if(currentUser?.role==='solo'){ const el=document.getElementById(sidebarId); if(el) el.style.display='none'; return; }
   const el=document.getElementById(sidebarId); if(!el)return;
   stats=stats.filter(a=>Number(a.monthly_goal)>0);
   const tMonth=stats.reduce((s,a)=>s+Number(a.month_ap),0);
@@ -1802,15 +1781,17 @@ function buildSidebar(stats,sidebarId,updatedId){
   if(lu) lu.textContent='Last updated: '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-const agentViews=['board','mapd','combined','wow','intel','mysubs','inbox'];
+const agentViews=['mydash','board','mapd','combined','wow','intel','mysubs','inbox','scorer'];
+const agentPanelDisplay={mydash:'flex',board:'flex',mapd:'flex',combined:'flex',wow:'flex',intel:'flex',mysubs:'flex',inbox:'flex',scorer:'flex'};
 function switchAgentView(view){
   currentAgentView=view;
   agentViews.forEach(v=>{
-    const panel=document.getElementById('agent-'+(v==='board'?'board':v==='mapd'?'mapd':v==='combined'?'combined':v==='wow'?'wow':v==='intel'?'intel':v==='mysubs'?'mysubs':'inbox')+'-panel');
-    if(panel) panel.style.display=v===view?'flex':'none';
+    const panel=document.getElementById('agent-'+v+'-panel');
+    if(panel) panel.style.display=v===view?(agentPanelDisplay[v]||'flex'):'none';
     const tab=document.getElementById('agentTab_'+v);
     if(tab) tab.classList.toggle('active',v===view);
   });
+  if(view==='mydash')   renderSoloDashboard();
   if(view==='board')    renderAgentBoard();
   if(view==='mapd')     renderAgentMAPD();
   if(view==='combined') renderAgentCombined();
@@ -1818,6 +1799,7 @@ function switchAgentView(view){
   if(view==='mysubs')   loadMySubmissions();
   if(view==='intel')    { populateIntelAgentSelects(); switchIntelView('agent'); }
   if(view==='inbox')    { switchInboxSubTab('agent','notif'); loadInbox('agent'); }
+  if(view==='scorer')   loadAgentScorerHistory();
 }
 
 async function renderAgentBoard(){
@@ -1871,92 +1853,7 @@ async function loadMySubmissions(){
   tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
 }
 
-// ── SOLO DASHBOARD ─────────────────────────────────────────────────────────
-
-let soloSubmissionsCache = null;
-let currentSoloView = 'mydash';
-
-const soloViews = ['mydash','mysubs','wow','inbox'];
-function switchSoloView(view){
-  currentSoloView=view;
-  soloViews.forEach(v=>{
-    const panel=document.getElementById('solo-'+v+'-panel');
-    if(panel) panel.style.display=v===view?'flex':'none';
-    const tab=document.getElementById('soloTab_'+v);
-    if(tab) tab.classList.toggle('active',v===view);
-  });
-  if(view==='mydash') renderSoloDashboard();
-  if(view==='mysubs') loadSoloMySubmissions();
-  if(view==='wow')    renderSoloWoW();
-  if(view==='inbox')  { switchSoloInboxSubTab('notif'); loadInbox('solo'); }
-}
-
-function switchSoloInboxSubTab(sub){
-  ['notif','msgs'].forEach(s=>{
-    const pane=document.getElementById('solo-inbox-'+s);
-    const btn=document.getElementById('soloInboxTab_'+s);
-    if(pane) pane.style.display=s===sub?(s==='msgs'?'flex':'block'):'none';
-    if(btn){ btn.style.borderBottomColor=s===sub?'var(--teal)':'transparent'; btn.style.color=s===sub?'var(--white)':'var(--muted)'; }
-  });
-  if(sub==='msgs') loadSoloMessages();
-}
-
-function toggleSoloCustomDates(){ const v=document.getElementById('solo_my_range').value; ['solo_my_from_wrap','solo_my_to_wrap'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=v==='custom'?'flex':'none'; }); }
-
-async function loadSoloMySubmissions(){
-  if(!currentUser?.agent_id) return;
-  const range=document.getElementById('solo_my_range').value;
-  const product=document.getElementById('solo_my_product').value;
-  const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate());
-  let from=null, to=null;
-  if(range==='today'){ from=today.toISOString(); to=new Date(today.getTime()+86400000-1).toISOString(); }
-  else if(range==='7'){ from=new Date(today-6*86400000).toISOString(); }
-  else if(range==='mtd'){ from=new Date(today.getFullYear(),today.getMonth(),1).toISOString(); }
-  else if(range==='30'){ from=new Date(today-29*86400000).toISOString(); }
-  else if(range==='custom'){ from=document.getElementById('solo_my_from').value?new Date(document.getElementById('solo_my_from').value).toISOString():null; to=document.getElementById('solo_my_to').value?new Date(document.getElementById('solo_my_to').value+'T23:59:59').toISOString():null; }
-  let q=db.from('lb_submissions').select('*').eq('agent_id',currentUser.agent_id).eq('status','live');
-  if(from) q=q.gte('submitted_at',from);
-  if(to)   q=q.lte('submitted_at',to);
-  if(product&&product!=='all') q=q.eq('product_type',product);
-  const {data:subs}=await q.order('submitted_at',{ascending:false});
-  const rows=subs||[];
-  const totalMP=rows.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
-  const totalAP=rows.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
-  document.getElementById('solo_my_summary').innerHTML=statBox(rows.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
-  const tblEl=document.getElementById('solo_my_subs_table');
-  if(!rows.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
-  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${rows.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
-}
-
-async function renderSoloWoW(){
-  if(!currentUser?.agent_id) return;
-  const el=document.getElementById('solo_wow_content');
-  el.innerHTML='<div class="no-data">Loading…</div>';
-  const thisWeekISO=startOfWeekET_ISO();
-  const lastWeekISO=new Date(new Date(thisWeekISO).getTime()-7*86400000).toISOString();
-  const thisMonStr=new Date(thisWeekISO).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-  const lastMonStr=new Date(new Date(thisWeekISO).getTime()-7*86400000).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-  const [{data:subs},{data:calls}]=await Promise.all([
-    db.from('lb_submissions').select('annual_premium,submitted_at').eq('agent_id',currentUser.agent_id).eq('status','live').gte('submitted_at',lastWeekISO),
-    db.from('lb_dialer_activity').select('total_calls,billable_calls,log_date').eq('agent_id',currentUser.agent_id).gte('log_date',lastMonStr),
-  ]);
-  const thisWeekSubs=(subs||[]).filter(s=>s.submitted_at>=thisWeekISO);
-  const lastWeekSubs=(subs||[]).filter(s=>s.submitted_at>=lastWeekISO&&s.submitted_at<thisWeekISO);
-  const thisAP=thisWeekSubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const lastAP=lastWeekSubs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
-  const apDelta=thisAP-lastAP;
-  const apPct=lastAP>0?((apDelta/lastAP)*100).toFixed(1):null;
-  const thisWeekCalls=(calls||[]).filter(c=>c.log_date>=thisMonStr).reduce((s,c)=>s+Number(c.total_calls||0),0);
-  const lastWeekCalls=(calls||[]).filter(c=>c.log_date>=lastMonStr&&c.log_date<thisMonStr).reduce((s,c)=>s+Number(c.total_calls||0),0);
-  const wkBillable=(calls||[]).filter(c=>c.log_date>=thisMonStr).reduce((s,c)=>s+Number(c.billable_calls||0),0);
-  const conv=wkBillable>0?(thisWeekSubs.length/wkBillable*100).toFixed(1)+'%':null;
-  const dSign=v=>v>0?'+':'';
-  const dColor=v=>v>0?'var(--green)':v<0?'var(--red)':'var(--body)';
-  const sc=(lbl,val,color,sub)=>`<div class="stat-card"><div class="stat-card-label">${lbl}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:${color};">${val}</div>${sub?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">${sub}</div>`:''}</div>`;
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">${sc('This Week AP',fmt$(thisAP),'var(--teal)','')}${sc('Last Week AP',fmt$(lastAP),'var(--body)','')}${sc('AP Change',dSign(apDelta)+fmt$(Math.abs(apDelta)),dColor(apDelta),apPct!==null?dSign(apDelta)+apPct+'% vs last week':'')}${sc('Apps This Week',thisWeekSubs.length,'var(--white)','vs '+lastWeekSubs.length+' last week')}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${sc('Calls This Week',thisWeekCalls,'var(--label)','vs '+lastWeekCalls+' last week')}${sc('Conversion Rate',conv||'—','var(--purple)','billable calls this week')}</div>`;
-}
+// ── SOLO MY DASHBOARD + AGENT SCORER ─────────────────────────────────────
 
 function timeWindowET(ts){
   const h=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(new Date(ts)));
@@ -1969,14 +1866,11 @@ function timeWindowET(ts){
 }
 
 async function renderSoloDashboard(){
-  const el=document.getElementById('solo_mydash_content');
+  const el=document.getElementById('agent_mydash_content');
   if(!el||!currentUser?.agent_id) return;
   el.innerHTML='<div class="no-data">Loading…</div>';
-  if(!soloSubmissionsCache){
-    const {data}=await db.from('lb_submissions').select('customer_state,product_type,carrier_name,annual_premium,monthly_premium,submitted_at').eq('agent_id',currentUser.agent_id).eq('status','live');
-    soloSubmissionsCache=data||[];
-  }
-  renderSoloDetailContent(soloSubmissionsCache,el);
+  const {data}=await db.from('lb_submissions').select('customer_state,product_type,carrier_name,annual_premium,monthly_premium,submitted_at').eq('agent_id',currentUser.agent_id).eq('status','live');
+  renderSoloDetailContent(data||[],el);
 }
 
 function renderSoloDetailContent(subs,el){
@@ -2041,21 +1935,73 @@ function renderSoloDetailContent(subs,el){
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div class="stat-card"><div class="stat-card-label">Total Submissions</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--white);">${subs.length}</div></div><div class="stat-card"><div class="stat-card-label">Total Annual AP</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(totalAP)}</div></div><div class="stat-card"><div class="stat-card-label">Avg AP / Submission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--teal);">${fmt$(overallAvg)}</div></div><div class="stat-card"><div class="stat-card-label">Est. Total Commission</div><div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);">${fmt$2(estComm(totalAP))}</div></div></div>${sec('Recommendations')}${recsHTML}${sec('By State')}${tbl(headers,stateRows)}${sec('By Product')}${tbl(headers,productRows)}${sec('By Carrier')}${tbl(headers,carrierRows)}${sec('By Time of Day (ET)')}${tbl(headers,windowRows)}`;
 }
 
-async function loadSoloMessages(){
-  dmState.portal='solo';
-  const thread=document.getElementById('solo-msgs-thread');
-  thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">Loading…</div>';
-  const {data:dialerUser}=await db.from('lb_users').select('id,display_name').eq('role','dialer').order('created_at',{ascending:false}).limit(1).single();
-  if(!dialerUser){ thread.innerHTML='<div class="no-data" style="padding:20px;font-size:12px;">No dialer account found.</div>'; return; }
-  dmState.dialerUserId=dialerUser.id;
-  const lbl=document.getElementById('solo-msgs-to-label');
-  if(lbl) lbl.textContent='TO: '+(dialerUser.display_name||'Dialer');
-  const {data:msgs}=await db.from('lb_notifications').select('*').eq('type','direct_message').or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${dialerUser.id}),and(sender_id.eq.${dialerUser.id},recipient_id.eq.${currentUser.id})`).order('created_at',{ascending:true});
-  thread.innerHTML='';
-  (msgs||[]).forEach(m=>appendMessageBubble('solo-msgs-thread',m,currentUser.id));
-  thread.scrollTop=thread.scrollHeight;
-  await markMessagesRead(dialerUser.id);
-  fetchUnreadCount();
+// ── AGENT CALL SCORER (solo) ───────────────────────────────────────────────
+let agentScorerFile=null, agentScorerPollInterval=null;
+function onAgentFileSelected(input){
+  agentScorerFile=input.files[0]||null;
+  const fn=document.getElementById('a_sc_filename'), btn=document.getElementById('a_sc_submitBtn');
+  if(agentScorerFile){ fn.style.display='block'; fn.textContent=agentScorerFile.name+' ('+Math.round(agentScorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; }
+  else { fn.style.display='none'; fn.textContent=''; btn.disabled=true; }
+}
+async function runAgentScorer(){
+  if(!agentScorerFile)return alert('Upload a call recording first.');
+  const agentId=currentUser.agent_id, agentName=currentUser.agentName||'Agent';
+  const prog=document.getElementById('a_sc_progress'), btn=document.getElementById('a_sc_submitBtn');
+  document.getElementById('a_sc_result').innerHTML='';
+  prog.style.display='block'; btn.disabled=true;
+  document.getElementById('a_sc_progressSub').textContent='Uploading audio…';
+  document.getElementById('a_sc_progressFill').style.width='10%';
+  try {
+    const createRes=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create-job',agentName,agentId,fileName:agentScorerFile.name})});
+    if(!createRes.ok) throw new Error('Job creation failed');
+    const {jobId,uploadPath}=await createRes.json();
+    const SUPA_URL='https://fodkldiqwbnmzdmgrfmr.supabase.co';
+    const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
+    const storageRes=await fetch(SUPA_URL+'/storage/v1/object/lb-scorer-audio/'+uploadPath,{method:'POST',headers:{'Authorization':'Bearer '+SUPA_ANON,'Content-Type':agentScorerFile.type||'audio/mpeg','x-upsert':'false'},body:agentScorerFile});
+    if(!storageRes.ok) throw new Error('Storage upload failed');
+    document.getElementById('a_sc_progressFill').style.width='40%';
+    document.getElementById('a_sc_progressSub').textContent='Transcribing and scoring…';
+    const triggerRes=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'trigger-job',jobId,uploadPath,agentName,agentId})});
+    if(!triggerRes.ok) throw new Error('Job trigger failed');
+    if(agentScorerPollInterval) clearInterval(agentScorerPollInterval);
+    agentScorerPollInterval=setInterval(async()=>{
+      try {
+        const statusRes=await fetch('/api/job-status?jobId='+jobId); if(!statusRes.ok)return;
+        const job=await statusRes.json();
+        if(job.status==='transcribing'){ document.getElementById('a_sc_progressFill').style.width='60%'; document.getElementById('a_sc_progressSub').textContent='Transcribing…'; }
+        else if(job.status==='scoring'){ document.getElementById('a_sc_progressFill').style.width='80%'; document.getElementById('a_sc_progressSub').textContent='Scoring…'; }
+        else if(job.status==='complete'){
+          clearInterval(agentScorerPollInterval);
+          document.getElementById('a_sc_progressFill').style.width='100%';
+          setTimeout(()=>{ prog.style.display='none'; btn.disabled=false; renderAgentScorerResult(job); loadAgentScorerHistory(); },600);
+        } else if(job.status==='failed'||job.status==='error'){
+          clearInterval(agentScorerPollInterval); prog.style.display='none'; btn.disabled=false;
+          document.getElementById('a_sc_result').innerHTML='<div style="color:var(--red);padding:16px;">Scoring failed. Check that the file is a valid audio recording and try again.</div>';
+        }
+      } catch(e){}
+    },3000);
+  } catch(err){ prog.style.display='none'; btn.disabled=false; document.getElementById('a_sc_result').innerHTML='<div style="color:var(--red);padding:16px;">'+( err.message||'Upload failed. Try again.')+'</div>'; }
+}
+function renderAgentScorerResult(job){
+  const plates=[{key:'score_intro',label:'Intro & Eligibility',weight:20},{key:'score_health',label:'Health Review',weight:15},{key:'score_plan',label:'Plan Review',weight:15},{key:'score_problem',label:'Problem Reveal',weight:20},{key:'score_solution',label:'Solution Reveal',weight:15},{key:'score_enrollment',label:'Enrollment',weight:15}];
+  const grade=gradeFromScore(job.overall_score||0);
+  let pts=[]; try{ pts=JSON.parse(job.coaching_points||'[]'); } catch(e){}
+  document.getElementById('a_sc_result').innerHTML=`<div class="scorer-result-header"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;"><div><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--label);margin-bottom:4px;">Call Score</div><div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:${scoreColor(job.overall_score||0)};line-height:1;">${Math.round(job.overall_score||0)}/100</div><span class="score-grade ${grade.cls}">${grade.label}</span></div><div style="text-align:right;font-size:11px;color:var(--muted);">${job.file_name||''}<br>${job.completed_at?new Date(job.completed_at).toLocaleString('en-US',{timeZone:'America/New_York'})+' ET':''}</div></div><div style="margin-top:12px;font-size:13px;color:var(--body);line-height:1.6;">${job.call_summary||''}</div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0;">${plates.map(p=>{ const sc=job[p.key]||0,col=scoreColor(sc); return`<div class="plate-score-card"><div class="plate-score-name">${p.label} (/${p.weight}pts)</div><div class="plate-score-val" style="color:${col};">${sc}</div><div class="plate-score-bar"><div class="plate-score-fill" style="width:${sc}%;background:${col};"></div></div></div>`; }).join('')}</div>${pts.length?`<div style="margin-top:12px;">${pts.map(pt=>{ const pCls=pt.priority==='HIGH'?'priority-high':pt.priority==='MEDIUM'?'priority-med':'priority-low'; return`<div class="coaching-point"><div class="coaching-priority ${pCls}">${pt.priority==='HIGH'?'H':pt.priority==='MEDIUM'?'M':'L'}</div><div class="coaching-body"><div class="coaching-plate">${pt.plate}</div><div class="coaching-text">${pt.text}</div></div></div>`; }).join('')}</div>`:''}`;
+}
+async function loadAgentScorerHistory(){
+  const el=document.getElementById('a_sc_history'); if(!el)return;
+  // Populate agent name field
+  const nameEl=document.getElementById('a_sc_agent_name'); if(nameEl) nameEl.value=currentUser.agentName||'';
+  try {
+    const res=await fetch('/api/recent-scores?agentId='+currentUser.agent_id);
+    if(!res.ok){ el.innerHTML=''; return; }
+    const scores=await res.json();
+    if(!scores.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:16px 0;">No scored calls yet.</div>'; return; }
+    el.innerHTML='<div class="form-section-title" style="margin-top:24px;margin-bottom:12px;">Recent Scored Calls</div>'+scores.map(s=>{
+      const col=scoreColor(s.overall_score||0); const grade=gradeFromScore(s.overall_score||0);
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:${col};min-width:48px;">${Math.round(s.overall_score||0)}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--white);">${s.file_name||'Call'}</div><div style="font-size:11px;color:var(--muted);">${s.completed_at?new Date(s.completed_at).toLocaleString('en-US',{timeZone:'America/New_York'})+' ET':''}</div></div><span class="score-grade ${grade.cls}">${grade.label}</span></div>`;
+    }).join('');
+  } catch(e){ el.innerHTML=''; }
 }
 
 let adminBoardView='anc';
@@ -2097,7 +2043,7 @@ function openAgentModal(agent){ document.getElementById('agentModalTitle').textC
 async function saveAgent(){ const id=document.getElementById('agentModalId').value; const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)}; if(!payload.name){alert('Name is required.');return;} let error; if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}else{({error}=await db.from('lb_agents').insert({...payload,active:true}));} if(error){alert('Save failed: '+error.message);return;} closeModal('agentModal'); renderAgentManagement(); }
 async function toggleAgentStatus(id,current){ if(!confirm(`${current?'Deactivate':'Activate'} this agent?`))return; await db.from('lb_agents').update({active:!current}).eq('id',id); renderAgentManagement(); }
 
-async function populateReportAgents(p){ p=p||''; const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById(p+'rpt_agent'); if(!sel)return; sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
+async function populateReportAgents(p){ p=p||''; const sel=document.getElementById(p+'rpt_agent'); if(!sel)return; if(currentUser?.role==='solo'){ sel.innerHTML=`<option value="${currentUser.agent_id}">${currentUser.agentName}</option>`; return; } const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
 function toggleCustomDates(p){ p=p||''; const v=document.getElementById(p+'rpt_range').value; document.getElementById(p+'rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById(p+'rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
 function getDateRange(range,p){ p=p||''; const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate()); let from,to=new Date(today.getTime()+86400000-1); if(range==='today'){from=today;}else if(range==='yesterday'){from=new Date(today-86400000);to=new Date(today-1);}else if(range==='mtd'){from=new Date(today.getFullYear(),today.getMonth(),1);}else if(range==='custom'){from=new Date(document.getElementById(p+'rpt_from').value);to=new Date(document.getElementById(p+'rpt_to').value+'T23:59:59');}else{from=new Date(today-(parseInt(range)-1)*86400000);} return{from,to}; }
 async function runReport(p){ p=p||''; const agentFilter=document.getElementById(p+'rpt_agent').value; const range=document.getElementById(p+'rpt_range').value; const {from,to}=getDateRange(range,p); let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString()); if(agentFilter!=='all') q=q.eq('agent_id',agentFilter); const {data:subs}=await q.order('submitted_at',{ascending:false}); reportData=subs||[]; const output=document.getElementById(p+'report-output'); const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById(p+'btn_download').style.display='none';return;} let callQ=db.from('lb_dialer_activity').select('agent_id,log_date,total_calls').gte('log_date',from.toISOString().slice(0,10)).lte('log_date',to.toISOString().slice(0,10)); if(agentFilter!=='all') callQ=callQ.eq('agent_id',agentFilter); const {data:calls}=await callQ; const callMap={}; (calls||[]).forEach(c=>{ if(!c.agent_id) return; const k=c.agent_id+'|'+c.log_date; callMap[k]=(callMap[k]||0)+Number(c.total_calls||0); }); reportCallMap=callMap; const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=callMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table>`; document.getElementById(p+'btn_download').style.display='inline-block'; }
@@ -2494,11 +2440,6 @@ async function openBeneficiaryModal(id){ const {data:s}=await db.from('lb_submis
 async function openMAPDBeneficiaryModal(id){ const {data:s}=await db.from('lb_mapd_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
 
 function startRealtime(){
-  if(currentUser?.role==='solo'){
-    db.channel('lb_solo_live').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_submissions'},payload=>{ if(payload.new?.agent_id===currentUser.agent_id){ soloSubmissionsCache=null; if(currentSoloView==='mydash') renderSoloDashboard(); } }).subscribe();
-    db.channel('lb_notif_live_solo').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_notifications'},payload=>{ onNewNotification(payload.new); }).subscribe();
-    return;
-  }
   db.channel('lb_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_submissions'},()=>{ if(currentUser?.role==='admin'){ const activeAdminTab=document.querySelector('.admin-tab.active')?.id; if(activeAdminTab==='adminTab_wow')renderAdminWoW(); else renderAdminBoard(); } else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'&&currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser){ if(currentAgentView==='wow')renderAgentWoW(); else renderAgentBoard(); } }).subscribe();
   db.channel('lb_mapd_live').on('postgres_changes',{event:'*',schema:'public',table:'lb_mapd_submissions'},()=>{ if(currentUser?.role==='admin'&&adminBoardView==='mapd')renderMAPDBoard(); else if(currentUser?.role==='dialer'&&currentDialerTab==='leaderboard'&&currentDialerBoardView==='mapd')renderDialerMAPD(); }).subscribe();
   db.channel('lb_notif_live').on('postgres_changes',{event:'INSERT',schema:'public',table:'lb_notifications'},payload=>{ onNewNotification(payload.new); }).subscribe();
@@ -2515,8 +2456,8 @@ async function fetchUnreadCount(){
   ]);
   const n=notifCount||0;
   const m=msgCount||0;
-  ['agent','admin','dialer','solo'].forEach(p=>{ const badge=document.getElementById(p+'Badge'); if(!badge)return; badge.style.display=n>0?'flex':'none'; badge.textContent=n>9?'9+':n; });
-  ['agent','dialer','solo'].forEach(p=>{
+  ['agent','admin','dialer'].forEach(p=>{ const badge=document.getElementById(p+'Badge'); if(!badge)return; badge.style.display=n>0?'flex':'none'; badge.textContent=n>9?'9+':n; });
+  ['agent','dialer'].forEach(p=>{
     const btn=document.getElementById(p+'InboxTab_msgs');
     if(!btn)return;
     const existing=btn.querySelector('.msg-badge');
@@ -2532,7 +2473,7 @@ async function toggleNotifDropdown(portal){
   if(!dropdown||!listEl)return;
   const isOpen=dropdown.classList.contains('open');
   // Close all dropdowns first
-  ['agent','admin','dialer','solo'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
   if(isOpen)return;
   dropdown.classList.add('open');
   listEl.innerHTML='<div class="notif-empty">Loading…</div>';
@@ -2556,12 +2497,11 @@ async function openNotifDetail(id, portal){
   const {data:n}=await db.from('lb_notifications').select('*').eq('id',id).single();
   if(!n)return;
   if(n.status==='unread') await db.from('lb_notifications').update({status:'read'}).eq('id',id);
-  ['agent','admin','dialer','solo'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+  ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
   fetchUnreadCount();
   // Switch to inbox and highlight this notification
   if(portal==='agent') switchAgentView('inbox');
   else if(portal==='admin') switchAdminTab('inbox');
-  else if(portal==='solo') switchSoloView('inbox');
   else switchDialerTab('inbox');
 }
 
@@ -2734,7 +2674,7 @@ function onNewNotification(row){
   if(!currentUser||row.type!=='direct_message')return;
   if(row.recipient_id!==currentUser.id)return;
   fetchUnreadCount();
-  const portal=currentUser.role==='dialer'?'dialer':currentUser.role==='solo'?'solo':'agent';
+  const portal=currentUser.role==='dialer'?'dialer':'agent';
   const msgsPane=document.getElementById(portal+'-inbox-msgs');
   if(!msgsPane||msgsPane.style.display==='none')return;
   // Only append if this conversation is open
@@ -2745,7 +2685,6 @@ function onNewNotification(row){
 
 async function loadMessages(portal){
   if(portal==='dialer') await loadDialerMessages();
-  else if(portal==='solo') await loadSoloMessages();
   else await loadAgentMessages();
 }
 
@@ -2885,11 +2824,6 @@ async function sendMessage(portal){
     senderLabel='Message from '+currentUser.displayName;
     threadId='dialer-msgs-thread';
     subId=document.getElementById('dialer-msgs-sub')?.value||null;
-  } else if(portal==='solo'){
-    if(!dmState.dialerUserId){ alert('Messages not loaded yet — please wait.'); return; }
-    recipientId=dmState.dialerUserId;
-    senderLabel='Message from '+(currentUser.agentName||currentUser.displayName||'Agent');
-    threadId='solo-msgs-thread';
   } else {
     if(!dmState.dialerUserId){ alert('Messages not loaded yet — please wait.'); return; }
     recipientId=dmState.dialerUserId;
@@ -2974,17 +2908,15 @@ async function confirmSubmission(notifId){
 // Close dropdowns when clicking outside
 document.addEventListener('click', e=>{
   if(!e.target.closest('.notif-bell-wrap')){
-    ['agent','admin','dialer','solo'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
+    ['agent','admin','dialer'].forEach(p=>{ const d=document.getElementById(p+'Dropdown'); if(d)d.classList.remove('open'); });
   }
 });
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock','soloClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent')renderAgentBoard(); fetchUnreadCount(); },30000); }
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent'||currentUser?.role==='solo') renderAgentBoard(); fetchUnreadCount(); },30000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  const dz=document.getElementById('scorerDropZone'); if(!dz)return;
-  dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
-  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }});
+  const dz=document.getElementById('scorerDropZone'); if(dz){ dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); }); dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over')); dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }}); }
+  const adz=document.getElementById('a_scorerDropZone'); if(adz){ adz.addEventListener('dragover',e=>{ e.preventDefault(); adz.classList.add('drag-over'); }); adz.addEventListener('dragleave',()=>adz.classList.remove('drag-over')); adz.addEventListener('drop',e=>{ e.preventDefault(); adz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('a_sc_file').files=dt.files; onAgentFileSelected(document.getElementById('a_sc_file')); }}); }
 });
 
 
@@ -3042,6 +2974,9 @@ async function fetchWoWData(aFrom,aTo,bFrom,bTo){
 function renderWoW(data,containerId){
   const el=document.getElementById(containerId); if(!el) return;
   if(!data||!data.length){el.innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">No data available.</div>';return;}
+  const isSolo=currentUser?.role==='solo';
+  if(isSolo) data=data.filter(a=>a.id===currentUser.agent_id||a.agent_id===currentUser.agent_id||a.name===currentUser.agentName);
+  if(isSolo&&!data.length){el.innerHTML='<div style="color:var(--muted);padding:40px;text-align:center;">No data yet for this week.</div>';return;}
   const isAdmin=containerId==='ad_wow_content'||containerId==='dl_wow_content';
   const teamThisAP=data.reduce((s,a)=>s+a.this_week_ap,0);
   const teamLastAP=data.reduce((s,a)=>s+a.last_week_ap,0);
@@ -3061,7 +2996,7 @@ function renderWoW(data,containerId){
   const pct=a=>a.last_week_ap>0?((a.ap_delta/a.last_week_ap)*100).toFixed(1):null;
   const noImprove=`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">No improvement this period</div>`;
   const noDecline=`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">No declines this period</div>`;
-  const cardRow=`<div style="display:grid;grid-template-columns:${isAdmin?'1fr 1fr 1fr 1fr':'1fr 1fr'};gap:12px;margin-bottom:24px;">
+  const cardRow=isSolo?'':`<div style="display:grid;grid-template-columns:${isAdmin?'1fr 1fr 1fr 1fr':'1fr 1fr'};gap:12px;margin-bottom:24px;">
     ${miRev?`<div style="background:linear-gradient(135deg,rgba(0,201,177,0.08),rgba(0,201,177,0.02));border:1px solid rgba(0,201,177,0.2);border-radius:8px;padding:16px 18px;">
       <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px;">&#x1F4C8; Most Improved — Revenue</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);margin-bottom:4px;">${miRev.name}</div>
@@ -3244,6 +3179,13 @@ async function fetchIntelData(force){
 async function populateIntelAgentSelects(){
   const {data} = await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
   intelAgents = (data || []).filter(a=>Number(a.monthly_goal)>0);
+  if(currentUser?.role==='solo'){
+    // Solo only sees their own agent in the selector; default view to 'self'
+    const sel=document.getElementById('a_intel_view'); if(sel) sel.value='self';
+    const agentSel=document.getElementById('a_intel_agent_sel');
+    if(agentSel) agentSel.innerHTML=`<option value="${currentUser.agent_id}">${currentUser.agentName}</option>`;
+    return;
+  }
   const opts = intelAgents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
   ['a_intel_agent_sel','ad_intel_agent_sel'].forEach(id=>{
     const el = document.getElementById(id);
