@@ -706,7 +706,7 @@ tbody td:not(:first-child){text-align:right;}
       <div class="form-grid">
         <div class="field-sm"><label>Agent First Name</label><input type="text" id="f_aFirstName"/></div>
         <div class="field-sm"><label>Agent Last Name</label><input type="text" id="f_aLastName"/></div>
-        <div class="field-sm"><label>Agent Email *</label><input type="email" id="f_aEmail" placeholder="Required"/></div>
+        <div class="field-sm"><label>Agent Email</label><input type="email" id="f_aEmail" placeholder=""/></div>
         <div class="field-sm"><label>Agent NPN</label><input type="text" id="f_aNPN"/></div>
       </div>
       <div class="form-section-title">Doctor & Medication Info</div>
@@ -2312,8 +2312,6 @@ async function submitSale(){
   }
   const agentEmail=document.getElementById('f_aEmail').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail)){alert('Please enter a valid agent email address.');document.getElementById('f_aEmail').focus();return;}
-  const cEmail=document.getElementById('f_cEmail').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)){alert('Please enter a valid customer email address.');document.getElementById('f_cEmail').focus();return;}
   if(document.getElementById('f_carrier').value==='Heartland'){
     for(const [id,label] of [['f_bankingInstitution','Banking Institution'],['f_routingNumber','Routing Number'],['f_accountNumber','Account Number'],['f_mothersMaidenName',"Mother's Maiden Name"]]){
       const el=document.getElementById(id); if(!el?.value?.trim()){alert(`${label} is required for Heartland.`);el?.focus();return;}
