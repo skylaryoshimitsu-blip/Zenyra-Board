@@ -826,6 +826,7 @@ tbody td:not(:first-child){text-align:right;}
     <div class="admin-tab" id="adminTab_reports" onclick="switchAdminTab('reports')">📥 Reports</div>
     <div class="admin-tab" id="adminTab_inbox" onclick="switchAdminTab('inbox')">🔔 Inbox</div>
     <div class="admin-tab" id="adminTab_eod" onclick="switchAdminTab('eod')">📋 EOD Summary</div>
+    <div class="admin-tab" id="adminTab_integrations" onclick="switchAdminTab('integrations')">📡 Integrations</div>
   </div>
   <div id="admin-board-panel" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
     <div class="view-tabs" style="background:var(--navy);border-bottom-color:var(--border);">
@@ -1078,6 +1079,49 @@ tbody td:not(:first-child){text-align:right;}
       <button id="eod_btn_download" onclick="downloadEODSummary()" style="display:none;background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;">&#x2B07; Download PDF</button>
     </div>
     <div id="eod-output"></div>
+  </div>
+  <!-- INTEGRATIONS PANEL (admin only) -->
+  <div id="admin-integrations-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;">
+    <div class="section-eyebrow" style="margin-bottom:20px;">GoHighLevel Integration</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;max-width:640px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="form-section-title" style="margin:0;">GHL Settings</div>
+        <span id="ghl_status_badge" style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:4px;background:var(--surface);color:var(--muted);">Not Enabled</span>
+      </div>
+      <div style="margin-bottom:16px;">
+        <button onclick="toggleGHLEnabled()" id="ghl_toggle_btn" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px;">Enable GHL Integration</button>
+      </div>
+      <div class="field-sm" style="margin-bottom:14px;">
+        <label>Location ID</label>
+        <input type="text" id="ghl_location_id" style="width:100%;box-sizing:border-box;" placeholder="j9qoEVXyaE55rXmQ7kLg"/>
+      </div>
+      <div class="form-section-title" style="margin-top:20px;margin-bottom:6px;font-size:13px;">Custom Field IDs</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Enter the GHL custom field ID for each Zenyra value. Leave blank to skip.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div class="field-sm"><label>Agent Email Field ID</label><input type="text" id="ghl_field_agent_email" placeholder=""/></div>
+        <div class="field-sm"><label>Agent First Name Field ID</label><input type="text" id="ghl_field_agent_first_name" placeholder=""/></div>
+        <div class="field-sm"><label>Agent Last Name Field ID</label><input type="text" id="ghl_field_agent_last_name" placeholder=""/></div>
+        <div class="field-sm"><label>Product Type Field ID</label><input type="text" id="ghl_field_product_type" placeholder=""/></div>
+        <div class="field-sm"><label>Carrier Field ID</label><input type="text" id="ghl_field_carrier" placeholder=""/></div>
+        <div class="field-sm"><label>Plan Name Field ID</label><input type="text" id="ghl_field_plan_name" placeholder=""/></div>
+        <div class="field-sm"><label>Annual Premium Field ID</label><input type="text" id="ghl_field_annual_premium" placeholder=""/></div>
+        <div class="field-sm"><label>Monthly Premium Field ID</label><input type="text" id="ghl_field_monthly_premium" placeholder=""/></div>
+        <div class="field-sm"><label>Effective Date Field ID</label><input type="text" id="ghl_field_effective_date" placeholder=""/></div>
+        <div class="field-sm"><label>Policy Number Field ID</label><input type="text" id="ghl_field_policy_number" placeholder=""/></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button onclick="saveGHLSettings()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;">Save Settings</button>
+        <button onclick="testGHLConnection()" style="background:none;border:1px solid var(--border);color:var(--body);border-radius:6px;padding:8px 18px;font-size:12px;cursor:pointer;">Test Connection</button>
+      </div>
+      <div id="ghl_save_msg" style="display:none;font-size:11px;color:var(--green);margin-top:6px;"></div>
+      <div id="ghl_test_msg" style="display:none;font-size:11px;margin-top:6px;"></div>
+
+      <div style="border-top:1px solid var(--border);margin:24px 0 20px;"></div>
+      <div class="form-section-title" style="margin-bottom:6px;font-size:13px;">Historical Import</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Import all existing GHL contacts into Zenyra as historical submissions. One-time operation — run only once.</div>
+      <button onclick="runGHLImport()" id="ghl_import_btn" style="background:none;border:1px solid var(--border);color:var(--body);border-radius:6px;padding:8px 18px;font-size:12px;cursor:pointer;">Run Historical Import</button>
+      <div id="ghl_import_msg" style="margin-top:12px;font-size:11px;color:var(--muted);"></div>
+    </div>
   </div>
   <div class="footer">
     <span class="footer-left" id="ad_lastUpdated">—</span>
@@ -2134,7 +2178,7 @@ async function runReport(p){ p=p||''; const agentFilter=document.getElementById(
 function downloadReport(p){ p=p||''; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=reportCallMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
-  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block',inbox:'flex',eod:'flex'};
+  const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block',inbox:'flex',eod:'flex',integrations:'block'};
   Object.keys(panels).forEach(t=>{ const p=document.getElementById('admin-'+t+'-panel'); if(p) p.style.display=t===tab?panels[t]:'none'; const b=document.getElementById('adminTab_'+t); if(b) b.classList.toggle('active',t===tab); });
   if(tab==='board')   renderAdminBoard();
   if(tab==='wow')     renderAdminWoW();
@@ -2146,6 +2190,55 @@ function switchAdminTab(tab){
   if(tab==='reports') populateReportAgents();
   if(tab==='inbox')   { switchInboxSubTab('admin','notif'); loadInbox('admin'); }
   if(tab==='eod'){    const d=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'}); document.getElementById('eod_date').value=d; renderEODSummary(d); }
+  if(tab==='integrations') loadGHLSettings();
+}
+
+// ── GHL INTEGRATION SETTINGS ──────────────────────────────────────────────
+async function loadGHLSettings(){
+  const {data:rows}=await db.from('lb_settings').select('key,value').like('key','ghl_%');
+  const cfg={};
+  (rows||[]).forEach(r=>{ cfg[r.key]=r.value; });
+  const ids=['ghl_location_id','ghl_field_agent_email','ghl_field_agent_first_name','ghl_field_agent_last_name','ghl_field_product_type','ghl_field_carrier','ghl_field_plan_name','ghl_field_annual_premium','ghl_field_monthly_premium','ghl_field_effective_date','ghl_field_policy_number'];
+  ids.forEach(k=>{ const el=document.getElementById(k); if(el) el.value=cfg[k]||''; });
+  updateGHLBadge(cfg.ghl_enabled==='true');
+}
+function updateGHLBadge(enabled){
+  const badge=document.getElementById('ghl_status_badge'), btn=document.getElementById('ghl_toggle_btn');
+  if(badge){ badge.textContent=enabled?'Enabled':'Not Enabled'; badge.style.background=enabled?'rgba(52,211,153,0.15)':'var(--surface)'; badge.style.color=enabled?'var(--green)':'var(--muted)'; }
+  if(btn) btn.textContent=enabled?'Disable GHL Integration':'Enable GHL Integration';
+}
+async function toggleGHLEnabled(){
+  const {data:row}=await db.from('lb_settings').select('value').eq('key','ghl_enabled').single();
+  const next=row?.value==='true'?'false':'true';
+  await db.from('lb_settings').upsert({key:'ghl_enabled',value:next,updated_at:new Date().toISOString(),updated_by:currentUser.id},{onConflict:'key'});
+  updateGHLBadge(next==='true');
+}
+async function saveGHLSettings(){
+  const keys=['ghl_location_id','ghl_field_agent_email','ghl_field_agent_first_name','ghl_field_agent_last_name','ghl_field_product_type','ghl_field_carrier','ghl_field_plan_name','ghl_field_annual_premium','ghl_field_monthly_premium','ghl_field_effective_date','ghl_field_policy_number'];
+  const upserts=keys.map(k=>({ key:k, value:document.getElementById(k)?.value||'', updated_at:new Date().toISOString(), updated_by:currentUser.id }));
+  const {error}=await db.from('lb_settings').upsert(upserts,{onConflict:'key'});
+  const msg=document.getElementById('ghl_save_msg');
+  if(msg){ msg.textContent=error?'Save failed: '+error.message:'✓ Settings saved.'; msg.style.color=error?'var(--red)':'var(--green)'; msg.style.display='block'; setTimeout(()=>msg.style.display='none',3000); }
+}
+async function testGHLConnection(){
+  const msg=document.getElementById('ghl_test_msg');
+  if(msg){ msg.textContent='Testing…'; msg.style.display='block'; msg.style.color='var(--muted)'; }
+  try {
+    const r=await fetch('/api/ghl-push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submission:{customer_first_name:'Test',customer_last_name:'Connection',customer_phone:'0000000000',product_type:'Test',carrier_name:'Test',_dry_run:true}})});
+    const d=await r.json();
+    if(msg){ msg.textContent=d.ok||d.skipped?'✓ Connection successful ('+( d.skipped||'push sent')+').':'✗ '+JSON.stringify(d.ghl_error||d.error); msg.style.color=d.ok||d.skipped?'var(--green)':'var(--red)'; }
+  } catch(e){ if(msg){ msg.textContent='✗ Request failed: '+e.message; msg.style.color='var(--red)'; } }
+}
+async function runGHLImport(){
+  const btn=document.getElementById('ghl_import_btn'), msg=document.getElementById('ghl_import_msg');
+  btn.disabled=true; if(msg){ msg.textContent='Running import… this may take a minute.'; msg.style.color='var(--muted)'; }
+  try {
+    const r=await fetch('/api/ghl-import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUser.id})});
+    const d=await r.json();
+    if(d.ok){ if(msg) msg.textContent=`✓ Done — fetched: ${d.total_fetched}, imported: ${d.imported}, duplicates skipped: ${d.skipped_duplicates}, unattributed: ${d.skipped_unattributed}, errors: ${d.errors}.`; }
+    else { if(msg){ msg.textContent='✗ Import failed: '+(d.error||JSON.stringify(d)); msg.style.color='var(--red)'; } }
+  } catch(e){ if(msg){ msg.textContent='✗ Request failed: '+e.message; msg.style.color='var(--red)'; } }
+  finally { btn.disabled=false; }
 }
 
 function switchAdminReportType(type){
@@ -2320,6 +2413,8 @@ async function submitSale(){
   if(!mp||mp<=0){alert('Monthly premium must be a positive number.');document.getElementById('f_monthlyPremium').focus();return;}
   const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null,carrier_status:'awaiting_window'}:{})});
   if(error) return alert('Submission failed: '+error.message);
+  // Non-blocking GHL push — fire-and-forget, never delays submission confirmation
+  fetch('/api/ghl-push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submission:{customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,annual_premium:mp*12,effective_date:document.getElementById('f_effectiveDate').value,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:document.getElementById('f_aEmail').value,agent_npn:document.getElementById('f_aNPN').value}})}).catch(()=>{});
   document.getElementById('submitSuccess').style.display='block';
   document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value='');
   toggleHeartlandFields();
@@ -2360,7 +2455,10 @@ async function submitMAPD(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(aEmail)){alert('Please enter a valid agent email address.');document.getElementById('m_aEmail').focus();return;}
   const cEmail=document.getElementById('m_cEmail').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)){alert('Please enter a valid customer email address.');document.getElementById('m_cEmail').focus();return;}
- const {error}=await db.from('lb_mapd_submissions').insert({agent_id:currentUser?.agent_id,status:'live',app_submit_date:document.getElementById('m_appSubmitDate').value||null,sunfire_confirm_date:document.getElementById('m_sunfireDate').value||null,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,plan_code:document.getElementById('m_planCode').value,effective_date:document.getElementById('m_effectiveDate').value||null,agent_npn:document.getElementById('m_aNPN').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,agent_email:document.getElementById('m_aEmail').value,customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_dob:document.getElementById('m_cDOB').value||null,customer_gender:document.getElementById('m_cGender').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,medicare_number:document.getElementById('m_medicareNum').value,medicare_part_a_date:document.getElementById('m_partADate').value||null,medicare_part_b_date:document.getElementById('m_partBDate').value||null,is_on_medicaid:document.getElementById('m_onMedicaid').checked,medicaid_number:document.getElementById('m_medicaidNum').value||null,pcp_name:document.getElementById('m_pcpName').value,pcp_id:document.getElementById('m_pcpId').value,specialist_names:document.getElementById('m_specialists').value,medications:document.getElementById('m_medications').value}); if(error)return alert('MAPD submission failed: '+error.message); document.getElementById('submitMAPDSuccess').style.display='block'; document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; }); document.getElementById('m_medicaidNumWrap').style.display='none'; setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
+ const {error}=await db.from('lb_mapd_submissions').insert({agent_id:currentUser?.agent_id,status:'live',app_submit_date:document.getElementById('m_appSubmitDate').value||null,sunfire_confirm_date:document.getElementById('m_sunfireDate').value||null,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,plan_code:document.getElementById('m_planCode').value,effective_date:document.getElementById('m_effectiveDate').value||null,agent_npn:document.getElementById('m_aNPN').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,agent_email:document.getElementById('m_aEmail').value,customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_dob:document.getElementById('m_cDOB').value||null,customer_gender:document.getElementById('m_cGender').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,medicare_number:document.getElementById('m_medicareNum').value,medicare_part_a_date:document.getElementById('m_partADate').value||null,medicare_part_b_date:document.getElementById('m_partBDate').value||null,is_on_medicaid:document.getElementById('m_onMedicaid').checked,medicaid_number:document.getElementById('m_medicaidNum').value||null,pcp_name:document.getElementById('m_pcpName').value,pcp_id:document.getElementById('m_pcpId').value,specialist_names:document.getElementById('m_specialists').value,medications:document.getElementById('m_medications').value}); if(error)return alert('MAPD submission failed: '+error.message);
+  // Non-blocking GHL push — fire-and-forget
+  fetch('/api/ghl-push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submission:{customer_first_name:document.getElementById('m_cFirstName').value,customer_last_name:document.getElementById('m_cLastName').value,customer_phone:document.getElementById('m_cPhone').value,customer_email:document.getElementById('m_cEmail').value,customer_dob:document.getElementById('m_cDOB').value,customer_gender:document.getElementById('m_cGender').value,customer_street:document.getElementById('m_cStreet').value,customer_city:document.getElementById('m_cCity').value,customer_state:document.getElementById('m_cState').value,customer_postal_code:document.getElementById('m_cPostal').value,carrier_name:document.getElementById('m_carrier').value,plan_name:document.getElementById('m_planName').value,effective_date:document.getElementById('m_effectiveDate').value,agent_first_name:document.getElementById('m_aFirstName').value,agent_last_name:document.getElementById('m_aLastName').value,agent_email:document.getElementById('m_aEmail').value,agent_npn:document.getElementById('m_aNPN').value}})}).catch(()=>{});
+  document.getElementById('submitMAPDSuccess').style.display='block'; document.querySelectorAll('#submit-mapd-screen input,#submit-mapd-screen select,#submit-mapd-screen textarea').forEach(e=>{ if(e.type==='checkbox')e.checked=false; else e.value=''; }); document.getElementById('m_medicaidNumWrap').style.display='none'; setTimeout(()=>{ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000); }
 
 async function populateScorerAgents(){ const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); const sel=document.getElementById('sc_agent'); if(!sel)return; sel.innerHTML='<option value="">Select agent...</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
 function onFileSelected(input){ scorerFile=input.files[0]||null; const fn=document.getElementById('sc_filename'),btn=document.getElementById('sc_btn'); if(scorerFile){ fn.textContent=scorerFile.name+' ('+Math.round(scorerFile.size/1024/1024*10)/10+' MB)'; btn.disabled=false; } else { fn.textContent=''; btn.disabled=true; } }
