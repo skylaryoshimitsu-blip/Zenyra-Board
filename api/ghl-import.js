@@ -70,8 +70,8 @@ export default async function handler(req, res) {
     const firstFieldId = cfg.ghl_field_agent_first_name;
     const lastFieldId  = cfg.ghl_field_agent_last_name;
     const hasAgentFields = !!(firstFieldId && cfMap[firstFieldId]) || !!(lastFieldId && cfMap[lastFieldId]);
-    const agentFirst = firstFieldId ? cfMap[firstFieldId] : null;
-    const agentLast  = lastFieldId  ? cfMap[lastFieldId]  : null;
+    const agentFirst = ((firstFieldId && cfMap[firstFieldId]) || '').trim();
+    const agentLast  = ((lastFieldId  && cfMap[lastFieldId])  || '').trim();
     if (agentFirst && agentLast) {
       const ghlName = `${agentFirst} ${agentLast}`.trim().toLowerCase();
       const match = agents.find(a => a.name.trim().toLowerCase() === ghlName);
