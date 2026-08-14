@@ -1,7 +1,6 @@
 // api/ghl-import.js
-// Fetches all GHL contacts (paginated), maps to lb_submissions format,
-// matches agent by email/name against lb_agents,
-// bulk inserts into lb_submissions with status='live'.
+// Processes one page of GHL contacts per request to avoid Vercel timeouts.
+// Client chains requests using nextPageToken until null.
 // Banking fields are always null — GHL does not carry them.
 import { createClient } from '@supabase/supabase-js';
 
@@ -26,6 +25,8 @@ export default async function handler(req, res) {
 
   if (!GHL_API_KEY) return res.status(500).json({ error: 'GHL_API_KEY not configured' });
 
+  const { pageToken = null, batchNum = 1 } = req.body || {};
+
   // Load GHL settings
   const { data: settings } = await supabase.from('lb_settings').select('key, value').like('key', 'ghl_%');
   const cfg = {};
@@ -36,58 +37,41 @@ export default async function handler(req, res) {
   const { data: agentRows } = await supabase.from('lb_agents').select('id, name').eq('active', true);
   const agents = agentRows || [];
 
-  // Paginate GHL contacts
-  const allContacts = [];
-  let startAfter = null;
-  let page = 0;
-  while (true) {
-    const url = new URL(`https://services.leadconnectorhq.com/contacts/`);
-    url.searchParams.set('locationId', locationId);
-    url.searchParams.set('limit', '100');
-    if (startAfter) url.searchParams.set('startAfter', startAfter);
+  // Fetch one page of GHL contacts
+  const url = new URL('https://services.leadconnectorhq.com/contacts/');
+  url.searchParams.set('locationId', locationId);
+  url.searchParams.set('limit', '25');
+  if (pageToken) url.searchParams.set('startAfter', pageToken);
 
-    const ghlRes = await fetch(url.toString(), {
-      headers: { 'Authorization': `Bearer ${GHL_API_KEY}`, 'Version': '2021-07-28' },
-    });
-    if (!ghlRes.ok) {
-      const err = await ghlRes.text();
-      return res.status(200).json({ ok: false, error: `GHL fetch failed page ${page}: ${err}` });
-    }
-    const ghlData = await ghlRes.json();
-    const contacts = ghlData.contacts || [];
-    allContacts.push(...contacts);
-    page++;
-    if (!ghlData.meta?.nextPageUrl || contacts.length < 100) break;
-    // Extract startAfter from nextPageUrl if provided
+  const ghlRes = await fetch(url.toString(), {
+    headers: { 'Authorization': `Bearer ${GHL_API_KEY}`, 'Version': '2021-07-28' },
+  });
+  if (!ghlRes.ok) {
+    const err = await ghlRes.text();
+    return res.status(200).json({ ok: false, error: `GHL fetch failed batch ${batchNum}: ${err}` });
+  }
+  const ghlData = await ghlRes.json();
+  const contacts = ghlData.contacts || [];
+
+  // Determine next page cursor
+  let nextPageToken = null;
+  if (contacts.length === 25 && ghlData.meta?.nextPageUrl) {
     try {
       const next = new URL(ghlData.meta.nextPageUrl);
-      startAfter = next.searchParams.get('startAfter');
-      if (!startAfter) break;
-    } catch { break; }
+      nextPageToken = next.searchParams.get('startAfter') || null;
+    } catch { /* no next page */ }
   }
-
-  const stats = { total_fetched: allContacts.length, imported: 0, skipped_duplicates: 0, skipped_unattributed: 0, errors: 0 };
 
   // Helper: resolve agent_id from custom field values
   function resolveAgent(contact) {
     const cfMap = {};
     (contact.customFields || []).forEach(cf => { cfMap[cf.id] = cf.value; });
-    const agentEmail = cfg.ghl_field_agent_email ? cfMap[cfg.ghl_field_agent_email] : null;
     const agentFirst = cfg.ghl_field_agent_first_name ? cfMap[cfg.ghl_field_agent_first_name] : null;
     const agentLast  = cfg.ghl_field_agent_last_name  ? cfMap[cfg.ghl_field_agent_last_name]  : null;
-
-    if (agentEmail) {
-      // Try matching via existing lb_submissions agent_email
-      const byEmail = agents.find(a => {
-        // We don't have agent emails in lb_agents directly — match by name as fallback
-        return false;
-      });
-      if (byEmail) return byEmail.id;
-    }
     if (agentFirst && agentLast) {
       const fullName = `${agentFirst} ${agentLast}`.toLowerCase();
-      const byName = agents.find(a => a.name.toLowerCase() === fullName);
-      if (byName) return byName.id;
+      const match = agents.find(a => a.name.toLowerCase() === fullName);
+      if (match) return match.id;
     }
     return null;
   }
@@ -100,71 +84,66 @@ export default async function handler(req, res) {
     return f ? f.value : null;
   }
 
-  // Process in batches of 50
-  const BATCH = 50;
-  for (let i = 0; i < allContacts.length; i += BATCH) {
-    const batch = allContacts.slice(i, i + BATCH);
-    const toInsert = [];
+  const stats = { batchNum, fetched: contacts.length, imported: 0, skipped_duplicates: 0, skipped_unattributed: 0, errors: 0 };
+  const toInsert = [];
 
-    for (const contact of batch) {
-      try {
-        const agentId = resolveAgent(contact);
-        if (!agentId) { stats.skipped_unattributed++; continue; }
+  for (const contact of contacts) {
+    try {
+      const agentId = resolveAgent(contact);
+      if (!agentId) { stats.skipped_unattributed++; continue; }
 
-        // Duplicate check: same first+last+phone+agent_id
-        const { data: existing } = await supabase
-          .from('lb_submissions')
-          .select('id')
-          .eq('customer_first_name', contact.firstName || '')
-          .eq('customer_last_name', contact.lastName || '')
-          .eq('customer_phone', contact.phone || '')
-          .eq('agent_id', agentId)
-          .limit(1);
-        if (existing && existing.length > 0) { stats.skipped_duplicates++; continue; }
+      // Duplicate check: same first+last+phone+agent_id
+      const { data: existing } = await supabase
+        .from('lb_submissions')
+        .select('id')
+        .eq('customer_first_name', contact.firstName || '')
+        .eq('customer_last_name', contact.lastName || '')
+        .eq('customer_phone', contact.phone || '')
+        .eq('agent_id', agentId)
+        .limit(1);
+      if (existing && existing.length > 0) { stats.skipped_duplicates++; continue; }
 
-        toInsert.push({
-          agent_id:              agentId,
-          status:                'live',
-          customer_first_name:   contact.firstName || '',
-          customer_last_name:    contact.lastName || '',
-          customer_phone:        contact.phone || '',
-          customer_email:        contact.email || '',
-          customer_dob:          contact.dateOfBirth || null,
-          customer_gender:       contact.gender || '',
-          customer_street:       contact.address1 || '',
-          customer_city:         contact.city || '',
-          customer_state:        contact.state || '',
-          customer_postal_code:  contact.postalCode || '',
-          product_type:          cf(contact, 'ghl_field_product_type') || '',
-          policy_number:         cf(contact, 'ghl_field_policy_number') || '',
-          carrier_name:          cf(contact, 'ghl_field_carrier') || '',
-          plan_name:             cf(contact, 'ghl_field_plan_name') || '',
-          monthly_premium:       parseFloat(cf(contact, 'ghl_field_monthly_premium') || '0') || null,
-          annual_premium:        parseFloat(cf(contact, 'ghl_field_annual_premium') || '0') || null,
-          effective_date:        cf(contact, 'ghl_field_effective_date') || null,
-          agent_email:           cf(contact, 'ghl_field_agent_email') || '',
-          // Banking fields: always null for GHL historical imports
-          banking_institution:   null,
-          routing_number:        null,
-          account_number:        null,
-          mothers_maiden_name:   null,
-        });
-      } catch (e) {
-        console.error('Contact mapping error:', e);
-        stats.errors++;
-      }
-    }
-
-    if (toInsert.length > 0) {
-      const { error: insertErr } = await supabase.from('lb_submissions').insert(toInsert);
-      if (insertErr) {
-        console.error('Batch insert error:', insertErr);
-        stats.errors += toInsert.length;
-      } else {
-        stats.imported += toInsert.length;
-      }
+      toInsert.push({
+        agent_id:              agentId,
+        status:                'live',
+        customer_first_name:   contact.firstName || '',
+        customer_last_name:    contact.lastName || '',
+        customer_phone:        contact.phone || '',
+        customer_email:        contact.email || '',
+        customer_dob:          contact.dateOfBirth || null,
+        customer_gender:       contact.gender || '',
+        customer_street:       contact.address1 || '',
+        customer_city:         contact.city || '',
+        customer_state:        contact.state || '',
+        customer_postal_code:  contact.postalCode || '',
+        product_type:          cf(contact, 'ghl_field_product_type') || '',
+        policy_number:         cf(contact, 'ghl_field_policy_number') || '',
+        carrier_name:          cf(contact, 'ghl_field_carrier') || '',
+        plan_name:             cf(contact, 'ghl_field_plan_name') || '',
+        monthly_premium:       parseFloat(cf(contact, 'ghl_field_monthly_premium') || '0') || null,
+        annual_premium:        parseFloat(cf(contact, 'ghl_field_annual_premium') || '0') || null,
+        effective_date:        cf(contact, 'ghl_field_effective_date') || null,
+        agent_email:           cf(contact, 'ghl_field_agent_email') || '',
+        banking_institution:   null,
+        routing_number:        null,
+        account_number:        null,
+        mothers_maiden_name:   null,
+      });
+    } catch (e) {
+      console.error('Contact mapping error:', e);
+      stats.errors++;
     }
   }
 
-  return res.status(200).json({ ok: true, ...stats });
+  if (toInsert.length > 0) {
+    const { error: insertErr } = await supabase.from('lb_submissions').insert(toInsert);
+    if (insertErr) {
+      console.error('Batch insert error:', insertErr);
+      stats.errors += toInsert.length;
+    } else {
+      stats.imported += toInsert.length;
+    }
+  }
+
+  return res.status(200).json({ ...stats, nextPageToken });
 }

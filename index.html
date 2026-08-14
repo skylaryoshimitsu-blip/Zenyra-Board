@@ -2231,12 +2231,26 @@ async function testGHLConnection(){
 }
 async function runGHLImport(){
   const btn=document.getElementById('ghl_import_btn'), msg=document.getElementById('ghl_import_msg');
-  btn.disabled=true; if(msg){ msg.textContent='Running import… this may take a minute.'; msg.style.color='var(--muted)'; }
+  btn.disabled=true;
+  if(msg){ msg.textContent='Starting import...'; msg.style.color='var(--muted)'; }
+  let pageToken=null, batchNum=1, totalImported=0, totalSkipped=0, totalErrors=0;
   try {
-    const r=await fetch('/api/ghl-import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUser.id})});
-    const d=await r.json();
-    if(d.ok){ if(msg) msg.textContent=`✓ Done — fetched: ${d.total_fetched}, imported: ${d.imported}, duplicates skipped: ${d.skipped_duplicates}, unattributed: ${d.skipped_unattributed}, errors: ${d.errors}.`; }
-    else { if(msg){ msg.textContent='✗ Import failed: '+(d.error||JSON.stringify(d)); msg.style.color='var(--red)'; } }
+    while(true){
+      if(msg) msg.textContent=`Processing batch ${batchNum}...`;
+      const r=await fetch('/api/ghl-import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageToken,batchNum})});
+      const d=await r.json();
+      if(!r.ok||d.error){ if(msg){ msg.textContent=`✗ Error on batch ${batchNum}: ${d.error||JSON.stringify(d)}`; msg.style.color='var(--red)'; } break; }
+      totalImported+=(d.imported||0);
+      totalSkipped+=(d.skipped_duplicates||0)+(d.skipped_unattributed||0);
+      totalErrors+=(d.errors||0);
+      if(!d.nextPageToken){
+        if(msg){ msg.textContent=`✓ Import complete — ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors.`; msg.style.color='var(--muted)'; }
+        break;
+      }
+      pageToken=d.nextPageToken;
+      batchNum++;
+      await new Promise(resolve=>setTimeout(resolve,500));
+    }
   } catch(e){ if(msg){ msg.textContent='✗ Request failed: '+e.message; msg.style.color='var(--red)'; } }
   finally { btn.disabled=false; }
 }
