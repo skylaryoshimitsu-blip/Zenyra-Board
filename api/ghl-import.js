@@ -264,12 +264,37 @@ export default async function handler(req, res) {
     skipped_no_name: 0,
     skipped_non_enrollment: 0,
     errors: 0,
+    raw_captured: 0,
   };
   const unattributedSamples = [];
   const nonEnrollmentSamples = [];
   const errorSamples = [];
 
   for (const contact of contacts) {
+    // Always capture raw contact data regardless of enrollment classification
+    if (contact.id) {
+      const rawRecord = {
+        ghl_contact_id: contact.id,
+        first_name:     contact.firstName || null,
+        last_name:      contact.lastName  || null,
+        phone:          contact.phone     || null,
+        email:          contact.email     || null,
+        date_of_birth:  contact.dateOfBirth || null,
+        gender:         contact.gender    || null,
+        address:        contact.address1  || null,
+        city:           contact.city      || null,
+        state:          contact.state     || null,
+        postal_code:    contact.postalCode || null,
+        tags:           contact.tags      || [],
+        custom_fields:  Object.fromEntries((contact.customFields || []).map(f => [f.id, f.fieldValue])),
+        date_added:     contact.dateAdded ? new Date(contact.dateAdded).toISOString() : null,
+      };
+      const { error: rawErr } = await supabase
+        .from('lb_ghl_raw')
+        .upsert(rawRecord, { onConflict: 'ghl_contact_id' });
+      if (!rawErr) stats.raw_captured++;
+    }
+
     // Skip contacts with no real name
     const firstName = (contact.firstName || '').trim();
     const lastName  = (contact.lastName  || '').trim();
