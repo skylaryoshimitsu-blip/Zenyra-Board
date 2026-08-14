@@ -84,6 +84,13 @@ function buildRecord(contact, agentId, cfg) {
     account_number:        null,
     mothers_maiden_name:   null,
     carrier_status:        null,
+    submitted_at: (() => {
+      if (contact.dateAdded) {
+        const d = new Date(contact.dateAdded);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      }
+      return null;
+    })(),
   };
 }
 
@@ -209,6 +216,8 @@ export default async function handler(req, res) {
       console.error('Insert error:', JSON.stringify(insertError));
       stats.errors++;
       if (errorSamples.length < 3) {
+        const cfRaw = {};
+        (contact.customFields || []).forEach(f => { cfRaw[f.id] = { value: f.value, fieldValue: f.fieldValue }; });
         errorSamples.push({
           stage: 'insert',
           error: insertError.message,
@@ -217,7 +226,8 @@ export default async function handler(req, res) {
           product_type:    record.product_type,
           monthly_premium: record.monthly_premium,
           effective_date:  record.effective_date,
-          carrier_status:  record.carrier_status,
+          submitted_at:    record.submitted_at,
+          raw_premium_field: cfg.ghl_field_monthly_premium ? cfRaw[cfg.ghl_field_monthly_premium] : '(field id not set)',
         });
       }
       continue;
