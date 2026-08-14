@@ -57,21 +57,27 @@ export default async function handler(req, res) {
   });
 
   const contactPayload = {
-    locationId:  cfg.ghl_location_id || 'j9qoEVXyaE55rXmQ7kLg',
-    firstName:   submission.customer_first_name || '',
-    lastName:    submission.customer_last_name || '',
-    phone:       submission.customer_phone || '',
-    email:       submission.customer_email || '',
-    address1:    submission.customer_street || '',
-    city:        submission.customer_city || '',
-    state:       submission.customer_state || '',
-    postalCode:  submission.customer_postal_code || '',
-    dateOfBirth: submission.customer_dob || '',
-    gender:      submission.customer_gender || '',
-    tags: [`zenyra-enrollment`, submission.product_type || '', submission.carrier_name || ''].filter(Boolean),
+    locationId: cfg.ghl_location_id || 'j9qoEVXyaE55rXmQ7kLg',
+    firstName:  submission.customer_first_name || '',
+    lastName:   submission.customer_last_name || '',
+    phone:      submission.customer_phone || '',
+    address1:   submission.customer_street || '',
+    city:       submission.customer_city || '',
+    state:      submission.customer_state || '',
+    postalCode: submission.customer_postal_code || '',
+    tags: ['zenyra-enrollment', submission.product_type || '', submission.carrier_name || ''].filter(Boolean),
     customFields,
     source: 'Zenyra Board',
   };
+
+  // Only include email if valid — GHL rejects empty or malformed email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (submission.customer_email && emailRegex.test(submission.customer_email)) {
+    contactPayload.email = submission.customer_email;
+  }
+  // Only include typed fields if non-empty — GHL may reject empty strings
+  if (submission.customer_dob) contactPayload.dateOfBirth = submission.customer_dob;
+  if (submission.customer_gender) contactPayload.gender = submission.customer_gender;
 
   try {
     const ghlRes = await fetch('https://services.leadconnectorhq.com/contacts/', {
