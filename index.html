@@ -2238,18 +2238,19 @@ async function runGHLImport(){
   const hasCursor=cursorRow?.value;
   if(msg){ msg.textContent=hasCursor?'Resuming previous import...':'Starting import...'; msg.style.color='var(--muted)'; }
   // Pass null — server reads cursor from lb_settings automatically
-  let batchNum=1, totalImported=0, totalSkipped=0, totalErrors=0;
+  let batchNum=1, totalAncillary=0, totalMAPD=0, totalSkipped=0, totalErrors=0;
   try {
     while(true){
-      if(msg) msg.textContent=`Processing batch ${batchNum}... (${totalImported} imported so far)`;
+      if(msg) msg.textContent=`Processing batch ${batchNum}... (${totalAncillary} ancillary + ${totalMAPD} MAPD imported so far)`;
       const r=await fetch('/api/ghl-import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pageToken:null,batchNum})});
       const d=await r.json();
       if(!r.ok||d.error){ if(msg){ msg.textContent=`✗ Error on batch ${batchNum}: ${d.error||'Unknown error'} — Click "Run Historical Import" to resume.`; msg.style.color='var(--red)'; } break; }
-      totalImported+=(d.imported||0);
+      totalAncillary+=(d.imported_ancillary||0);
+      totalMAPD+=(d.imported_mapd||0);
       totalSkipped+=(d.skipped_duplicates||0)+(d.skipped_unattributed||0);
       totalErrors+=(d.errors||0);
       if(!d.nextPageToken){
-        if(msg){ msg.textContent=`✓ Import complete — ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors.`; msg.style.color='var(--muted)'; }
+        if(msg){ msg.textContent=`✓ Import complete — ${totalAncillary} ancillary + ${totalMAPD} MAPD imported, ${totalSkipped} skipped, ${totalErrors} errors.`; msg.style.color='var(--muted)'; }
         break;
       }
       batchNum++;
