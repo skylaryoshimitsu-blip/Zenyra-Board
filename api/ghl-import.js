@@ -229,6 +229,7 @@ export default async function handler(req, res) {
     errors: 0,
   };
   const unattributedSamples = [];
+  const nonEnrollmentSamples = [];
   const errorSamples = [];
 
   for (const contact of contacts) {
@@ -243,7 +244,17 @@ export default async function handler(req, res) {
 
     const contactType = detectContactType(cfValues, cfg);
 
-    if (contactType === 'unknown') { stats.skipped_non_enrollment++; continue; }
+    if (contactType === 'unknown') {
+      stats.skipped_non_enrollment++;
+      if (nonEnrollmentSamples.length < 3) {
+        nonEnrollmentSamples.push({
+          contact_name: `${firstName} ${lastName}`,
+          custom_field_ids: (contact.customFields || []).map(f => f.id),
+          custom_field_values: (contact.customFields || []).map(f => ({ id: f.id, value: f.fieldValue })),
+        });
+      }
+      continue;
+    }
 
     const { agentId, hasAgentFields } = resolveAgent(contact);
 
@@ -312,5 +323,5 @@ export default async function handler(req, res) {
     .upsert({ key: 'ghl_import_cursor', value: nextPageToken || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
   console.log('Cursor upsert result:', cursorErr ? cursorErr.message : 'ok');
 
-  return res.status(200).json({ ...stats, unattributedSamples, errorSamples, nextPageToken, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
+  return res.status(200).json({ ...stats, unattributedSamples, nonEnrollmentSamples, errorSamples, nextPageToken, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
 }
