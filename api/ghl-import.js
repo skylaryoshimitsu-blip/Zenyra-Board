@@ -103,27 +103,27 @@ export default async function handler(req, res) {
         .limit(1);
       if (existing && existing.length > 0) { stats.skipped_duplicates++; continue; }
 
+      const clean = val => (val === '' || val === undefined) ? null : val;
       toInsert.push({
         agent_id:              agentId,
         status:                'live',
-        customer_first_name:   contact.firstName || '',
-        customer_last_name:    contact.lastName || '',
-        customer_phone:        contact.phone || '',
-        customer_email:        contact.email || '',
+        customer_first_name:   clean(contact.firstName),
+        customer_last_name:    clean(contact.lastName),
+        customer_phone:        clean(contact.phone),
+        customer_email:        clean(contact.email),
         customer_dob:          contact.dateOfBirth || null,
-        customer_gender:       contact.gender || '',
-        customer_street:       contact.address1 || '',
-        customer_city:         contact.city || '',
-        customer_state:        contact.state || '',
-        customer_postal_code:  contact.postalCode || '',
-        product_type:          cf(contact, 'ghl_field_product_type') || '',
-        policy_number:         cf(contact, 'ghl_field_policy_number') || '',
-        carrier_name:          cf(contact, 'ghl_field_carrier') || '',
-        plan_name:             cf(contact, 'ghl_field_plan_name') || '',
+        customer_gender:       clean(contact.gender),
+        customer_street:       clean(contact.address1),
+        customer_city:         clean(contact.city),
+        customer_state:        clean(contact.state),
+        customer_postal_code:  clean(contact.postalCode),
+        product_type:          clean(cf(contact, 'ghl_field_product_type')),
+        policy_number:         clean(cf(contact, 'ghl_field_policy_number')),
+        carrier_name:          clean(cf(contact, 'ghl_field_carrier')),
+        plan_name:             clean(cf(contact, 'ghl_field_plan_name')),
         monthly_premium:       parseFloat(cf(contact, 'ghl_field_monthly_premium') || '0') || null,
-        annual_premium:        parseFloat(cf(contact, 'ghl_field_annual_premium') || '0') || null,
         effective_date:        cf(contact, 'ghl_field_effective_date') || null,
-        agent_email:           cf(contact, 'ghl_field_agent_email') || '',
+        agent_email:           clean(cf(contact, 'ghl_field_agent_email')),
         banking_institution:   null,
         routing_number:        null,
         account_number:        null,
@@ -154,6 +154,5 @@ export default async function handler(req, res) {
     }
   }
 
-  // DEBUG: stop after first batch so we can verify inserts before running full import
-  return res.status(200).json({ ...stats, sample_record: toInsert[0] || null, nextPageToken: null });
+  return res.status(200).json({ ...stats, nextPageToken });
 }
