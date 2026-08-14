@@ -2260,9 +2260,10 @@ async function runGHLImport(){
   finally { btn.disabled=false; }
 }
 async function clearImportCursor(){
-  await db.from('lb_settings').upsert({key:'ghl_import_cursor',value:null,updated_at:new Date().toISOString()});
   const msg=document.getElementById('ghl_import_msg');
-  if(msg){ msg.textContent='Import cursor cleared — ready to start fresh.'; msg.style.color='var(--muted)'; }
+  const {error}=await db.from('lb_settings').update({value:null,updated_at:new Date().toISOString()}).eq('key','ghl_import_cursor');
+  if(error){ if(msg){ msg.textContent='Failed to clear cursor: '+error.message; msg.style.color='var(--red)'; } }
+  else { if(msg){ msg.textContent='Import cursor cleared — ready to start fresh.'; msg.style.color='var(--muted)'; } }
 }
 
 function switchAdminReportType(type){
