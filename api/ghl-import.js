@@ -104,6 +104,16 @@ export default async function handler(req, res) {
       if (existing && existing.length > 0) { stats.skipped_duplicates++; continue; }
 
       const clean = val => (val === '' || val === undefined) ? null : val;
+      const mapProductType = val => {
+        if (!val) return 'Hospital Indemnity';
+        const v = val.toLowerCase();
+        if (v.includes('cancer')) return 'Cancer';
+        if (v.includes('dental') || v.includes('vision')) return 'Dental/Vision';
+        if (v.includes('heart') || v.includes('stroke')) return 'Heart Attack/Stroke';
+        if (v.includes('home health') || v.includes('home')) return 'Home Health';
+        if (v.includes('life')) return 'Life Insurance';
+        return 'Hospital Indemnity';
+      };
       const toDateString = val => {
         if (!val) return null;
         if (typeof val === 'number' || (typeof val === 'string' && /^\d{10,13}$/.test(val))) {
@@ -126,7 +136,7 @@ export default async function handler(req, res) {
         customer_city:         clean(contact.city),
         customer_state:        clean(contact.state),
         customer_postal_code:  clean(contact.postalCode),
-        product_type:          clean(cf(contact, 'ghl_field_product_type')),
+        product_type:          mapProductType(cf(contact, 'ghl_field_product_type')),
         policy_number:         clean(cf(contact, 'ghl_field_policy_number')),
         carrier_name:          clean(cf(contact, 'ghl_field_carrier')),
         plan_name:             clean(cf(contact, 'ghl_field_plan_name')),
