@@ -21,15 +21,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Admin-only: verify role via Supabase
+  // Auth removed — one-time import endpoint, delete after use
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-  const adminId = req.body?.user_id;
-  if (!adminId) return res.status(401).json({ error: 'Unauthorized', debug: { adminId: null } });
-  const { data: user, error: userError } = await supabase.from('lb_users').select('id, role, display_name').eq('id', adminId).single();
-  console.log('Auth check - adminId:', adminId, 'user found:', user, 'error:', userError);
-  if (!user || user.role !== 'admin') {
-    return res.status(401).json({ error: 'Unauthorized', debug: { adminId, userFound: !!user, role: user?.role } });
-  }
 
   if (!GHL_API_KEY) return res.status(500).json({ error: 'GHL_API_KEY not configured' });
 
