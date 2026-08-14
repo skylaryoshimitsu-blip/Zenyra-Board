@@ -55,16 +55,23 @@ const safeEmail = (val) => {
   return e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 };
 
-// Detect whether a contact is a MAPD enrollment, ancillary enrollment, or neither
-function detectContactType(cf, cfg) {
-  const hasMedicareNumber = !!cf[cfg.ghl_field_medicare_number];
-  const hasPartA          = !!cf[cfg.ghl_field_medicare_part_a];
-  const hasPartB          = !!cf[cfg.ghl_field_medicare_part_b];
-  const hasPlanCode       = !!cf[cfg.ghl_field_plan_code];
-  const hasMonthlyPremium = !!cf[cfg.ghl_field_monthly_premium];
+// Detect whether a contact is a MAPD enrollment, ancillary enrollment, or neither.
+// Checks field ID PRESENCE in customFields, not value — GHL contacts often have
+// field IDs with empty values for fields that were never filled in.
+function detectContactType(contact, cfg) {
+  const presentFieldIds = new Set((contact.customFields || []).map(f => f.id));
 
-  if (hasMedicareNumber || hasPartA || hasPartB || hasPlanCode) return 'mapd';
-  if (hasMonthlyPremium) return 'ancillary';
+  const mapdFieldIds = [
+    cfg.ghl_field_medicare_number,
+    cfg.ghl_field_medicare_part_a,
+    cfg.ghl_field_medicare_part_b,
+    cfg.ghl_field_plan_code,
+    cfg.ghl_field_app_submit_date,
+    cfg.ghl_field_sunfire_date,
+  ].filter(Boolean);
+
+  if (mapdFieldIds.some(id => presentFieldIds.has(id))) return 'mapd';
+  if (cfg.ghl_field_monthly_premium && presentFieldIds.has(cfg.ghl_field_monthly_premium)) return 'ancillary';
   return 'unknown';
 }
 
@@ -238,11 +245,7 @@ export default async function handler(req, res) {
     const lastName  = (contact.lastName  || '').trim();
     if ((!firstName && !lastName) || (firstName === 'null' && lastName === 'null')) { stats.skipped_no_name++; continue; }
 
-    // Build cf map for type detection
-    const cfValues = {};
-    (contact.customFields || []).forEach(f => { cfValues[f.id] = f.fieldValue; });
-
-    const contactType = detectContactType(cfValues, cfg);
+    const contactType = detectContactType(contact, cfg);
 
     if (contactType === 'unknown') {
       stats.skipped_non_enrollment++;
