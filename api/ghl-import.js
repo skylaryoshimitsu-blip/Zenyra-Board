@@ -63,17 +63,21 @@ export default async function handler(req, res) {
   }
 
   // Helper: resolve agent_id from custom field values
+  // Returns { agentId, hasAgentFields } — hasAgentFields=false means no agent fields present at all
   function resolveAgent(contact) {
     const cfMap = {};
     (contact.customFields || []).forEach(cf => { cfMap[cf.id] = cf.value; });
-    const agentFirst = cfg.ghl_field_agent_first_name ? cfMap[cfg.ghl_field_agent_first_name] : null;
-    const agentLast  = cfg.ghl_field_agent_last_name  ? cfMap[cfg.ghl_field_agent_last_name]  : null;
+    const firstFieldId = cfg.ghl_field_agent_first_name;
+    const lastFieldId  = cfg.ghl_field_agent_last_name;
+    const hasAgentFields = !!(firstFieldId && cfMap[firstFieldId]) || !!(lastFieldId && cfMap[lastFieldId]);
+    const agentFirst = firstFieldId ? cfMap[firstFieldId] : null;
+    const agentLast  = lastFieldId  ? cfMap[lastFieldId]  : null;
     if (agentFirst && agentLast) {
-      const fullName = `${agentFirst} ${agentLast}`.toLowerCase();
-      const match = agents.find(a => a.name.toLowerCase() === fullName);
-      if (match) return match.id;
+      const ghlName = `${agentFirst} ${agentLast}`.trim().toLowerCase();
+      const match = agents.find(a => a.name.trim().toLowerCase() === ghlName);
+      if (match) return { agentId: match.id, hasAgentFields: true };
     }
-    return null;
+    return { agentId: null, hasAgentFields };
   }
 
   // Helper: extract custom field value
@@ -90,14 +94,23 @@ export default async function handler(req, res) {
 
   for (const contact of contacts) {
     try {
-      const agentId = resolveAgent(contact);
+      // Skip contacts with no real name
+      const firstName = (contact.firstName || '').trim();
+      const lastName  = (contact.lastName  || '').trim();
+      if ((!firstName && !lastName) || (firstName === 'null' && lastName === 'null')) continue;
+
+      const { agentId, hasAgentFields } = resolveAgent(contact);
+
+      // Skip silently if no agent fields present — not an enrollment contact
+      if (!hasAgentFields) continue;
+
       if (!agentId) {
         stats.skipped_unattributed++;
         if (unattributedSamples.length < 3) {
           const cfMap = {};
           (contact.customFields || []).forEach(c => { cfMap[c.id] = c.value; });
           unattributedSamples.push({
-            contact_name: `${contact.firstName} ${contact.lastName}`,
+            contact_name: `${firstName} ${lastName}`,
             ghl_field_agent_first_name_id: cfg.ghl_field_agent_first_name,
             ghl_field_agent_last_name_id: cfg.ghl_field_agent_last_name,
             agent_first_from_cf: cfg.ghl_field_agent_first_name ? cfMap[cfg.ghl_field_agent_first_name] : '(field id not set)',
