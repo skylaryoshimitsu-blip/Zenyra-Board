@@ -23,10 +23,13 @@ export default async function handler(req, res) {
 
   // Admin-only: verify role via Supabase
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-  const userId = req.body?.user_id;
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  const { data: userRow } = await supabase.from('lb_users').select('role').eq('id', userId).single();
-  if (!userRow || userRow.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const adminId = req.body?.user_id;
+  if (!adminId) return res.status(401).json({ error: 'Unauthorized', debug: { adminId: null } });
+  const { data: user, error: userError } = await supabase.from('lb_users').select('id, role, display_name').eq('id', adminId).single();
+  console.log('Auth check - adminId:', adminId, 'user found:', user, 'error:', userError);
+  if (!user || user.role !== 'admin') {
+    return res.status(401).json({ error: 'Unauthorized', debug: { adminId, userFound: !!user, role: user?.role } });
+  }
 
   if (!GHL_API_KEY) return res.status(500).json({ error: 'GHL_API_KEY not configured' });
 
