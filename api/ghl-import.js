@@ -84,6 +84,7 @@ function buildRecord(contact, agentId, cfg) {
     account_number:        null,
     mothers_maiden_name:   null,
     carrier_status:        null,
+    ghl_contact_id:        contact.id || null,
     submitted_at: (() => {
       if (contact.dateAdded) {
         const d = new Date(contact.dateAdded);
@@ -174,8 +175,14 @@ export default async function handler(req, res) {
 
     const { agentId, hasAgentFields } = resolveAgent(contact);
 
-    // Skip if no agent fields present — not an enrollment contact
-    if (!hasAgentFields) { stats.skipped_non_enrollment++; continue; }
+    // Skip if no agent fields AND no premium — truly empty non-enrollment contact
+    if (!hasAgentFields) {
+      const cfRaw = {};
+      (contact.customFields || []).forEach(f => { cfRaw[f.id] = f.fieldValue; });
+      const premium = parseFloat(cfg.ghl_field_monthly_premium && cfRaw[cfg.ghl_field_monthly_premium]) || 0;
+      if (!premium || premium <= 0) { stats.skipped_non_enrollment++; continue; }
+      // Has premium but no agent — fall through and import with null agent_id
+    }
 
     if (!agentId) {
       stats.skipped_unattributed++;
@@ -191,16 +198,15 @@ export default async function handler(req, res) {
       continue;
     }
 
-    // Duplicate check: same first+last+phone+agent_id
-    const { data: existing } = await supabase
-      .from('lb_submissions')
-      .select('id')
-      .eq('customer_first_name', firstName)
-      .eq('customer_last_name',  lastName)
-      .eq('customer_phone',      contact.phone || '')
-      .eq('agent_id',            agentId)
-      .limit(1);
-    if (existing && existing.length > 0) { stats.skipped_duplicates++; continue; }
+    // Duplicate check: skip only if this exact GHL contact ID already imported
+    if (contact.id) {
+      const { data: existing } = await supabase
+        .from('lb_submissions')
+        .select('id')
+        .eq('ghl_contact_id', contact.id)
+        .single();
+      if (existing) { stats.skipped_duplicates++; continue; }
+    }
 
     let record;
     try {
