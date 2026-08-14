@@ -237,11 +237,11 @@ export default async function handler(req, res) {
   }
 
   // Persist cursor — save next position or clear on completion
-  await supabase.from('lb_settings').upsert({
-    key: 'ghl_import_cursor',
-    value: nextPageToken || null,
-    updated_at: new Date().toISOString(),
-  });
+  console.log('Upserting cursor:', nextPageToken, 'SUPABASE_URL set:', !!SUPABASE_URL, 'SERVICE_KEY set:', !!SUPABASE_SERVICE_KEY);
+  const { error: cursorErr } = await supabase
+    .from('lb_settings')
+    .upsert({ key: 'ghl_import_cursor', value: nextPageToken || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+  console.log('Cursor upsert result:', cursorErr ? cursorErr.message : 'ok');
 
-  return res.status(200).json({ ...stats, unattributedSamples, errorSamples, nextPageToken });
+  return res.status(200).json({ ...stats, unattributedSamples, errorSamples, nextPageToken, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
 }
