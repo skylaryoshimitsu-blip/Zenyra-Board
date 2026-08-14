@@ -104,6 +104,15 @@ export default async function handler(req, res) {
       if (existing && existing.length > 0) { stats.skipped_duplicates++; continue; }
 
       const clean = val => (val === '' || val === undefined) ? null : val;
+      const toDateString = val => {
+        if (!val) return null;
+        if (typeof val === 'number' || (typeof val === 'string' && /^\d{10,13}$/.test(val))) {
+          const ms = typeof val === 'number' ? val : parseInt(val);
+          return new Date(ms > 9999999999 ? ms : ms * 1000).toISOString().split('T')[0];
+        }
+        if (typeof val === 'string' && val.includes('-')) return val.split('T')[0];
+        return null;
+      };
       toInsert.push({
         agent_id:              agentId,
         status:                'live',
@@ -111,7 +120,7 @@ export default async function handler(req, res) {
         customer_last_name:    clean(contact.lastName),
         customer_phone:        clean(contact.phone),
         customer_email:        clean(contact.email),
-        customer_dob:          contact.dateOfBirth || null,
+        customer_dob:          toDateString(contact.dateOfBirth),
         customer_gender:       clean(contact.gender),
         customer_street:       clean(contact.address1),
         customer_city:         clean(contact.city),
@@ -122,7 +131,7 @@ export default async function handler(req, res) {
         carrier_name:          clean(cf(contact, 'ghl_field_carrier')),
         plan_name:             clean(cf(contact, 'ghl_field_plan_name')),
         monthly_premium:       parseFloat(cf(contact, 'ghl_field_monthly_premium') || '0') || null,
-        effective_date:        cf(contact, 'ghl_field_effective_date') || null,
+        effective_date:        toDateString(cf(contact, 'ghl_field_effective_date')),
         agent_email:           clean(cf(contact, 'ghl_field_agent_email')),
         banking_institution:   null,
         routing_number:        null,
