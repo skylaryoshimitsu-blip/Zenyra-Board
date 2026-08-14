@@ -86,11 +86,27 @@ export default async function handler(req, res) {
 
   const stats = { batchNum, fetched: contacts.length, imported: 0, skipped_duplicates: 0, skipped_unattributed: 0, errors: 0 };
   const toInsert = [];
+  const unattributedSamples = [];
 
   for (const contact of contacts) {
     try {
       const agentId = resolveAgent(contact);
-      if (!agentId) { stats.skipped_unattributed++; continue; }
+      if (!agentId) {
+        stats.skipped_unattributed++;
+        if (unattributedSamples.length < 3) {
+          const cfMap = {};
+          (contact.customFields || []).forEach(c => { cfMap[c.id] = c.value; });
+          unattributedSamples.push({
+            contact_name: `${contact.firstName} ${contact.lastName}`,
+            ghl_field_agent_first_name_id: cfg.ghl_field_agent_first_name,
+            ghl_field_agent_last_name_id: cfg.ghl_field_agent_last_name,
+            agent_first_from_cf: cfg.ghl_field_agent_first_name ? cfMap[cfg.ghl_field_agent_first_name] : '(field id not set)',
+            agent_last_from_cf: cfg.ghl_field_agent_last_name ? cfMap[cfg.ghl_field_agent_last_name] : '(field id not set)',
+            all_custom_field_ids: Object.keys(cfMap),
+          });
+        }
+        continue;
+      }
 
       // Duplicate check: same first+last+phone+agent_id
       const { data: existing } = await supabase
@@ -173,5 +189,5 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ ...stats, nextPageToken });
+  return res.status(200).json({ ...stats, unattributedSamples, knownAgents: agents.map(a => a.name), nextPageToken });
 }
