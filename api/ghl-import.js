@@ -183,21 +183,29 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // Auth removed — one-time import endpoint, delete after use
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  // persistSession: false prevents any cross-request state caching
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
 
   if (!GHL_API_KEY) return res.status(500).json({ error: 'GHL_API_KEY not configured' });
 
   const { pageToken: bodyPageToken = null, batchNum = 1 } = req.body || {};
 
-  // Load GHL settings (includes cursor)
+  // Load GHL settings
   const { data: settings } = await supabase.from('lb_settings').select('key, value').like('key', 'ghl_%');
   const cfg = {};
   (settings || []).forEach(s => { cfg[s.key] = s.value; });
   const locationId = cfg.ghl_location_id || 'j9qoEVXyaE55rXmQ7kLg';
 
-  // Resume from stored cursor if no pageToken passed in request body
-  console.log('Cursor in lb_settings:', JSON.stringify(cfg.ghl_import_cursor), 'bodyPageToken:', JSON.stringify(bodyPageToken));
-  const pageToken = bodyPageToken || cfg.ghl_import_cursor || null;
+  // Read cursor fresh via dedicated query to avoid any bulk-query caching
+  const { data: cursorRow } = await supabase
+    .from('lb_settings')
+    .select('value')
+    .eq('key', 'ghl_import_cursor')
+    .single();
+  const storedCursor = cursorRow?.value || null;
+
+  console.log('Cursor from dedicated read:', JSON.stringify(storedCursor), 'bodyPageToken:', JSON.stringify(bodyPageToken));
+  const pageToken = bodyPageToken || storedCursor;
   console.log('Effective pageToken:', JSON.stringify(pageToken));
 
   // Load all lb_agents for matching
@@ -348,5 +356,5 @@ export default async function handler(req, res) {
     .upsert({ key: 'ghl_import_cursor', value: nextPageToken || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
   console.log('Cursor upsert result:', cursorErr ? cursorErr.message : 'ok');
 
-  return res.status(200).json({ ...stats, unattributedSamples, nonEnrollmentSamples, errorSamples, nextPageToken, cursor_read_value: cfg.ghl_import_cursor || null, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
+  return res.status(200).json({ ...stats, unattributedSamples, nonEnrollmentSamples, errorSamples, nextPageToken, cursor_read_value: storedCursor, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
 }
