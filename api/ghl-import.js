@@ -136,14 +136,24 @@ export default async function handler(req, res) {
   }
 
   if (toInsert.length > 0) {
-    const { error: insertErr } = await supabase.from('lb_submissions').insert(toInsert);
+    const { data: insertData, error: insertErr } = await supabase.from('lb_submissions').insert(toInsert);
     if (insertErr) {
-      console.error('Batch insert error:', insertErr);
-      stats.errors += toInsert.length;
+      console.error('Insert error:', JSON.stringify(insertErr));
+      return res.status(200).json({
+        batchNum,
+        fetched: contacts.length,
+        imported: 0,
+        insert_error: insertErr.message,
+        insert_error_detail: insertErr.details,
+        insert_error_hint: insertErr.hint,
+        sample_record: toInsert[0],
+        nextPageToken: null,
+      });
     } else {
       stats.imported += toInsert.length;
     }
   }
 
-  return res.status(200).json({ ...stats, nextPageToken });
+  // DEBUG: stop after first batch so we can verify inserts before running full import
+  return res.status(200).json({ ...stats, sample_record: toInsert[0] || null, nextPageToken: null });
 }
