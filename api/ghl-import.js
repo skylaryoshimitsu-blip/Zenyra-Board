@@ -183,24 +183,31 @@ export default async function handler(req, res) {
     }
   }
 
-  if (toInsert.length > 0) {
-    const { data: insertData, error: insertErr } = await supabase.from('lb_submissions').insert(toInsert);
+  const errorSamples = [];
+  for (const record of toInsert) {
+    const { error: insertErr } = await supabase.from('lb_submissions').insert(record);
     if (insertErr) {
       console.error('Insert error:', JSON.stringify(insertErr));
-      return res.status(200).json({
-        batchNum,
-        fetched: contacts.length,
-        imported: 0,
-        insert_error: insertErr.message,
-        insert_error_detail: insertErr.details,
-        insert_error_hint: insertErr.hint,
-        sample_record: toInsert[0],
-        nextPageToken: null,
-      });
+      stats.errors++;
+      if (errorSamples.length < 3) {
+        errorSamples.push({
+          error: insertErr.message,
+          error_detail: insertErr.details,
+          error_hint: insertErr.hint,
+          record_sample: {
+            agent_id: record.agent_id,
+            product_type: record.product_type,
+            effective_date: record.effective_date,
+            customer_dob: record.customer_dob,
+            monthly_premium: record.monthly_premium,
+            carrier_name: record.carrier_name,
+          },
+        });
+      }
     } else {
-      stats.imported += toInsert.length;
+      stats.imported++;
     }
   }
 
-  return res.status(200).json({ ...stats, unattributedSamples, knownAgents: agents.map(a => a.name), nextPageToken });
+  return res.status(200).json({ ...stats, unattributedSamples, errorSamples, knownAgents: agents.map(a => a.name), nextPageToken });
 }
