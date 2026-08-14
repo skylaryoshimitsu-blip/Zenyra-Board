@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     ghl_field_agent_email:       submission.agent_email,
     ghl_field_agent_first_name:  submission.agent_first_name,
     ghl_field_agent_last_name:   submission.agent_last_name,
-    ghl_field_product_type:      submission.product_type,
+    // ghl_field_product_type removed — GHL dropdown requires exact option match
     ghl_field_carrier:           submission.carrier_name,
     ghl_field_plan_name:         submission.plan_name,
     ghl_field_annual_premium:    String(submission.annual_premium || ''),
@@ -53,7 +53,10 @@ export default async function handler(req, res) {
 
   Object.entries(fieldMap).forEach(([settingKey, value]) => {
     const fieldId = cfg[settingKey];
-    if (fieldId && value) customFields.push({ id: fieldId, value });
+    if (fieldId && value !== null && value !== undefined && value !== '') {
+      const cleanValue = typeof value === 'string' ? value : String(value);
+      customFields.push({ id: fieldId, value: cleanValue });
+    }
   });
 
   const contactPayload = {
