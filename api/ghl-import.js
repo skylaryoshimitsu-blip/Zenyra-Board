@@ -196,7 +196,9 @@ export default async function handler(req, res) {
   const locationId = cfg.ghl_location_id || 'j9qoEVXyaE55rXmQ7kLg';
 
   // Resume from stored cursor if no pageToken passed in request body
+  console.log('Cursor in lb_settings:', JSON.stringify(cfg.ghl_import_cursor), 'bodyPageToken:', JSON.stringify(bodyPageToken));
   const pageToken = bodyPageToken || cfg.ghl_import_cursor || null;
+  console.log('Effective pageToken:', JSON.stringify(pageToken));
 
   // Load all lb_agents for matching
   const { data: agentRows } = await supabase.from('lb_agents').select('id, name').eq('active', true);
@@ -346,5 +348,5 @@ export default async function handler(req, res) {
     .upsert({ key: 'ghl_import_cursor', value: nextPageToken || null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
   console.log('Cursor upsert result:', cursorErr ? cursorErr.message : 'ok');
 
-  return res.status(200).json({ ...stats, unattributedSamples, nonEnrollmentSamples, errorSamples, nextPageToken, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
+  return res.status(200).json({ ...stats, unattributedSamples, nonEnrollmentSamples, errorSamples, nextPageToken, cursor_read_value: cfg.ghl_import_cursor || null, cursor_saved: !cursorErr, cursor_error: cursorErr?.message || null });
 }
