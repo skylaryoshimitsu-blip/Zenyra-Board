@@ -86,13 +86,15 @@ export default async function handler(req, res) {
 
     const ghlData = await ghlRes.json();
 
+    console.log('GHL Response Status:', ghlRes.status);
+    console.log('GHL Response Body:', JSON.stringify(ghlData));
+
     if (!ghlRes.ok) {
-      console.error('GHL push failed:', ghlData);
       // Return 200 — GHL failure must never block a Zenyra submission
-      return res.status(200).json({ ok: false, ghl_error: ghlData });
+      return res.status(200).json({ ok: false, ghl_status: ghlRes.status, ghl_error: ghlData });
     }
 
-    return res.status(200).json({ ok: true, ghl_contact_id: ghlData.contact?.id });
+    return res.status(200).json({ ok: true, ghl_status: ghlRes.status, ghl_contact_id: ghlData.contact?.id, ghl_contact_location: ghlData.contact?.locationId, ghl_response: ghlData });
   } catch (err) {
     console.error('GHL push error:', err);
     // Non-blocking — always return 200
