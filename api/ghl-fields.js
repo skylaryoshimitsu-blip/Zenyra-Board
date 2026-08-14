@@ -38,6 +38,14 @@ export default async function handler(req, res) {
       { key: 'ghl_field_monthly_premium',  keywords: ['monthly premium', 'monthly_premium', 'ancillary product monthly'] },
       { key: 'ghl_field_effective_date',   keywords: ['effective date', 'effective_date'] },
       { key: 'ghl_field_policy_number',    keywords: ['policy number', 'policy_number'] },
+      { key: 'ghl_field_medicare_number',  keywords: ['medicare number', 'medicare_number', 'medicare id'] },
+      { key: 'ghl_field_medicare_part_a',  keywords: ['part a', 'part_a', 'medicare part a'] },
+      { key: 'ghl_field_medicare_part_b',  keywords: ['part b', 'part_b', 'medicare part b'] },
+      { key: 'ghl_field_sunfire_date',     keywords: ['sunfire', 'confirmation date', 'sunfire_confirm'] },
+      { key: 'ghl_field_plan_code',        keywords: ['plan code', 'plan_code'] },
+      { key: 'ghl_field_on_medicaid',      keywords: ['medicaid', 'on medicaid', 'is_medicaid'] },
+      { key: 'ghl_field_medicaid_number',  keywords: ['medicaid number', 'medicaid_number', 'medicaid id'] },
+      { key: 'ghl_field_app_submit_date',  keywords: ['app submit', 'application submit', 'submit date'] },
     ];
 
     const results = {};
