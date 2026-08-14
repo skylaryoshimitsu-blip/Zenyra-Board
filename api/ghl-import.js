@@ -97,13 +97,16 @@ export default async function handler(req, res) {
 
   if (!GHL_API_KEY) return res.status(500).json({ error: 'GHL_API_KEY not configured' });
 
-  const { pageToken = null, batchNum = 1 } = req.body || {};
+  const { pageToken: bodyPageToken = null, batchNum = 1 } = req.body || {};
 
-  // Load GHL settings
+  // Load GHL settings (includes cursor)
   const { data: settings } = await supabase.from('lb_settings').select('key, value').like('key', 'ghl_%');
   const cfg = {};
   (settings || []).forEach(s => { cfg[s.key] = s.value; });
   const locationId = cfg.ghl_location_id || 'j9qoEVXyaE55rXmQ7kLg';
+
+  // Resume from stored cursor if no pageToken passed in request body
+  const pageToken = bodyPageToken || cfg.ghl_import_cursor || null;
 
   // Load all lb_agents for matching
   const { data: agentRows } = await supabase.from('lb_agents').select('id, name').eq('active', true);
@@ -222,6 +225,13 @@ export default async function handler(req, res) {
 
     stats.imported++;
   }
+
+  // Persist cursor — save next position or clear on completion
+  await supabase.from('lb_settings').upsert({
+    key: 'ghl_import_cursor',
+    value: nextPageToken || null,
+    updated_at: new Date().toISOString(),
+  });
 
   return res.status(200).json({ ...stats, unattributedSamples, errorSamples, nextPageToken });
 }
