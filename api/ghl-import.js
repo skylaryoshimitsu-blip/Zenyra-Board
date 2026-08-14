@@ -56,9 +56,23 @@ const safeEmail = (val) => {
 };
 
 // Detect whether a contact is a MAPD enrollment, ancillary enrollment, or neither.
-// Checks field ID PRESENCE in customFields, not value — GHL contacts often have
-// field IDs with empty values for fields that were never filled in.
+// Import ALL contacts with a real name and any custom fields — only skip obvious non-persons.
 function detectContactType(contact, cfg) {
+  const firstName = (contact.firstName || '').trim().toLowerCase();
+  const lastName  = (contact.lastName  || '').trim().toLowerCase();
+
+  if (!firstName && !lastName) return 'unknown';
+  if (firstName === 'null' || lastName === 'null') return 'unknown';
+
+  const nonPersonKeywords = [
+    'aetna', 'humana', 'uhc', 'unitedhealthcare', 'united health',
+    'care plus', 'careplus', 'test', 'medicare', 'medicaid',
+    'insurance', 'agency', 'health plan', 'blue cross', 'cigna',
+    'molina', 'centene', 'wellcare', 'bcbs', 'anthem',
+  ];
+  const fullName = `${firstName} ${lastName}`;
+  if (nonPersonKeywords.some(kw => fullName.includes(kw))) return 'unknown';
+
   const presentFieldIds = new Set((contact.customFields || []).map(f => f.id));
 
   const mapdFieldIds = [
@@ -68,10 +82,16 @@ function detectContactType(contact, cfg) {
     cfg.ghl_field_plan_code,
     cfg.ghl_field_app_submit_date,
     cfg.ghl_field_sunfire_date,
+    cfg.ghl_field_on_medicaid,
+    cfg.ghl_field_medicaid_number,
   ].filter(Boolean);
 
   if (mapdFieldIds.some(id => presentFieldIds.has(id))) return 'mapd';
   if (cfg.ghl_field_monthly_premium && presentFieldIds.has(cfg.ghl_field_monthly_premium)) return 'ancillary';
+
+  // Default — historical data is predominantly MAPD before the switch to ancillary
+  if (presentFieldIds.size > 0) return 'mapd';
+
   return 'unknown';
 }
 
