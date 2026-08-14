@@ -162,7 +162,7 @@ export default async function handler(req, res) {
     return { agentId: null, hasAgentFields };
   }
 
-  const stats = { batchNum, fetched: contacts.length, imported: 0, skipped_duplicates: 0, skipped_unattributed: 0, errors: 0 };
+  const stats = { batchNum, fetched: contacts.length, imported: 0, skipped_duplicates: 0, skipped_unattributed: 0, skipped_no_name: 0, skipped_non_enrollment: 0, errors: 0 };
   const unattributedSamples = [];
   const errorSamples = [];
 
@@ -170,12 +170,12 @@ export default async function handler(req, res) {
     // Skip contacts with no real name
     const firstName = (contact.firstName || '').trim();
     const lastName  = (contact.lastName  || '').trim();
-    if ((!firstName && !lastName) || (firstName === 'null' && lastName === 'null')) continue;
+    if ((!firstName && !lastName) || (firstName === 'null' && lastName === 'null')) { stats.skipped_no_name++; continue; }
 
     const { agentId, hasAgentFields } = resolveAgent(contact);
 
-    // Skip silently if no agent fields present — not an enrollment contact
-    if (!hasAgentFields) continue;
+    // Skip if no agent fields present — not an enrollment contact
+    if (!hasAgentFields) { stats.skipped_non_enrollment++; continue; }
 
     if (!agentId) {
       stats.skipped_unattributed++;
