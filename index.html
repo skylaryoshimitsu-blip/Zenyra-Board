@@ -689,6 +689,23 @@ tbody td:not(:first-child){text-align:right;}
         <div class="field-sm"><label>Carrier Name</label><select id="f_carrier" onchange="toggleHeartlandFields()"><option value="">Select carrier...</option><option>American Home Life</option><option>United National Life</option><option>Manhattan Life</option><option>Heartland</option></select></div>
         <div class="field-sm"><label>Plan Name</label><select id="f_planName"><option value="">Select plan...</option><option>Cancer Shield 2.0</option><option>Home Healthcare</option><option>Dental Shield 2.0</option><option>Hospital Indemnity Shield</option><option>Guaranteed Issue Hospital Indemnity Shield</option><option>Caregiver Shield</option></select></div>
         <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="f_monthlyPremium" step="0.01" min="0"/></div>
+        <div class="field-sm">
+          <label>Billing Type</label>
+          <select id="f_billingType" onchange="toggleSSABilling()">
+            <option value="specific_day">Specific Day of Month</option>
+            <option value="ssa_wednesday">Social Security Billing (Wednesday)</option>
+          </select>
+        </div>
+        <div class="field-sm" id="f_ssaWednesdayWrap" style="display:none;">
+          <label>Which Wednesday</label>
+          <select id="f_ssaWednesdayOption">
+            <option value="">Select...</option>
+            <option value="1st">1st Wednesday</option>
+            <option value="2nd">2nd Wednesday</option>
+            <option value="3rd">3rd Wednesday</option>
+            <option value="4th">4th Wednesday</option>
+          </select>
+        </div>
         <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="f_draftDay" min="1" max="31"/></div>
         <div class="field-sm"><label>Effective Date</label><input type="date" id="f_effectiveDate"/></div>
         <div class="field-sm"><label>Draft Date</label><input type="date" id="f_draftDate"/></div>
@@ -1385,6 +1402,54 @@ tbody td:not(:first-child){text-align:right;}
   </div>
 </div>
 
+<!-- AGENT/SOLO EDIT OWN SUBMISSION MODAL -->
+<div class="modal-overlay" id="agentEditSubModal">
+  <div class="modal-box">
+    <div class="modal-title">Edit My Submission</div>
+    <input type="hidden" id="ae_editSubId"/>
+    <div class="form-grid">
+      <div class="field-sm"><label>Customer First Name</label><input type="text" id="ae_cFirstName"/></div>
+      <div class="field-sm"><label>Customer Last Name</label><input type="text" id="ae_cLastName"/></div>
+      <div class="field-sm"><label>Product Type</label>
+        <select id="ae_productType"><option value="">Select...</option><option>Cancer</option><option>Dental/Vision</option><option>Heart Attack/Stroke</option><option>Home Health</option><option>Hospital Indemnity</option><option>Life Insurance</option></select>
+      </div>
+      <div class="field-sm"><label>Carrier</label><input type="text" id="ae_carrier"/></div>
+      <div class="field-sm"><label>Plan Name</label><input type="text" id="ae_planName"/></div>
+      <div class="field-sm"><label>Monthly Premium ($)</label><input type="number" id="ae_monthlyPremium" step="0.01"/></div>
+      <div class="field-sm"><label>Policy Number</label><input type="text" id="ae_policyNum"/></div>
+      <div class="field-sm">
+        <label>Billing Type</label>
+        <select id="ae_billingType" onchange="toggleSSABillingEdit()">
+          <option value="specific_day">Specific Day of Month</option>
+          <option value="ssa_wednesday">Social Security Billing (Wednesday)</option>
+        </select>
+      </div>
+      <div class="field-sm" id="ae_ssaWednesdayWrap" style="display:none;">
+        <label>Which Wednesday</label>
+        <select id="ae_ssaWednesdayOption">
+          <option value="">Select...</option>
+          <option value="1st">1st Wednesday</option>
+          <option value="2nd">2nd Wednesday</option>
+          <option value="3rd">3rd Wednesday</option>
+          <option value="4th">4th Wednesday</option>
+        </select>
+      </div>
+      <div class="field-sm"><label>Recurring Draft Day</label><input type="number" id="ae_draftDay" min="1" max="31"/></div>
+      <div class="field-sm"><label>Effective Date</label><input type="date" id="ae_effectiveDate"/></div>
+      <div class="field-sm"><label>Draft Date</label><input type="date" id="ae_draftDate"/></div>
+      <div class="field-sm"><label>Agent NPN</label><input type="text" id="ae_aNPN"/></div>
+      <div class="field-sm"><label>PCP Name</label><input type="text" id="ae_pcp"/></div>
+    </div>
+    <div class="form-grid full" style="margin-top:12px;">
+      <div class="field-sm"><label>Medications</label><textarea id="ae_medications" style="min-height:50px;"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveAgentSubEdit()">Save Changes</button>
+      <button class="btn-modal-cancel" onclick="closeModal('agentEditSubModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT DIALER LOG MODAL -->
 <div class="modal-overlay" id="editDialerModal">
   <div class="modal-box">
@@ -1954,17 +2019,20 @@ function getMyFilter(){
   else if(range==='custom'){ from=document.getElementById('my_from').value?new Date(document.getElementById('my_from').value).toISOString():null; to=document.getElementById('my_to').value?new Date(document.getElementById('my_to').value+'T23:59:59').toISOString():null; }
   return{from,to,product};
 }
+let myLoadedSubs=[];
 async function loadMySubmissions(){
   if(!currentUser?.agent_id)return;
   const filter=getMyFilter();
   const subs=await fetchMySubmissions(currentUser.agent_id,filter);
+  myLoadedSubs=subs;
   const totalMP=subs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
   const totalAP=subs.reduce((s,r)=>s+Number(r.annual_premium||0),0);
   const statBox=(val,lbl,color='var(--white)')=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${color};">${val}</div><div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px;">${lbl}</div></div>`;
   document.getElementById('my_summary').innerHTML=statBox(subs.length,'Submissions')+statBox(fmt$2(totalMP),'Total Monthly Premium','var(--teal)')+statBox(fmt$(totalAP),'Total Annual Premium','var(--teal)')+statBox(fmt$2(estComm(totalAP)),'Est. Commission','var(--green)');
   const tblEl=document.getElementById('my_subs_table');
   if(!subs.length){ tblEl.innerHTML='<div class="no-data">No submissions found.</div>'; return; }
-  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+  const canEditSub=currentUser?.role==='agent'||currentUser?.role==='solo';
+  tblEl.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Plan</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th><th>Effective</th>${canEditSub?'<th>Actions</th>':''}</tr></thead><tbody>${subs.map(s=>`<tr onclick="openBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_phone||''}</div></td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="font-size:12px;">${s.plan_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td><td style="font-size:12px;">${s.effective_date||'—'}</td>${canEditSub?`<td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="event.stopPropagation();openAgentEditSub('${s.id}')">Edit</button></td>`:''}</tr>`).join('')}</tbody></table>`;
 }
 
 // ── SOLO MY DASHBOARD + AGENT SCORER ─────────────────────────────────────
@@ -2166,6 +2234,55 @@ async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))retur
 function openEditSub(s){ document.getElementById('editSubId').value=s.id; document.getElementById('es_cFirstName').value=s.customer_first_name||''; document.getElementById('es_cLastName').value=s.customer_last_name||''; document.getElementById('es_productType').value=s.product_type||''; document.getElementById('es_carrier').value=s.carrier_name||''; document.getElementById('es_planName').value=s.plan_name||''; document.getElementById('es_monthlyPremium').value=s.monthly_premium||''; document.getElementById('es_policyNum').value=s.policy_number||''; document.getElementById('es_effectiveDate').value=s.effective_date||''; document.getElementById('es_aNPN').value=s.agent_npn||''; document.getElementById('es_pcp').value=s.pcp_name||''; document.getElementById('es_medications').value=s.medications||''; openModal('editSubModal'); }
 async function saveSubEdit(){ const id=document.getElementById('editSubId').value; const mp=parseFloat(document.getElementById('es_monthlyPremium').value); const {error}=await db.from('lb_submissions').update({customer_first_name:document.getElementById('es_cFirstName').value,customer_last_name:document.getElementById('es_cLastName').value,product_type:document.getElementById('es_productType').value,carrier_name:document.getElementById('es_carrier').value,plan_name:document.getElementById('es_planName').value,monthly_premium:mp||null,policy_number:document.getElementById('es_policyNum').value,effective_date:document.getElementById('es_effectiveDate').value||null,agent_npn:document.getElementById('es_aNPN').value,pcp_name:document.getElementById('es_pcp').value,medications:document.getElementById('es_medications').value}).eq('id',id); if(error){alert('Save failed: '+error.message);return;} closeModal('editSubModal'); renderAdminSubmissions(); renderAdminBoard(); }
 async function deleteSubmission(id){ if(!confirm('Delete this submission?'))return; await db.from('lb_submissions').update({status:'deleted'}).eq('id',id); renderAdminSubmissions(); renderAdminBoard(); }
+
+function openAgentEditSub(id){
+  const s=myLoadedSubs.find(r=>r.id===id);
+  if(!s)return;
+  document.getElementById('ae_editSubId').value=s.id;
+  document.getElementById('ae_cFirstName').value=s.customer_first_name||'';
+  document.getElementById('ae_cLastName').value=s.customer_last_name||'';
+  document.getElementById('ae_productType').value=s.product_type||'';
+  document.getElementById('ae_carrier').value=s.carrier_name||'';
+  document.getElementById('ae_planName').value=s.plan_name||'';
+  document.getElementById('ae_monthlyPremium').value=s.monthly_premium||'';
+  document.getElementById('ae_policyNum').value=s.policy_number||'';
+  document.getElementById('ae_billingType').value=s.billing_type||'specific_day';
+  document.getElementById('ae_ssaWednesdayOption').value=s.ssa_wednesday_option||'';
+  document.getElementById('ae_draftDay').value=s.recurring_draft_day||'';
+  document.getElementById('ae_effectiveDate').value=s.effective_date||'';
+  document.getElementById('ae_draftDate').value=s.draft_date||'';
+  document.getElementById('ae_aNPN').value=s.agent_npn||'';
+  document.getElementById('ae_pcp').value=s.pcp_name||'';
+  document.getElementById('ae_medications').value=s.medications||'';
+  toggleSSABillingEdit();
+  openModal('agentEditSubModal');
+}
+async function saveAgentSubEdit(){
+  const id=document.getElementById('ae_editSubId').value;
+  const billingType=document.getElementById('ae_billingType').value;
+  if(billingType==='ssa_wednesday'&&!document.getElementById('ae_ssaWednesdayOption').value){alert('Please select which Wednesday for Social Security billing.');return;}
+  const mp=parseFloat(document.getElementById('ae_monthlyPremium').value);
+  const {error}=await db.from('lb_submissions').update({
+    customer_first_name:document.getElementById('ae_cFirstName').value,
+    customer_last_name:document.getElementById('ae_cLastName').value,
+    product_type:document.getElementById('ae_productType').value,
+    carrier_name:document.getElementById('ae_carrier').value,
+    plan_name:document.getElementById('ae_planName').value,
+    monthly_premium:mp||null,
+    policy_number:document.getElementById('ae_policyNum').value,
+    billing_type:billingType,
+    ssa_wednesday_option:billingType==='ssa_wednesday'?document.getElementById('ae_ssaWednesdayOption').value:null,
+    recurring_draft_day:billingType==='ssa_wednesday'?null:(parseInt(document.getElementById('ae_draftDay').value)||null),
+    effective_date:document.getElementById('ae_effectiveDate').value||null,
+    draft_date:billingType==='ssa_wednesday'?null:(document.getElementById('ae_draftDate').value||null),
+    agent_npn:document.getElementById('ae_aNPN').value,
+    pcp_name:document.getElementById('ae_pcp').value,
+    medications:document.getElementById('ae_medications').value,
+  }).eq('id',id).eq('agent_id',currentUser.agent_id);
+  if(error){alert('Save failed: '+error.message);return;}
+  closeModal('agentEditSubModal');
+  loadMySubmissions();
+}
 
 async function renderAgentManagement(){ const {data:agents}=await db.from('lb_agents').select('*').order('name'); const {data:emailRows}=await db.from('lb_submissions').select('agent_id,agent_email,submitted_at').not('agent_email','is',null).neq('agent_email','').order('submitted_at',{ascending:false}); const emailMap={}; (emailRows||[]).forEach(r=>{ if(r.agent_id&&!emailMap[r.agent_id]) emailMap[r.agent_id]=r.agent_email; }); const cont=document.getElementById('admin-agents-content'); if(!agents?.length){cont.innerHTML='<div class="no-data">No agents found.</div>';return;} cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td style="font-size:12px;color:var(--body);">${emailMap[a.id]||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`; }
 function openAgentModal(agent){ document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent'; document.getElementById('agentModalId').value=agent?.id||''; document.getElementById('am_name').value=agent?.name||''; document.getElementById('am_phone').value=agent?.phone||''; document.getElementById('am_dailyGoal').value=agent?.daily_goal||1600; document.getElementById('am_monthlyGoal').value=agent?.monthly_goal||160000; openModal('agentModal'); }
@@ -2388,7 +2505,7 @@ function renderProductBreakdown(ancSubs,mapdSubs){
 
 function toggleFabChooser(){ document.getElementById('fabChooser').classList.toggle('open'); }
 
-function showSubmitForm(type){ document.getElementById('fabChooser').classList.remove('open'); if(type==='mapd'){ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('submit-mapd-screen'); } else { document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); } }
+function showSubmitForm(type){ document.getElementById('fabChooser').classList.remove('open'); if(type==='mapd'){ document.getElementById('submitMAPDSuccess').style.display='none'; showScreen('submit-mapd-screen'); } else { document.getElementById('submitSuccess').style.display='none'; showScreen('submit-screen'); toggleSSABilling(); } }
 function cancelSubmit(){ showScreen('agent-dashboard'); }
 function toggleMedicaidField(){ document.getElementById('m_medicaidNumWrap').style.display=document.getElementById('m_onMedicaid').checked?'block':'none'; }
 function toggleHeartlandFields(){
@@ -2397,9 +2514,42 @@ function toggleHeartlandFields(){
     const el=document.getElementById(id); if(el) el.required=isHeartland;
   });
 }
+function toggleSSABilling(){
+  const billingType=document.getElementById('f_billingType').value;
+  const ssaWrap=document.getElementById('f_ssaWednesdayWrap');
+  const draftDayInput=document.getElementById('f_draftDay');
+  const draftDateInput=document.getElementById('f_draftDate');
+  if(billingType==='ssa_wednesday'){
+    ssaWrap.style.display='block';
+    draftDayInput.disabled=true; draftDayInput.style.opacity='0.4'; draftDayInput.value='';
+    draftDateInput.disabled=true; draftDateInput.style.opacity='0.4'; draftDateInput.value='';
+  } else {
+    ssaWrap.style.display='none';
+    draftDayInput.disabled=false; draftDayInput.style.opacity='1';
+    draftDateInput.disabled=false; draftDateInput.style.opacity='1';
+    document.getElementById('f_ssaWednesdayOption').value='';
+  }
+}
+function toggleSSABillingEdit(){
+  const billingType=document.getElementById('ae_billingType').value;
+  const ssaWrap=document.getElementById('ae_ssaWednesdayWrap');
+  const draftDayInput=document.getElementById('ae_draftDay');
+  const draftDateInput=document.getElementById('ae_draftDate');
+  if(billingType==='ssa_wednesday'){
+    ssaWrap.style.display='block';
+    draftDayInput.disabled=true; draftDayInput.style.opacity='0.4'; draftDayInput.value='';
+    draftDateInput.disabled=true; draftDateInput.style.opacity='0.4'; draftDateInput.value='';
+  } else {
+    ssaWrap.style.display='none';
+    draftDayInput.disabled=false; draftDayInput.style.opacity='1';
+    draftDateInput.disabled=false; draftDateInput.style.opacity='1';
+    document.getElementById('ae_ssaWednesdayOption').value='';
+  }
+}
 
 // ── submitSale — with agent email validation ───────────────────────────────
 async function submitSale(){
+  const billingType=document.getElementById('f_billingType').value;
   const fields=[
     {id:'f_cFirstName',label:'Customer First Name'},
     {id:'f_cLastName',label:'Customer Last Name'},
@@ -2415,9 +2565,8 @@ async function submitSale(){
     {id:'f_carrier',label:'Carrier Name'},
     {id:'f_planName',label:'Plan Name'},
     {id:'f_monthlyPremium',label:'Monthly Premium'},
-    {id:'f_draftDay',label:'Recurring Draft Day'},
+    ...(billingType==='ssa_wednesday'?[]:[{id:'f_draftDay',label:'Recurring Draft Day'},{id:'f_draftDate',label:'Draft Date'}]),
     {id:'f_effectiveDate',label:'Effective Date'},
-    {id:'f_draftDate',label:'Draft Date'},
     {id:'f_aFirstName',label:'Agent First Name'},
     {id:'f_aLastName',label:'Agent Last Name'},
     {id:'f_aEmail',label:'Agent Email'},
@@ -2427,6 +2576,7 @@ async function submitSale(){
     const el=document.getElementById(f.id);
     if(!el||!el.value||!el.value.trim()){alert(`${f.label} is required.`);el?.focus();return;}
   }
+  if(billingType==='ssa_wednesday'&&!document.getElementById('f_ssaWednesdayOption').value){alert('Please select which Wednesday for Social Security billing.');document.getElementById('f_ssaWednesdayOption').focus();return;}
   const agentEmail=document.getElementById('f_aEmail').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agentEmail)){alert('Please enter a valid agent email address.');document.getElementById('f_aEmail').focus();return;}
   if(document.getElementById('f_carrier').value==='Heartland'){
@@ -2436,13 +2586,15 @@ async function submitSale(){
   }
   const mp=parseFloat(document.getElementById('f_monthlyPremium').value);
   if(!mp||mp<=0){alert('Monthly premium must be a positive number.');document.getElementById('f_monthlyPremium').focus();return;}
-  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null,carrier_status:'awaiting_window'}:{})});
+  const {error}=await db.from('lb_submissions').insert({agent_id:currentUser?.agent_id,status:'live',customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value||null,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,recurring_draft_day:parseInt(document.getElementById('f_draftDay').value)||null,effective_date:document.getElementById('f_effectiveDate').value||null,draft_date:document.getElementById('f_draftDate').value||null,billing_type:billingType,ssa_wednesday_option:billingType==='ssa_wednesday'?document.getElementById('f_ssaWednesdayOption').value:null,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:agentEmail,agent_npn:document.getElementById('f_aNPN').value,pcp_name:document.getElementById('f_pcp').value,specialist_name:document.getElementById('f_specialist').value,medications:document.getElementById('f_medications').value,...(document.getElementById('f_carrier').value==='Heartland'?{banking_institution:document.getElementById('f_bankingInstitution').value||null,routing_number:document.getElementById('f_routingNumber').value||null,account_number:document.getElementById('f_accountNumber').value||null,mothers_maiden_name:document.getElementById('f_mothersMaidenName').value||null,carrier_status:'awaiting_window'}:{})});
   if(error) return alert('Submission failed: '+error.message);
   // Non-blocking GHL push — fire-and-forget, never delays submission confirmation
   fetch('/api/ghl-push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submission:{customer_first_name:document.getElementById('f_cFirstName').value,customer_last_name:document.getElementById('f_cLastName').value,customer_phone:document.getElementById('f_cPhone').value,customer_email:document.getElementById('f_cEmail').value,customer_dob:document.getElementById('f_cDOB').value,customer_gender:document.getElementById('f_cGender').value,customer_street:document.getElementById('f_cStreet').value,customer_city:document.getElementById('f_cCity').value,customer_state:document.getElementById('f_cState').value,customer_postal_code:document.getElementById('f_cPostal').value,product_type:document.getElementById('f_productType').value,policy_number:document.getElementById('f_policyNum').value,carrier_name:document.getElementById('f_carrier').value,plan_name:document.getElementById('f_planName').value,monthly_premium:mp,annual_premium:mp*12,effective_date:document.getElementById('f_effectiveDate').value,agent_first_name:document.getElementById('f_aFirstName').value,agent_last_name:document.getElementById('f_aLastName').value,agent_email:document.getElementById('f_aEmail').value,agent_npn:document.getElementById('f_aNPN').value}})}).catch(()=>{});
   document.getElementById('submitSuccess').style.display='block';
   document.querySelectorAll('#submit-screen input,#submit-screen select,#submit-screen textarea').forEach(e=>e.value='');
   toggleHeartlandFields();
+  document.getElementById('f_billingType').value='specific_day';
+  toggleSSABilling();
   setTimeout(()=>{ document.getElementById('submitSuccess').style.display='none'; showScreen('agent-dashboard'); renderAgentBoard(); },2000);
 }
 
@@ -2639,7 +2791,7 @@ function toggleTranscript(){ const body=document.getElementById('res_transcript'
 
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-async function openBeneficiaryModal(id){ const {data:s}=await db.from('lb_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}${fld('Carrier Status',s.carrier_status?carrierStatusLabel(s.carrier_status):null)}</div><div class="form-section-title">Banking Information</div><div class="form-grid">${fld('Institution',s.banking_institution)}${fld('Routing Number',s.routing_number)}${fld('Account Number',s.account_number)}${fld("Mother\'s Maiden Name",s.mothers_maiden_name)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
+async function openBeneficiaryModal(id){ const {data:s}=await db.from('lb_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('bv_content').innerHTML=`<div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Policy Details</div><div class="form-grid">${fld('Product Type',s.product_type)}${fld('Policy Number',s.policy_number)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Monthly Premium',s.monthly_premium!=null?fmt$2(s.monthly_premium):null)}${fld('Annual AP',s.annual_premium!=null?fmt$(s.annual_premium):null)}${fld('Est. Commission',s.annual_premium!=null?fmt$2(estComm(s.annual_premium)):null)}${fld('Billing Type',s.billing_type==='ssa_wednesday'?`SSA Billing (${s.ssa_wednesday_option} Wednesday)`:'Specific Day')}${fld('Recurring Draft Day',s.recurring_draft_day)}${fld('Effective Date',s.effective_date)}${fld('Draft Date',s.draft_date)}${fld('Carrier Status',s.carrier_status?carrierStatusLabel(s.carrier_status):null)}</div><div class="form-section-title">Banking Information</div><div class="form-grid">${fld('Institution',s.banking_institution)}${fld('Routing Number',s.routing_number)}${fld('Account Number',s.account_number)}${fld("Mother\'s Maiden Name",s.mothers_maiden_name)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('Specialist Name',s.specialist_name)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('beneficiaryModal'); }
 async function openMAPDBeneficiaryModal(id){ const {data:s}=await db.from('lb_mapd_submissions').select('*').eq('id',id).single(); if(!s)return; const v=x=>(x===null||x===undefined||x==='')?'—':x; const fld=(lbl,val)=>`<div class="field-sm"><label>${lbl}</label><div class="bv-val">${v(val)}</div></div>`; document.getElementById('mapd_bv_content').innerHTML=`<div class="form-section-title">Application Details</div><div class="form-grid">${fld('App Submit Date',s.app_submit_date)}${fld('Sunfire Confirmation Date',s.sunfire_confirm_date)}${fld('Carrier Name',s.carrier_name)}${fld('Plan Name',s.plan_name)}${fld('Plan Code',s.plan_code)}${fld('Effective Date',s.effective_date)}</div><div class="form-section-title">Agent Details</div><div class="form-grid">${fld('Agent NPN',s.agent_npn)}${fld('Agent First Name',s.agent_first_name)}${fld('Agent Last Name',s.agent_last_name)}</div><div class="form-section-title">Customer Information</div><div class="form-grid">${fld('First Name',s.customer_first_name)}${fld('Last Name',s.customer_last_name)}${fld('Date of Birth',s.customer_dob)}${fld('Gender',s.customer_gender)}${fld('Phone',s.customer_phone)}${fld('Email',s.customer_email)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Street Address',s.customer_street)}</div><div class="form-grid three" style="margin-top:12px;">${fld('City',s.customer_city)}${fld('State',s.customer_state)}${fld('Postal Code',s.customer_postal_code)}</div><div class="form-section-title">Medicare Details</div><div class="form-grid three">${fld('Medicare Number',s.medicare_number)}${fld('Part A Date',s.medicare_part_a_date)}${fld('Part B Date',s.medicare_part_b_date)}</div><div class="form-section-title">Medicaid Details</div><div class="form-grid">${fld('On Medicaid',s.is_on_medicaid===true?'Yes':s.is_on_medicaid===false?'No':null)}${fld('Medicaid Number',s.medicaid_number)}</div><div class="form-section-title">Clinical Info</div><div class="form-grid">${fld('PCP Name',s.pcp_name)}${fld('PCP ID / NPI',s.pcp_id)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Specialist Names',s.specialist_names)}</div><div class="form-grid full" style="margin-top:12px;">${fld('Medications',s.medications)}</div>`; openModal('mapdBeneficiaryModal'); }
 
 function startRealtime(){
