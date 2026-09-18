@@ -12,6 +12,13 @@ function setCORS(res) {
 
 const BANKING_FIELDS = ['banking_institution', 'routing_number', 'account_number', 'mothers_maiden_name'];
 
+// Specific-user allowlist for previously-collected banking PII. Keyed on lb_users.id — the app
+// has no email field, and role can't be used here since multiple admins share the 'admin' role.
+const BANKING_PII_ALLOWED_USER_IDS = [
+  'b180a6b3-6f73-415f-b0fb-3a3a505310d2', // Tahj Williams (admin)
+  'c9bd754c-1634-46d4-827b-58def8efbf67', // Kole McDevitt (solo)
+];
+
 export default async function handler(req, res) {
   setCORS(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -31,7 +38,7 @@ export default async function handler(req, res) {
 
   if (userErr || !user) return res.status(401).json({ error: 'Unknown user' });
 
-  const canSeeBanking = user.role === 'admin' || user.role === 'dialer';
+  const canSeeBanking = BANKING_PII_ALLOWED_USER_IDS.includes(user.id);
   const canEdit = user.role === 'admin' || user.role === 'dialer';
 
   // Fetch submissions in the requested date range (by submitted_at)
