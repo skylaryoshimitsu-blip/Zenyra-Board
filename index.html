@@ -2294,7 +2294,21 @@ async function saveAgentSubEdit(){
 
 async function renderAgentManagement(){ const {data:agents}=await db.from('lb_agents').select('*').order('name'); const {data:emailRows}=await db.from('lb_submissions').select('agent_id,agent_email,submitted_at').not('agent_email','is',null).neq('agent_email','').order('submitted_at',{ascending:false}); const emailMap={}; (emailRows||[]).forEach(r=>{ if(r.agent_id&&!emailMap[r.agent_id]) emailMap[r.agent_id]=r.agent_email; }); const cont=document.getElementById('admin-agents-content'); if(!agents?.length){cont.innerHTML='<div class="no-data">No agents found.</div>';return;} cont.innerHTML=`<table class="agent-mgmt-table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Daily Goal</th><th>Monthly Goal</th><th>Status</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-weight:600;color:var(--white);">${a.name}</td><td>${a.phone||'—'}</td><td style="font-size:12px;color:var(--body);">${emailMap[a.id]||'—'}</td><td>${fmt$(a.daily_goal)}</td><td>${fmt$(a.monthly_goal)}</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;${a.active?'background:rgba(0,201,177,0.12);color:var(--teal)':'background:rgba(100,116,139,0.15);color:var(--muted)'}">${a.active?'Active':'Inactive'}</span></td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openAgentModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="toggleAgentStatus('${a.id}',${a.active})">${a.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table>`; }
 function openAgentModal(agent){ document.getElementById('agentModalTitle').textContent=agent?'Edit Agent':'Add Agent'; document.getElementById('agentModalId').value=agent?.id||''; document.getElementById('am_name').value=agent?.name||''; document.getElementById('am_phone').value=agent?.phone||''; document.getElementById('am_dailyGoal').value=agent?.daily_goal||1600; document.getElementById('am_monthlyGoal').value=agent?.monthly_goal||160000; openModal('agentModal'); }
-async function saveAgent(){ const id=document.getElementById('agentModalId').value; const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)}; if(!payload.name){alert('Name is required.');return;} let error; if(id){({error}=await db.from('lb_agents').update(payload).eq('id',id));}else{({error}=await db.from('lb_agents').insert({...payload,active:true}));} if(error){alert('Save failed: '+error.message);return;} closeModal('agentModal'); renderAgentManagement(); }
+async function saveAgent(){
+  const id=document.getElementById('agentModalId').value;
+  const payload={name:document.getElementById('am_name').value,phone:document.getElementById('am_phone').value,daily_goal:parseFloat(document.getElementById('am_dailyGoal').value),monthly_goal:parseFloat(document.getElementById('am_monthlyGoal').value)};
+  if(!payload.name){alert('Name is required.');return;}
+  if(id){
+    const {error}=await db.from('lb_agents').update(payload).eq('id',id);
+    if(error){alert('Save failed: '+error.message);return;}
+  }else{
+    const res=await fetch('/api/add-agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser?.id,...payload})});
+    const json=await res.json().catch(()=>({}));
+    if(!res.ok){alert('Save failed: '+(json.error||res.statusText));return;}
+  }
+  closeModal('agentModal');
+  renderAgentManagement();
+}
 async function toggleAgentStatus(id,current){ if(!confirm(`${current?'Deactivate':'Activate'} this agent?`))return; await db.from('lb_agents').update({active:!current}).eq('id',id); renderAgentManagement(); }
 
 async function populateReportAgents(p){ p=p||''; const sel=document.getElementById(p+'rpt_agent'); if(!sel)return; if(currentUser?.role==='solo'){ sel.innerHTML=`<option value="${currentUser.agent_id}">${currentUser.agentName}</option>`; return; } const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
