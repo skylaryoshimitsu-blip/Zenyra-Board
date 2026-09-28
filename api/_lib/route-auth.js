@@ -1,11 +1,11 @@
-// api/auth.js
+// Handler for /api/secure?op=auth (dispatched by api/secure.js)
 // Server-side login, registration, password change and session check.
 // Passwords are verified here; password_hash never leaves the server.
 
 import {
   serviceClient, setCORS, sha256Hex, safeEqual, issueToken, publicUser, requireUser,
   isRevokedRow, audit, USER_PUBLIC_FIELDS,
-} from './_lib/auth.js';
+} from './auth.js';
 
 const LOGIN_ROLES = { agent: ['agent', 'solo'], solo: ['solo'], admin: ['admin'], dialer: ['dialer'] };
 const LOGIN_FAILED = 'Incorrect password. Try again or register.';

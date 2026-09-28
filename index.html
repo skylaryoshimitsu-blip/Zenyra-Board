@@ -1579,7 +1579,7 @@ function saveSession(u){ localStorage.setItem('zenyra_board_v4', JSON.stringify(
 function loadSession(){ try{ const s=localStorage.getItem('zenyra_board_v4'); const u=s?JSON.parse(s):null; return u&&u.token?u:null; }catch(e){ return null; } }
 function clearSession(){ localStorage.removeItem('zenyra_board_v4'); currentUser=null; }
 
-// Deletes, reports and exports are authorized server-side (api/secure-action, api/reports); these helpers only relay.
+// Deletes, reports and exports are authorized server-side (api/secure.js); these helpers only relay.
 const DENIED_MESSAGE="This action isn't available for your account.";
 async function apiPost(path,body,opts){
   const headers={'Content-Type':'application/json'};
@@ -1590,13 +1590,13 @@ async function apiPost(path,body,opts){
   return {ok:res.ok,status:res.status,json};
 }
 async function secureAction(body){
-  const r=await apiPost('/api/secure-action',body);
+  const r=await apiPost('/api/secure?op=action',body);
   if(r.status===403){ alert(r.json.error||DENIED_MESSAGE); return false; }
   if(!r.ok){ if(r.status!==401) alert(r.json.error||'Request failed.'); return false; }
   return true;
 }
 async function fetchReport(body){
-  const r=await apiPost('/api/reports',body);
+  const r=await apiPost('/api/secure?op=reports',body);
   if(r.status===403){ alert(r.json.error||DENIED_MESSAGE); return null; }
   if(!r.ok){ if(r.status!==401) alert(r.json.error||'Report failed.'); return null; }
   return r.json;
@@ -1686,7 +1686,7 @@ async function doLogin(){
   } else {
     body.agentId=document.getElementById('loginName').value;
   }
-  const r=await apiPost('/api/auth',body);
+  const r=await apiPost('/api/secure?op=auth',body);
   if(!r.ok||!r.json.token) return showAuthError(r.json.error||'Incorrect password. Try again or register.');
   const u=r.json.user;
   const agent=allAgents.find(a=>a.id===u.agent_id);
@@ -1707,7 +1707,7 @@ async function doRegister(){
   } else {
     body.agentId=document.getElementById('registerName').value;
   }
-  const r=await apiPost('/api/auth',body);
+  const r=await apiPost('/api/secure?op=auth',body);
   if(!r.ok||!r.json.token) return showAuthError(r.json.error||'Registration failed.');
   const u=r.json.user;
   saveSession({...u,token:r.json.token,agentName:u.display_name});
@@ -1772,7 +1772,7 @@ async function saveNewPassword(){
   if(!newPw||newPw.length<6) return showCpError('New password must be at least 6 characters.');
   if(newPw!==confirm) return showCpError('New passwords do not match.');
   if(newPw===current) return showCpError('New password must be different from current password.');
-  const r=await apiPost('/api/auth',{action:'change_password',currentPassword:current,newPassword:newPw});
+  const r=await apiPost('/api/secure?op=auth',{action:'change_password',currentPassword:current,newPassword:newPw});
   if(!r.ok||!r.json.token) return showCpError(r.json.error||'Failed to update password.');
   saveSession({...currentUser,token:r.json.token});
   sucEl.style.display='block';
@@ -3244,7 +3244,7 @@ document.addEventListener('click', e=>{
   }
 });
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent'||currentUser?.role==='solo') renderAgentBoard(); fetchUnreadCount(); },30000); setInterval(async()=>{ if(!currentUser)return; await apiPost('/api/auth',{action:'me'},{silent:true}); },60000); }
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent'||currentUser?.role==='solo') renderAgentBoard(); fetchUnreadCount(); },30000); setInterval(async()=>{ if(!currentUser)return; await apiPost('/api/secure?op=auth',{action:'me'},{silent:true}); },60000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const dz=document.getElementById('scorerDropZone'); if(dz){ dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); }); dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over')); dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }}); }

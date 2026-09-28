@@ -1,8 +1,8 @@
-// api/reports.js
+// Handler for /api/secure?op=reports (dispatched by api/secure.js)
 // Report data, served only to REPORT_ALLOWED_USER_IDS. Each run is audited.
 // Queries mirror what the page used to run directly with the anon key.
 
-import { serviceClient, setCORS, requireUser, canReport, canSeeBanking, audit, deny } from './_lib/auth.js';
+import { serviceClient, setCORS, requireUser, canReport, canSeeBanking, audit, deny } from './auth.js';
 
 const BANKING_FIELDS = ['banking_institution', 'routing_number', 'account_number', 'mothers_maiden_name'];
 const EOD_FIELDS = 'id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)';

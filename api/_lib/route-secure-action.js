@@ -1,8 +1,8 @@
-// api/secure-action.js
+// Handler for /api/secure?op=action (dispatched by api/secure.js)
 // Deletes (soft, reversible), restores, and download/print authorization.
 // Default-deny: only the user IDs in api/_lib/auth.js allowlists may act; every attempt is audited.
 
-import { serviceClient, setCORS, requireUser, canDelete, canReport, audit, deny } from './_lib/auth.js';
+import { serviceClient, setCORS, requireUser, canDelete, canReport, audit, deny } from './auth.js';
 
 // Tables with a status column record previous_status so a delete can be undone exactly.
 const DELETE_TARGETS = {
