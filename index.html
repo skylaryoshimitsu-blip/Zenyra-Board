@@ -1006,7 +1006,7 @@ tbody td:not(:first-child){text-align:right;}
           <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
             <button onclick="downloadScorerPDF()" style="background:var(--teal);color:var(--navy);border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">&#x2B07; Download PDF</button>
             <button onclick="resetScorer()" style="background:none;border:1px solid var(--teal);color:var(--teal);border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">&#x21A9; Score Another Call</button>
-            <button onclick="window.print()" style="background:none;border:1px solid var(--border);color:var(--label);border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer;">&#x1F5A8; Print</button>
+            <button onclick="printScorer()" style="background:none;border:1px solid var(--border);color:var(--label);border-radius:6px;padding:10px 20px;font-size:13px;cursor:pointer;">&#x1F5A8; Print</button>
             <button onclick="deleteCurrentScore()" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">&#x1F5D1; Delete</button>
           </div>
         </div>
@@ -1549,7 +1549,6 @@ tbody td:not(:first-child){text-align:right;}
 const SUPABASE_URL  = 'https://fodkldiqwbnmzdmgrfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvZGtsZGlxd2JubXpkbWdyZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDIwODMsImV4cCI6MjA5Njc3ODA4M30.CYj19MXlk-w5COLGjm6DDdPnTBOgWFuFqQoulvpS5KM';
 const DAILY_GOAL = 8000;
-const ADMIN_CODE = 'bigbrothereye';
 const COMM_RATE  = 0.1125;
 const HEARTLAND_PROCESS_START_DATE = '2026-07-20';
 const { createClient } = supabase;
@@ -1575,10 +1574,39 @@ let dialerReportAgents = [];
 let currentDialerTab = 'log';
 let currentDialerBoardView = 'anc';
 
+// Session = server-issued signed token + public user fields. Sessions saved before tokens existed are discarded.
 function saveSession(u){ localStorage.setItem('zenyra_board_v4', JSON.stringify(u)); currentUser=u; }
-function loadSession(){ const s=localStorage.getItem('zenyra_board_v4'); return s?JSON.parse(s):null; }
+function loadSession(){ try{ const s=localStorage.getItem('zenyra_board_v4'); const u=s?JSON.parse(s):null; return u&&u.token?u:null; }catch(e){ return null; } }
 function clearSession(){ localStorage.removeItem('zenyra_board_v4'); currentUser=null; }
-async function hashPw(pw){ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw)); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+
+// Deletes, reports and exports are authorized server-side (api/secure-action, api/reports); these helpers only relay.
+const DENIED_MESSAGE="This action isn't available for your account.";
+async function apiPost(path,body,opts){
+  const headers={'Content-Type':'application/json'};
+  if(currentUser?.token) headers['Authorization']='Bearer '+currentUser.token;
+  const res=await fetch(path,{method:'POST',headers,body:JSON.stringify(body||{})});
+  let json={}; try{ json=await res.json(); }catch(e){}
+  if(res.status===401&&currentUser&&!opts?.keepSession){ clearSession(); showScreen('landing'); if(!opts?.silent) alert('Your session has expired. Please sign in again.'); }
+  return {ok:res.ok,status:res.status,json};
+}
+async function secureAction(body){
+  const r=await apiPost('/api/secure-action',body);
+  if(r.status===403){ alert(r.json.error||DENIED_MESSAGE); return false; }
+  if(!r.ok){ if(r.status!==401) alert(r.json.error||'Request failed.'); return false; }
+  return true;
+}
+async function fetchReport(body){
+  const r=await apiPost('/api/reports',body);
+  if(r.status===403){ alert(r.json.error||DENIED_MESSAGE); return null; }
+  if(!r.ok){ if(r.status!==401) alert(r.json.error||'Report failed.'); return null; }
+  return r.json;
+}
+// Opens the print window before the server check so popup blockers allow it; closes it if denied.
+async function gatedDownload(kind,render){
+  const win=window.open('','_blank');
+  if(!(await secureAction({action:'download',kind}))){ if(win) win.close(); return; }
+  render(win);
+}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1614,7 +1642,8 @@ async function showAuth(role){
   authRole=role;
   document.getElementById('authTitle').textContent=role==='agent'?'Agent Portal':role==='admin'?'Admin Portal':'Dialer Portal';
   document.getElementById('authSub').textContent=role==='agent'?'Sign in or create your account':role==='admin'?'Admin access only':'VA call logging access';
-  document.getElementById('adminCodeField').style.display=role==='admin'?'block':'none';
+  document.getElementById('adminCodeField').style.display='none';
+  document.getElementById('tabRegister').style.display=role==='admin'?'none':'';
   document.getElementById('authError').style.display='none';
   if(role==='dialer'){
     document.getElementById('loginNameField').style.display='none';
@@ -1649,53 +1678,40 @@ function showAuthError(m){ const e=document.getElementById('authError'); e.textC
 async function doLogin(){
   const pw=document.getElementById('loginPassword').value;
   if(!pw) return showAuthError('Enter your password.');
-  const hash=await hashPw(pw);
+  const body={action:'login',portal:authRole,password:pw};
   if(authRole==='dialer'){
     const username=document.getElementById('loginUsername').value.trim();
     if(!username) return showAuthError('Enter your username.');
-    const {data,error}=await db.from('lb_users').select('*').eq('display_name',username).eq('role','dialer').eq('password_hash',hash).single();
-    if(error||!data) return showAuthError('Incorrect username or password.');
-    await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
-    saveSession({...data,agentName:data.display_name});
-    enterDashboard(data.role);
-    return;
+    body.username=username;
+  } else {
+    body.agentId=document.getElementById('loginName').value;
   }
-  const agentId=document.getElementById('loginName').value;
-  const roleFilter=authRole==='solo'?['solo']:authRole==='agent'?['agent','solo']:[authRole];
-  const {data,error}=await db.from('lb_users').select('*').eq('agent_id',agentId).in('role',roleFilter).eq('password_hash',hash).single();
-  if(error||!data) return showAuthError('Incorrect password. Try again or register.');
-  await db.from('lb_users').update({last_login:new Date().toISOString()}).eq('id',data.id);
-  const agent=allAgents.find(a=>a.id===agentId);
-  saveSession({...data,agentName:agent?.name||data.display_name});
-  enterDashboard(data.role);
+  const r=await apiPost('/api/auth',body);
+  if(!r.ok||!r.json.token) return showAuthError(r.json.error||'Incorrect password. Try again or register.');
+  const u=r.json.user;
+  const agent=allAgents.find(a=>a.id===u.agent_id);
+  saveSession({...u,token:r.json.token,agentName:authRole==='dialer'?u.display_name:(agent?.name||u.display_name)});
+  enterDashboard(u.role);
 }
 async function doRegister(){
   const pw=document.getElementById('registerPassword').value;
   const confirm=document.getElementById('registerConfirm').value;
-  if(authRole==='admin'){ const code=document.getElementById('adminCode').value; if(code!==ADMIN_CODE) return showAuthError('Invalid admin access code.'); }
+  if(authRole==='admin') return showAuthError('Admin sign-up is disabled. Ask Tahj to create your account.');
   if(!pw||pw.length<6) return showAuthError('Password must be at least 6 characters.');
   if(pw!==confirm) return showAuthError('Passwords do not match.');
+  const body={action:'register',portal:authRole,password:pw};
   if(authRole==='dialer'){
     const displayName=document.getElementById('registerDisplayName').value.trim();
     if(!displayName) return showAuthError('Enter a display name.');
-    const {data:existing}=await db.from('lb_users').select('id').eq('display_name',displayName).eq('role','dialer').single();
-    if(existing) return showAuthError('Account already exists. Sign in instead.');
-    const hash=await hashPw(pw);
-    const {data,error}=await db.from('lb_users').insert({agent_id:null,display_name:displayName,role:'dialer',password_hash:hash}).select().single();
-    if(error) return showAuthError('Registration failed: '+error.message);
-    saveSession({...data,agentName:data.display_name});
-    enterDashboard('dialer');
-    return;
+    body.displayName=displayName;
+  } else {
+    body.agentId=document.getElementById('registerName').value;
   }
-  const agentId=document.getElementById('registerName').value;
-  const {data:existing}=await db.from('lb_users').select('id').eq('agent_id',agentId).eq('role',authRole).single();
-  if(existing) return showAuthError('Account already exists. Sign in instead.');
-  const hash=await hashPw(pw);
-  const agent=allAgents.find(a=>a.id===agentId);
-  const {data,error}=await db.from('lb_users').insert({agent_id:agentId,display_name:agent?.name||'Agent',role:authRole,password_hash:hash}).select().single();
-  if(error) return showAuthError('Registration failed: '+error.message);
-  saveSession({...data,agentName:agent?.name||data.display_name});
-  enterDashboard(authRole);
+  const r=await apiPost('/api/auth',body);
+  if(!r.ok||!r.json.token) return showAuthError(r.json.error||'Registration failed.');
+  const u=r.json.user;
+  saveSession({...u,token:r.json.token,agentName:u.display_name});
+  enterDashboard(u.role);
 }
 async function enterDashboard(role){
   const {data:freshUser}=await db.from('lb_users').select('role').eq('id',currentUser.id).single();
@@ -1756,13 +1772,9 @@ async function saveNewPassword(){
   if(!newPw||newPw.length<6) return showCpError('New password must be at least 6 characters.');
   if(newPw!==confirm) return showCpError('New passwords do not match.');
   if(newPw===current) return showCpError('New password must be different from current password.');
-  const currentHash=await hashPw(current);
-  const {data:userRow,error:fetchErr}=await db.from('lb_users').select('id,password_hash').eq('id',currentUser.id).single();
-  if(fetchErr||!userRow) return showCpError('Could not verify current password. Please try again.');
-  if(userRow.password_hash!==currentHash) return showCpError('Current password is incorrect.');
-  const newHash=await hashPw(newPw);
-  const {error:updateErr}=await db.from('lb_users').update({password_hash:newHash}).eq('id',currentUser.id);
-  if(updateErr) return showCpError('Failed to update password: '+updateErr.message);
+  const r=await apiPost('/api/auth',{action:'change_password',currentPassword:current,newPassword:newPw});
+  if(!r.ok||!r.json.token) return showCpError(r.json.error||'Failed to update password.');
+  saveSession({...currentUser,token:r.json.token});
   sucEl.style.display='block';
   document.getElementById('cp_current').value='';
   document.getElementById('cp_new').value='';
@@ -1819,7 +1831,7 @@ async function fetchTopStateCarrier(table){
 }
 async function fetchCallCountsToday(){
   const today=new Date().toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-  const {data}=await db.from('lb_dialer_activity').select('agent_id,total_calls').eq('log_date',today);
+  const {data}=await db.from('lb_dialer_activity').select('agent_id,total_calls').eq('log_date',today).is('deleted_at',null);
   const out={};
   (data||[]).forEach(r=>{ if(!r.agent_id) return; out[r.agent_id]=(out[r.agent_id]||0)+Number(r.total_calls||0); });
   return out;
@@ -2238,10 +2250,10 @@ async function renderAdminMAPD(){
   if(!subs.length){ cont.innerHTML='<div class="no-data">No MAPD submissions yet.</div>'; return; }
   cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Submit Date</th><th>Agent</th><th>Customer</th><th>Carrier</th><th>Plan</th><th>Plan Code</th><th>Effective</th><th>Sunfire Conf.</th><th>Medicare #</th><th>Medicaid</th><th>PCP</th><th>Actions</th></tr></thead><tbody>${subs.map(s=>`<tr onclick="openMAPDBeneficiaryModal('${s.id}')" style="cursor:pointer;"><td>${s.app_submit_date||'—'}</td><td><div style="font-size:12px;font-weight:600;color:var(--white);">${s.lb_agents?.name||'—'}</div><div style="font-size:10px;color:var(--muted);">NPN: ${s.agent_npn||'—'}</div></td><td><div class="customer-name">${s.customer_first_name||''} ${s.customer_last_name||''}</div><div style="font-size:11px;color:var(--muted);">${s.customer_dob||''} · ${s.customer_phone||''}</div></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td><span class="product-badge mapd-badge">${s.plan_name||'—'}</span></td><td style="font-size:11px;color:var(--muted);">${s.plan_code||'—'}</td><td style="font-size:12px;">${s.effective_date||'—'}</td><td style="font-size:12px;">${s.sunfire_confirm_date||'—'}</td><td style="font-size:11px;color:var(--muted);">${s.medicare_number||'—'}</td><td style="font-size:11px;">${s.is_on_medicaid?'<span style="color:var(--amber);">Yes</span>':'No'}</td><td style="font-size:12px;">${s.pcp_name||'—'}</td><td><button class="btn-delete" onclick="event.stopPropagation();deleteMAPD('${s.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
-async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))return; await db.from('lb_mapd_submissions').update({status:'deleted'}).eq('id',id); renderAdminMAPD(); }
+async function deleteMAPD(id){ if(!confirm('Delete this MAPD submission?'))return; if(!(await secureAction({action:'delete',target:'mapd',id})))return; renderAdminMAPD(); }
 function openEditSub(s){ document.getElementById('editSubId').value=s.id; document.getElementById('es_cFirstName').value=s.customer_first_name||''; document.getElementById('es_cLastName').value=s.customer_last_name||''; document.getElementById('es_productType').value=s.product_type||''; document.getElementById('es_carrier').value=s.carrier_name||''; document.getElementById('es_planName').value=s.plan_name||''; document.getElementById('es_monthlyPremium').value=s.monthly_premium||''; document.getElementById('es_policyNum').value=s.policy_number||''; document.getElementById('es_effectiveDate').value=s.effective_date||''; document.getElementById('es_aNPN').value=s.agent_npn||''; document.getElementById('es_pcp').value=s.pcp_name||''; document.getElementById('es_medications').value=s.medications||''; openModal('editSubModal'); }
 async function saveSubEdit(){ const id=document.getElementById('editSubId').value; const mp=parseFloat(document.getElementById('es_monthlyPremium').value); const {error}=await db.from('lb_submissions').update({customer_first_name:document.getElementById('es_cFirstName').value,customer_last_name:document.getElementById('es_cLastName').value,product_type:document.getElementById('es_productType').value,carrier_name:document.getElementById('es_carrier').value,plan_name:document.getElementById('es_planName').value,monthly_premium:mp||null,policy_number:document.getElementById('es_policyNum').value,effective_date:document.getElementById('es_effectiveDate').value||null,agent_npn:document.getElementById('es_aNPN').value,pcp_name:document.getElementById('es_pcp').value,medications:document.getElementById('es_medications').value}).eq('id',id); if(error){alert('Save failed: '+error.message);return;} closeModal('editSubModal'); renderAdminSubmissions(); renderAdminBoard(); }
-async function deleteSubmission(id){ if(!confirm('Delete this submission?'))return; await db.from('lb_submissions').update({status:'deleted'}).eq('id',id); renderAdminSubmissions(); renderAdminBoard(); }
+async function deleteSubmission(id){ if(!confirm('Delete this submission?'))return; if(!(await secureAction({action:'delete',target:'submission',id})))return; renderAdminSubmissions(); renderAdminBoard(); }
 
 function openAgentEditSub(id){
   const s=myLoadedSubs.find(r=>r.id===id);
@@ -2300,8 +2312,9 @@ async function toggleAgentStatus(id,current){ if(!confirm(`${current?'Deactivate
 async function populateReportAgents(p){ p=p||''; const sel=document.getElementById(p+'rpt_agent'); if(!sel)return; if(currentUser?.role==='solo'){ sel.innerHTML=`<option value="${currentUser.agent_id}">${currentUser.agentName}</option>`; return; } const {data}=await db.from('lb_agents').select('id,name').eq('active',true).order('name'); sel.innerHTML='<option value="all">Whole Team</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join(''); }
 function toggleCustomDates(p){ p=p||''; const v=document.getElementById(p+'rpt_range').value; document.getElementById(p+'rpt_from_wrap').style.display=v==='custom'?'flex':'none'; document.getElementById(p+'rpt_to_wrap').style.display=v==='custom'?'flex':'none'; }
 function getDateRange(range,p){ p=p||''; const nowET=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})); const today=new Date(nowET.getFullYear(),nowET.getMonth(),nowET.getDate()); let from,to=new Date(today.getTime()+86400000-1); if(range==='today'){from=today;}else if(range==='yesterday'){from=new Date(today-86400000);to=new Date(today-1);}else if(range==='mtd'){from=new Date(today.getFullYear(),today.getMonth(),1);}else if(range==='custom'){from=new Date(document.getElementById(p+'rpt_from').value);to=new Date(document.getElementById(p+'rpt_to').value+'T23:59:59');}else{from=new Date(today-(parseInt(range)-1)*86400000);} return{from,to}; }
-async function runReport(p){ p=p||''; const agentFilter=document.getElementById(p+'rpt_agent').value; const range=document.getElementById(p+'rpt_range').value; const {from,to}=getDateRange(range,p); let q=db.from('lb_submissions').select('*,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString()); if(agentFilter!=='all') q=q.eq('agent_id',agentFilter); const {data:subs}=await q.order('submitted_at',{ascending:false}); reportData=subs||[]; const output=document.getElementById(p+'report-output'); const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById(p+'btn_download').style.display='none';return;} let callQ=db.from('lb_dialer_activity').select('agent_id,log_date,total_calls').gte('log_date',from.toISOString().slice(0,10)).lte('log_date',to.toISOString().slice(0,10)); if(agentFilter!=='all') callQ=callQ.eq('agent_id',agentFilter); const {data:calls}=await callQ; const callMap={}; (calls||[]).forEach(c=>{ if(!c.agent_id) return; const k=c.agent_id+'|'+c.log_date; callMap[k]=(callMap[k]||0)+Number(c.total_calls||0); }); reportCallMap=callMap; const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=callMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table>`; document.getElementById(p+'btn_download').style.display='inline-block'; }
-function downloadReport(p){ p=p||''; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const win=window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=reportCallMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
+async function runReport(p){ p=p||''; const agentFilter=document.getElementById(p+'rpt_agent').value; const range=document.getElementById(p+'rpt_range').value; const {from,to}=getDateRange(range,p); const rpt=await fetchReport({report:'performance',from:from.toISOString(),to:to.toISOString(),agentId:agentFilter}); if(!rpt)return; reportData=rpt.subs||[]; const output=document.getElementById(p+'report-output'); const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; if(!reportData.length){output.innerHTML='<div class="no-data">No submissions found.</div>';document.getElementById(p+'btn_download').style.display='none';return;} const calls=rpt.calls; const callMap={}; (calls||[]).forEach(c=>{ if(!c.agent_id) return; const k=c.agent_id+'|'+c.log_date; callMap[k]=(callMap[k]||0)+Number(c.total_calls||0); }); reportCallMap=callMap; const totalMP=reportData.reduce((s,r)=>s+Number(r.monthly_premium||0),0); const totalAP=reportData.reduce((s,r)=>s+Number(r.annual_premium||0),0); const byAgent={}; reportData.forEach(r=>{ const n=r.lb_agents?.name||'Unknown'; if(!byAgent[n])byAgent[n]={mp:0,ap:0,apps:0}; byAgent[n].mp+=Number(r.monthly_premium||0); byAgent[n].ap+=Number(r.annual_premium||0); byAgent[n].apps++; }); output.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--teal);margin-bottom:4px;">ZENYRA — PERFORMANCE REPORT</div><div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${agentLabel} · ${rangeLabel} · ${reportData.length} submission${reportData.length!==1?'s':''}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--white);">${reportData.length}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Submissions</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$2(totalMP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Monthly Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal);">${fmt$(totalAP)}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Total Annual Premium</div></div><div style="background:var(--card);border-radius:6px;padding:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">${fmt$2(estComm(totalAP))}</div><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Est. Total Commission</div></div></div></div><table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly $</th><th>Annual AP</th><th>Est. Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=callMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="product-badge">${s.product_type||'—'}</span></td><td style="font-size:12px;">${s.carrier_name||'—'}</td><td style="color:var(--teal);">${fmt$2(s.monthly_premium)}</td><td style="color:var(--teal);font-family:'Bebas Neue',sans-serif;font-size:15px;">${fmt$(s.annual_premium)}</td><td style="color:var(--green);">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table>`; document.getElementById(p+'btn_download').style.display='inline-block'; }
+function downloadReport(p){ gatedDownload('performance_pdf',win=>renderReportDownload(p,win)); }
+function renderReportDownload(p,preWin){ p=p||''; const agentLabel=document.getElementById(p+'rpt_agent').options[document.getElementById(p+'rpt_agent').selectedIndex].text; const rangeLabel=document.getElementById(p+'rpt_range').options[document.getElementById(p+'rpt_range').selectedIndex].text; const win=preWin||window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>Zenyra Report</title><style>body{font-family:sans-serif;padding:24px;color:#111;}table{width:100%;border-collapse:collapse;}th{text-align:left;padding:6px 8px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#666;}td{padding:7px 8px;border-bottom:1px solid #f0f4f8;font-size:13px;}.teal{color:#00C9B1;}.green{color:#16a34a;}.badge{font-size:10px;background:#e0fdf4;color:#059669;padding:2px 6px;border-radius:3px;}</style></head><body><h2 style="color:#00C9B1;">ZENYRA — Performance Report</h2><p style="color:#666;font-size:12px;">${agentLabel} · ${rangeLabel} · Generated ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})} ET</p><table><thead><tr><th>Date</th><th>Agent</th><th>Call Count</th><th>Customer</th><th>Product</th><th>Carrier</th><th>Monthly</th><th>Annual AP</th><th>Est Comm</th></tr></thead><tbody>${reportData.map(s=>{ const dKey=new Date(s.submitted_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}); const callCount=reportCallMap[s.agent_id+'|'+dKey]||0; return `<tr><td>${new Date(s.submitted_at).toLocaleDateString('en-US',{timeZone:'America/New_York'})}</td><td>${s.lb_agents?.name||'—'}</td><td>${callCount}</td><td>${s.customer_first_name||''} ${s.customer_last_name||''}</td><td><span class="badge">${s.product_type||'—'}</span></td><td>${s.carrier_name||'—'}</td><td class="teal">${fmt$2(s.monthly_premium)}</td><td class="teal">${fmt$(s.annual_premium)}</td><td class="green">${fmt$2(estComm(s.annual_premium))}</td></tr>`; }).join('')}</tbody></table><p style="margin-top:24px;color:#aaa;font-size:11px;text-align:center;">Powered by Zenyra</p></body></html>`); win.document.close(); setTimeout(()=>win.print(),500); }
 
 function switchAdminTab(tab){
   const panels={board:'flex',wow:'flex',intel:'flex',subs:'block',mapd:'block',scorer:'block',agents:'block',reports:'block',inbox:'flex',eod:'flex',integrations:'block'};
@@ -2425,11 +2438,9 @@ async function runProductBreakdown(){
   }
   const fromISO=from.toISOString(); const toISO=to.toISOString();
   document.getElementById('pb_output').innerHTML='<div class="no-data">Loading…</div>';
-  const [{data:ancSubs},{data:mapdSubs}]=await Promise.all([
-    db.from('lb_submissions').select('*,lb_agents(name)').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
-    db.from('lb_mapd_submissions').select('*,lb_agents(name)').gte('submitted_at',fromISO).lte('submitted_at',toISO).neq('status','deleted'),
-  ]);
-  renderProductBreakdown(ancSubs||[],mapdSubs||[]);
+  const rpt=await fetchReport({report:'product_breakdown',from:fromISO,to:toISO});
+  if(!rpt){ document.getElementById('pb_output').innerHTML=''; return; }
+  renderProductBreakdown(rpt.ancSubs||[],rpt.mapdSubs||[]);
 }
 
 function renderProductBreakdown(ancSubs,mapdSubs){
@@ -2737,9 +2748,8 @@ async function loadRecentScores(){
 function expandRecentScore(job){ renderScorerResult(job); document.getElementById('sc_result').scrollIntoView({behavior:'smooth',block:'start'}); }
 async function deleteScore(id){
   if(!id) return;
-  if(!confirm('Delete this scored call? This cannot be undone.')) return;
-  const {error}=await db.from('lb_scorer_results').delete().eq('id',id);
-  if(error){ alert('Delete failed: '+error.message); return; }
+  if(!confirm('Delete this scored call?')) return;
+  if(!(await secureAction({action:'delete',target:'scorer',id}))) return;
   const panel=document.getElementById('sc_result');
   if(panel && panel.dataset.jobId===id){ panel.style.display='none'; panel.dataset.jobId=''; }
   loadRecentScores();
@@ -2750,6 +2760,7 @@ async function deleteCurrentScore(){
   if(!id){ alert('No scored call selected.'); return; }
   await deleteScore(id);
 }
+async function printScorer(){ if(await secureAction({action:'download',kind:'scorer_print'})) window.print(); }
 function resetScorer(){
   scorerFile=null;
   document.getElementById('sc_file').value='';
@@ -2760,7 +2771,8 @@ function resetScorer(){
   document.getElementById('sc_error').style.display='none';
   var panel=document.getElementById('admin-scorer-panel'); if(panel) panel.scrollTop=0;
 }
-function downloadScorerPDF(){
+function downloadScorerPDF(){ gatedDownload('scorer_pdf',win=>renderScorerPDF(win)); }
+function renderScorerPDF(preWin){
   var gv=function(id){var e=document.getElementById(id);return e?e.textContent:'';};
   var agentName=gv('res_agentName')||'Agent', overallScore=gv('res_overallScore'), grade=gv('res_grade'), summary=gv('res_summary'), fileName=gv('res_fileName'), timestamp=gv('res_timestamp'), transcript=gv('res_transcript');
   var q=String.fromCharCode(39);
@@ -2781,7 +2793,7 @@ function downloadScorerPDF(){
   var h='<!DOCTYPE html><html><head><title>Call Score</title><link href='+q+'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap'+q+' rel='+q+'stylesheet'+q+'><'+'style>'+st+'<'+'/style></head><body>';
   h+='<div style='+q+'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #00C9B1;'+q+'><div><div class='+q+'brand'+q+'>ZENYRA</div><div style='+q+'font-size:11px;color:#64748b;'+q+'>Ancillary HIP Call Score Report</div><div style='+q+'font-size:11px;color:#64748b;'+q+'>'+fileName+'</div><div style='+q+'font-size:11px;color:#64748b;'+q+'>'+timestamp+'</div></div><div style='+q+'text-align:right;'+q+'><div style='+q+'font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;'+q+'>Agent</div><div style='+q+'font-size:16px;font-weight:700;'+q+'>'+agentName+'</div><div style='+q+'font-family:Bebas Neue,sans-serif;font-size:48px;color:#00C9B1;line-height:1;'+q+'>'+overallScore+'</div><div style='+q+'font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e0fdf4;color:#059669;display:inline-block;'+q+'>'+grade+'</div></div></div>';
   h+='<div class='+q+'sec'+q+'>Call Summary</div><div class='+q+'summ'+q+'>'+summary+'</div><div class='+q+'sec'+q+'>Plate Scores</div><div class='+q+'plates'+q+'>'+platesHTML+'</div><div class='+q+'sec'+q+'>Coaching Points</div><div style='+q+'margin-bottom:16px;'+q+'>'+coachingHTML+'</div><div class='+q+'sec'+q+'>Transcript</div><div class='+q+'tr'+q+'>'+sT+'</div><div class='+q+'foot'+q+'>Powered by Zenyra | Confidential</div></body></html>';
-  var w=window.open('','_blank'); w.document.write(h); w.document.close(); setTimeout(function(){ w.print(); },800);
+  var w=preWin||window.open('','_blank'); w.document.write(h); w.document.close(); setTimeout(function(){ w.print(); },800);
 }
 function toggleTranscript(){ const body=document.getElementById('res_transcript'),btn=body.previousElementSibling; const visible=body.style.display==='block'; body.style.display=visible?'none':'block'; btn.textContent=(visible?'▶':'▼')+' '+(visible?'Show':'Hide')+' Transcript'; }
 
@@ -2836,7 +2848,7 @@ async function toggleNotifDropdown(portal){
 <div class="notif-item-msg">${n.message}</div>\
 <div class="notif-item-time">${notifTimeAgo(n.created_at)}</div>\
 </div>\
-<button onclick="event.stopPropagation();deleteBellNotif('${n.id}','${portal}')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0;" title="Delete">×</button>\
+\
 </div>`).join('');
   // Mark all shown unread ones as read
   const unreadIds=data.filter(n=>n.status==='unread').map(n=>n.id);
@@ -2889,7 +2901,7 @@ async function loadInbox(portal){
       ?'<span style="font-size:9px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">SENT</span>'
       :'<span style="font-size:9px;font-weight:700;color:var(--teal);background:rgba(0,201,177,0.1);border:1px solid var(--teal);border-radius:3px;padding:1px 5px;">IN</span>';
   };
-  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th><th></th></tr></thead><tbody>${data.map(n=>{
+  cont.innerHTML=`<table class="inbox-table"><thead><tr><th></th><th>Title</th><th>Message</th><th>Client</th><th>Time</th><th>Action</th></tr></thead><tbody>${data.map(n=>{
     const isSent=isSender&&n.sender_id===currentUser.id;
     const subStatus=n.related_submission_id?subMap[n.related_submission_id+'_status']:null;
     const needsConfirm=n.requires_confirmation&&portal==='agent'&&subStatus!=='processed';
@@ -2899,34 +2911,11 @@ async function loadInbox(portal){
     else if(n.type==='submission_confirmed') actionCell='<span style="color:var(--teal);font-size:11px;font-weight:600;">✓ Agent Confirmed</span>';
     else actionCell=`<span style="font-size:11px;color:var(--muted);">${n.status==='read'?'Read':'New'}</span>`;
     const relClient=n.related_submission_id?subMap[n.related_submission_id]||'—':'—';
-    return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${actionCell}</td><td><button onclick="deleteNotification('${n.id}','${portal}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 6px;line-height:1;" title="Delete">×</button></td></tr>`;
+    return`<tr class="${!isSent&&n.status==='unread'?'unread':''}"><td style="width:8px;padding:0 6px;">${dirLabel(n)}</td><td style="font-weight:${!isSent&&n.status==='unread'?700:400};">${n.title}</td><td style="max-width:260px;">${n.message}</td><td>${relClient}</td><td style="white-space:nowrap;color:var(--muted);">${notifTimeAgo(n.created_at)}</td><td style="white-space:nowrap;">${actionCell}</td></tr>`;
   }).join('')}</tbody></table>`;
   // Mark unread received notifications as read
   const unreadIds=data.filter(n=>n.status==='unread'&&n.recipient_id===currentUser.id).map(n=>n.id);
   if(unreadIds.length){ await db.from('lb_notifications').update({status:'read'}).in('id',unreadIds); fetchUnreadCount(); }
-}
-
-async function deleteNotification(id,portal){
-  await db.from('lb_notifications').delete().eq('id',id);
-  if(portal) loadInbox(portal);
-  fetchUnreadCount();
-}
-
-async function deleteBellNotif(id,portal){
-  await db.from('lb_notifications').delete().eq('id',id);
-  fetchUnreadCount();
-  const listEl=document.getElementById(portal+'DropdownList');
-  if(!listEl)return;
-  const {data}=await db.from('lb_notifications').select('*').eq('recipient_id',currentUser.id).order('created_at',{ascending:false}).limit(5);
-  if(!data?.length){ listEl.innerHTML='<div class="notif-empty">No notifications yet.</div>'; return; }
-  listEl.innerHTML=data.map(n=>`<div class="notif-item${n.status==='unread'?' unread':''}" style="position:relative;">\
-<div onclick="openNotifDetail('${n.id}','${portal}')" style="cursor:pointer;padding-right:24px;">\
-<div class="notif-item-title">${n.title}</div>\
-<div class="notif-item-msg">${n.message}</div>\
-<div class="notif-item-time">${notifTimeAgo(n.created_at)}</div>\
-</div>\
-<button onclick="event.stopPropagation();deleteBellNotif('${n.id}','${portal}')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0;" title="Delete">×</button>\
-</div>`).join('');
 }
 
 function switchInboxSubTab(portal, sub){
@@ -3004,11 +2993,7 @@ async function sendReminder(portal){
   if(error){ statusEl.textContent='Failed: '+error.message; return; }
   // Schedule auto-escalation after 4 hours if agent hasn't confirmed
   if(inserted?.id){
-    fetch('/api/schedule-escalation',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({notificationId:inserted.id,userId:currentUser.id,escalateAfterHours:4})
-    }).catch(()=>{}); // fire-and-forget; escalation failure doesn't block the UI
+    apiPost('/api/schedule-escalation',{notificationId:inserted.id,escalateAfterHours:4}).catch(()=>{}); // fire-and-forget; escalation failure doesn't block the UI
   }
   document.getElementById('remind_msg').value='';
   document.getElementById('remind_agent').value='';
@@ -3232,13 +3217,9 @@ async function confirmSubmission(notifId){
     const {data:sub}=await db.from('lb_submissions').select('customer_first_name,customer_last_name').eq('id',n.related_submission_id).single();
     if(sub) clientLabel=' for '+[(sub.customer_first_name||'').trim(),(sub.customer_last_name||'').trim()].filter(Boolean).join(' ');
     // Use service-key endpoint so agent RLS cannot block the status update
-    const r=await fetch('/api/update-carrier-status',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({submissionId:n.related_submission_id,status:'processed',userId:currentUser.id})
-    });
+    const r=await apiPost('/api/update-carrier-status',{submissionId:n.related_submission_id,status:'processed'});
     processedOk=r.ok;
-    if(!r.ok){ const e=await r.json().catch(()=>{}); console.error('carrier status update failed',e); }
+    if(!r.ok){ console.error('carrier status update failed',r.json); }
   }
   if(n.sender_id){
     const suffix=processedOk?' Policy marked as Processed.':'';
@@ -3263,7 +3244,7 @@ document.addEventListener('click', e=>{
   }
 });
 
-function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent'||currentUser?.role==='solo') renderAgentBoard(); fetchUnreadCount(); },30000); setInterval(async()=>{ if(!currentUser)return; const {data,error}=await db.from('lb_users').select('id,role,password_hash').eq('id',currentUser.id).single(); if(error||!data||data.password_hash==='invalidated_by_admin_session_reset'){ clearSession(); showScreen('landing'); } },60000); }
+function startClocks(){ function tick(){ const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/New_York'})+' ET'; ['agentClock','adminClock','dialerClock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t; }); } tick(); setInterval(tick,1000); setInterval(()=>{ if(currentUser?.role==='admin')renderAdminBoard(); else if(currentUser?.role==='dialer'){ if(currentDialerTab==='leaderboard'){ if(currentDialerBoardView==='anc')renderDialerLeaderboard(); else if(currentDialerBoardView==='mapd')renderDialerMAPD(); } else if(currentDialerTab==='wow')renderDialerWoW(); } else if(currentUser?.role==='agent'||currentUser?.role==='solo') renderAgentBoard(); fetchUnreadCount(); },30000); setInterval(async()=>{ if(!currentUser)return; await apiPost('/api/auth',{action:'me'},{silent:true}); },60000); }
 
 document.addEventListener('DOMContentLoaded',()=>{
   const dz=document.getElementById('scorerDropZone'); if(dz){ dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); }); dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over')); dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); document.getElementById('sc_file').files=dt.files; onFileSelected(document.getElementById('sc_file')); }}); }
@@ -3275,7 +3256,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function fetchWoWData(aFrom,aTo,bFrom,bTo){
   const {data:agents}=await db.from('lb_agents').select('id,name,monthly_goal').eq('active',true).order('name');
   const {data:subs}=await db.from('lb_submissions').select('agent_id,annual_premium,submitted_at').eq('status','live');
-  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls,billable_calls');
+  const {data:calls}=await db.from('lb_dialer_activity').select('agent_id,log_date,total_calls,billable_calls').is('deleted_at',null);
   if(!agents||!subs) return [];
   if(!aFrom||!bFrom){
     const nowStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York'});
@@ -3485,7 +3466,8 @@ function handleDialerWoWMode(){
   document.getElementById('dl_wow_custom_wrap').style.display=mode==='custom'?'flex':'none';
   if(mode==='this_vs_last') renderDialerWoW();
 }
-function downloadWoWReport(view){
+function downloadWoWReport(view){ gatedDownload('wow_report',win=>renderWoWDownload(view,win)); }
+function renderWoWDownload(view,preWin){
   const contentId=view==='admin'?'ad_wow_content':view==='dialer'?'dl_wow_content':'a_wow_content';
   const modeId=view==='admin'?'ad_wow_mode':view==='dialer'?'dl_wow_mode':'a_wow_mode';
   const mode=document.getElementById(modeId)?.value==='custom'?'Custom Range':'This Week vs Last Week';
@@ -3495,7 +3477,7 @@ function downloadWoWReport(view){
     rows.push(cells);
   });
   const headers=['Agent','This Week AP','Last Week AP','AP Change','Last Wk Apps','This Wk Apps','Apps Delta','Calls This Wk','Calls Last Wk','Trend'];
-  const win=window.open('','_blank');
+  const win=preWin||window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Zenyra WoW Report</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',sans-serif;background:#fff;color:#111;padding:32px;font-size:13px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #00C9B1;}.brand{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#00C9B1;}.meta{font-size:11px;color:#64748B;margin-top:4px;}table{width:100%;border-collapse:collapse;margin-top:16px;}th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#64748B;border-bottom:2px solid #e2e8f0;}td{padding:9px 10px;border-bottom:1px solid #f1f5f9;color:#334155;font-size:13px;}.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;}@media print{body{padding:16px;}}</style>
@@ -3600,13 +3582,10 @@ function detectSlumpsAndStreaks(stats){
 }
 
 async function callClaudeForAnalysis(prompt){
-  const resp = await fetch('/api/intelligence', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ prompt })
-  });
-  if(!resp.ok) throw new Error('API request failed: '+resp.status);
-  const data = await resp.json();
+  const r = await apiPost('/api/intelligence', { prompt });
+  if(r.status===403) throw new Error(r.json.error||DENIED_MESSAGE);
+  if(!r.ok) throw new Error('API request failed: '+r.status);
+  const data = r.json;
   if(data.error) throw new Error(data.error);
   return data.text || 'Analysis unavailable.';
 }
@@ -3779,16 +3758,12 @@ async function renderEODSummary(date,portal='admin'){
   cont.innerHTML='<div class="no-data">Loading…</div>';
   if(dlBtn)dlBtn.style.display='none';
   try{
-    const [subsRes,heartlandRes,processedRes,notifRes]=await Promise.all([
-      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').gte('submitted_at',date+'T00:00:00').lte('submitted_at',date+'T23:59:59').order('submitted_at',{ascending:false}),
-      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_name','Heartland').or('carrier_status.is.null,carrier_status.eq.awaiting_window,carrier_status.eq.ready_to_submit'),
-      db.from('lb_submissions').select('id,customer_first_name,customer_last_name,carrier_name,plan_name,monthly_premium,annual_premium,effective_date,carrier_status,lb_agents(name)').eq('status','live').eq('carrier_status','processed').order('effective_date',{ascending:true}),
-      db.from('lb_notifications').select('id,title,message,created_at,lb_users!recipient_id(display_name)').eq('escalated',true).gte('created_at',date+'T00:00:00').lte('created_at',date+'T23:59:59')
-    ]);
-    const todaySubs=subsRes.data||[];
-    const allHeartland=heartlandRes.data||[];
-    const processedAll=processedRes.data||[];
-    const escalatedNotifs=notifRes.data||[];
+    const rpt=await fetchReport({report:'eod',date});
+    if(!rpt){ cont.innerHTML=''; return; }
+    const todaySubs=rpt.todaySubs||[];
+    const allHeartland=rpt.heartland||[];
+    const processedAll=rpt.processed||[];
+    const escalatedNotifs=rpt.escalated||[];
     const inWindow=allHeartland.filter(r=>isInHeartlandWindow(r));
     const awaitingWindow=allHeartland.filter(r=>(r.carrier_status==='awaiting_window'||r.carrier_status==null)&&r.submitted_at>=HEARTLAND_PROCESS_START_DATE);
     const byAgent={};
@@ -3816,7 +3791,8 @@ async function renderEODSummary(date,portal='admin'){
     if(dlBtn)dlBtn.style.display='inline-block';
   }catch(err){ cont.innerHTML=`<div class="no-data">Failed to generate summary: ${err.message}</div>`; }
 }
-function downloadEODSummary(){
+function downloadEODSummary(){ if(!eodData)return; gatedDownload('eod_pdf',win=>renderEODDownload(win)); }
+function renderEODDownload(preWin){
   if(!eodData)return;
   const{date,todaySubs,processedAll,inWindow,awaitingWindow,escalatedNotifs,byAgent}=eodData;
   const totalMP=todaySubs.reduce((s,r)=>s+Number(r.monthly_premium||0),0);
@@ -3838,7 +3814,7 @@ function downloadEODSummary(){
   h+=sec('🚨','Escalated Notifications — '+date);
   h+=escalatedNotifs.length?`<table><tr><th>Recipient</th><th>Title</th><th>Message</th><th>Time</th></tr>${escalatedNotifs.map(n=>`<tr><td>${n.lb_users?.display_name||'—'}</td><td>${n.title}</td><td>${n.message}</td><td>${notifTimeAgo(n.created_at)}</td></tr>`).join('')}</table>`:nd('No escalated notifications on this date.');
   h+=`<div class="footer">Powered by Zenyra &middot; Confidential</div></body></html>`;
-  const win=window.open('','_blank'); win.document.write(h); win.document.close(); setTimeout(()=>win.print(),500);
+  const win=preWin||window.open('','_blank'); win.document.write(h); win.document.close(); setTimeout(()=>win.print(),500);
 }
 
 // ── DIALER ROLE ──────────────────────────────────────────────────────────
@@ -3878,9 +3854,9 @@ async function loadPolicySubs(){
   else if(range==='30'){ const d=new Date(Date.now()-29*864e5); from=d.toLocaleDateString('en-CA',{timeZone:'America/New_York'}); to=today; }
   else { from=document.getElementById('policySubs_from').value; to=document.getElementById('policySubs_to').value; if(!from||!to){ cont.innerHTML='<div class="no-data">Please select a From and To date.</div>'; return; } }
   try{
-    const res=await fetch('/api/policy-submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,from,to})});
-    const json=await res.json();
-    if(!res.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||res.statusText}</div>`; return; }
+    const r=await apiPost('/api/policy-submissions',{from,to});
+    const json=r.json;
+    if(!r.ok||json.error){ cont.innerHTML=`<div class="no-data">Error: ${json.error||r.status}</div>`; return; }
     policySubsRawData=json.data||[];
     policySubsCanEdit=json.canEdit??json.canSeeBanking;
     // Populate carrier dropdown; default to Heartland if present
@@ -4011,7 +3987,7 @@ function openPolicySubModal(id){
   openModal('policySubDetailModal');
 }
 async function updateCarrierStatus(id,val){
-  const r=await fetch('/api/update-carrier-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({submissionId:id,status:val,userId:currentUser.id})});
+  const r=await apiPost('/api/update-carrier-status',{submissionId:id,status:val});
   if(!r.ok){ const e=await r.json().catch(()=>{}); alert('Failed to update status: '+(e?.error||r.statusText)); }
   else { if(policySubsRawData){ const row=policySubsRawData.find(x=>x.id===id); if(row) row.carrier_status=val; } }
 }
@@ -4026,9 +4002,10 @@ async function exportPolicyCsv(){
   else if(range==='30'){ const d=new Date(Date.now()-29*864e5); from=d.toLocaleDateString('en-CA',{timeZone:'America/New_York'}); to=today; }
   else { from=document.getElementById('policySubs_from').value; to=document.getElementById('policySubs_to').value; if(!from||!to){alert('Please select a From and To date.');return;} }
   try{
-    const res=await fetch('/api/policy-submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,from,to})});
-    const json=await res.json();
-    if(!res.ok||json.error){alert('Export failed: '+(json.error||res.statusText));return;}
+    const r=await apiPost('/api/policy-submissions',{from,to,purpose:'export'});
+    const json=r.json;
+    if(r.status===403){alert(json.error||DENIED_MESSAGE);return;}
+    if(!r.ok||json.error){if(r.status!==401)alert('Export failed: '+(json.error||r.status));return;}
     const rows=json.data||[];
     if(!rows.length){alert('No submissions found for this range.');return;}
     const hasBanking=canSeeBankingPII();
@@ -4090,7 +4067,7 @@ async function submitDialerLog(){
     billable_calls:parseInt(document.getElementById('dl_billable').value)||0,
     logged_by:currentUser?.id,
   };
-  const {error}=await db.from('lb_dialer_activity').upsert(payload,{onConflict:'agent_id,log_date'});
+  const {error}=await db.from('lb_dialer_activity').upsert({...payload,deleted_at:null,deleted_by:null},{onConflict:'agent_id,log_date'});
   if(error) return alert('Log failed: '+error.message);
   document.getElementById('dialerLogSuccess').style.display='block';
   ['dl_total','dl_incoming','dl_outgoing','dl_billable'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
@@ -4101,7 +4078,7 @@ async function loadDialerHistory(){
   const cont=document.getElementById('dialerHistoryContent');
   if(!cont || !currentUser) return;
   const since=new Date(Date.now()-14*24*60*60*1000).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
-  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name),lb_users(display_name)').gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data}=await db.from('lb_dialer_activity').select('*,lb_agents(name),lb_users(display_name)').is('deleted_at',null).gte('log_date',since).order('log_date',{ascending:false}).order('created_at',{ascending:false});
   if(!data?.length){ cont.innerHTML='<div class="no-data">No entries in the last 14 days.</div>'; return; }
   cont.innerHTML=`<table class="submissions-table"><thead><tr><th>Date</th><th>Agent</th><th>Total Calls</th><th>Incoming</th><th>Outgoing</th><th>Billable</th><th>Logged By</th><th>Actions</th></tr></thead><tbody>${data.map(e=>`<tr><td>${e.log_date}</td><td>${e.lb_agents?.name||'—'}</td><td>${e.total_calls||0}</td><td>${e.incoming_calls||0}</td><td>${e.outgoing_calls||0}</td><td>${e.billable_calls||0}</td><td>${e.lb_users?.display_name||'—'}</td><td style="white-space:nowrap;"><button class="btn-edit-sm" onclick="openDialerEdit(${JSON.stringify(e).replace(/"/g,'&quot;')})">Edit</button><button class="btn-delete" onclick="deleteDialerEntry('${e.id}')">Delete</button></td></tr>`).join('')}</tbody></table>`;
 }
@@ -4131,8 +4108,8 @@ async function saveDialerEdit(){
   loadDialerHistory();
 }
 async function deleteDialerEntry(id){
-  if(!confirm('Delete this entry? This cannot be undone.')) return;
-  await db.from('lb_dialer_activity').delete().eq('id',id);
+  if(!confirm('Delete this entry?')) return;
+  if(!(await secureAction({action:'delete',target:'dialer_entry',id}))) return;
   loadDialerHistory();
 }
 async function populateDialerReportAgents(){
@@ -4154,12 +4131,9 @@ async function runDialerReport(){
   const agentFilter=document.getElementById('dl_rpt_agent').value;
   const range=document.getElementById('dl_rpt_range').value;
   const {from,to}=getDateRange(range,'dl_');
-  let callQ=db.from('lb_dialer_activity').select('*,lb_agents(name)').gte('log_date',from.toISOString().slice(0,10)).lte('log_date',to.toISOString().slice(0,10));
-  if(agentFilter!=='all') callQ=callQ.eq('agent_id',agentFilter);
-  const {data:calls}=await callQ;
-  let subQ=db.from('lb_submissions').select('agent_id,annual_premium,monthly_premium,submitted_at,lb_agents(name)').eq('status','live').gte('submitted_at',from.toISOString()).lte('submitted_at',to.toISOString());
-  if(agentFilter!=='all') subQ=subQ.eq('agent_id',agentFilter);
-  const {data:subs}=await subQ;
+  const rpt=await fetchReport({report:'dialer_effort',from:from.toISOString(),to:to.toISOString(),agentId:agentFilter});
+  if(!rpt) return;
+  const {calls,subs}=rpt;
   const output=document.getElementById('dialer-report-output');
   const byAgent={};
   const roster=agentFilter==='all'?(dialerReportAgents||[]):(dialerReportAgents||[]).filter(a=>a.id===agentFilter);

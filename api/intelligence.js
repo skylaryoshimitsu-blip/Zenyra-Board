@@ -1,9 +1,18 @@
+import { serviceClient, requireUser, canReport, audit, deny } from './_lib/auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    const supabase = serviceClient();
+    const user = await requireUser(req, supabase);
+    if (!user) return res.status(401).json({ error: 'Session expired' });
+    // AI analysis is report generation: admins need the report allowlist; agents keep their own analysis.
+    if (user.role === 'admin' && !canReport(user)) return deny(res, supabase, req, user, 'report', { report: 'intelligence' });
+    if (user.role === 'admin') await audit(supabase, req, { actor: user.id, action: 'report', detail: { report: 'intelligence' } });
+
     const { prompt } = req.body;
 
     if (!prompt) {

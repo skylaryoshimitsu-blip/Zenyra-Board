@@ -1,44 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL         = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const ALLOWED_ORIGIN       = process.env.ALLOWED_ORIGIN || '*';
-
-function setCORS(res) {
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-}
+import {
+  serviceClient, setCORS, requireUser, canReport, canSeeBanking as userCanSeeBanking, audit, deny,
+} from './_lib/auth.js';
 
 const BANKING_FIELDS = ['banking_institution', 'routing_number', 'account_number', 'mothers_maiden_name'];
-
-// Specific-user allowlist for previously-collected banking PII. Keyed on lb_users.id — the app
-// has no email field, and role can't be used here since multiple admins share the 'admin' role.
-const BANKING_PII_ALLOWED_USER_IDS = [
-  'b180a6b3-6f73-415f-b0fb-3a3a505310d2', // Tahj Williams (admin)
-  'c9bd754c-1634-46d4-827b-58def8efbf67', // Kole McDevitt (solo)
-];
 
 export default async function handler(req, res) {
   setCORS(res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { userId, from, to } = req.body || {};
-  if (!userId || !from || !to) return res.status(400).json({ error: 'userId, from, and to are required' });
+  const { from, to, purpose } = req.body || {};
+  if (!from || !to) return res.status(400).json({ error: 'from and to are required' });
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const supabase = serviceClient();
+  const user = await requireUser(req, supabase);
+  if (!user) return res.status(401).json({ error: 'Session expired' });
 
-  // Determine whether the requesting user may see banking fields
-  const { data: user, error: userErr } = await supabase
-    .from('lb_users')
-    .select('id, role, display_name')
-    .eq('id', userId)
-    .single();
+  // CSV export is a download: allowlisted users only, and audited.
+  if (purpose === 'export') {
+    if (!canReport(user)) return deny(res, supabase, req, user, 'export', { kind: 'policy_csv', from, to });
+    if (!(await audit(supabase, req, { actor: user.id, action: 'export', table: 'lb_submissions', detail: { kind: 'policy_csv', from, to } }))) {
+      return res.status(500).json({ error: 'Could not record this action; try again.' });
+    }
+  }
 
-  if (userErr || !user) return res.status(401).json({ error: 'Unknown user' });
-
-  const canSeeBanking = BANKING_PII_ALLOWED_USER_IDS.includes(user.id);
+  const canSeeBanking = userCanSeeBanking(user);
   const canEdit = user.role === 'admin' || user.role === 'dialer';
 
   // Fetch submissions in the requested date range (by submitted_at)
