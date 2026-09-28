@@ -1,8 +1,10 @@
 // Handler for /api/secure?op=action (dispatched by api/secure.js)
-// Deletes (soft, reversible), restores, and download/print authorization.
+// Deletes (soft, reversible), restores, download/print authorization, and banking-field reads.
 // Default-deny: only the user IDs in api/_lib/auth.js allowlists may act; every attempt is audited.
 
-import { serviceClient, setCORS, requireUser, canDelete, canReport, audit, deny } from './auth.js';
+import { serviceClient, setCORS, requireUser, canDelete, canReport, canSeeBanking, audit, deny } from './auth.js';
+
+const BANKING_FIELDS = 'banking_institution,routing_number,account_number,mothers_maiden_name';
 
 // Tables with a status column record previous_status so a delete can be undone exactly.
 const DELETE_TARGETS = {
@@ -32,6 +34,14 @@ export default async function handler(req, res) {
       return action === 'delete'
         ? await softDelete(req, res, supabase, user, spec, id)
         : await restore(req, res, supabase, user, spec, id);
+    }
+    if (action === 'banking') {
+      if (!id) return res.status(400).json({ error: 'Invalid target' });
+      if (!canSeeBanking(user)) return deny(res, supabase, req, user, 'view_banking', { id });
+      const { data, error } = await supabase.from('lb_submissions').select(BANKING_FIELDS).eq('id', id).single();
+      if (error || !data) return res.status(404).json({ error: 'Not found' });
+      await audit(supabase, req, { actor: user.id, action: 'view_banking', table: 'lb_submissions', target: id });
+      return res.status(200).json({ banking: data });
     }
     if (action === 'download') {
       if (!DOWNLOAD_KINDS.includes(kind)) return res.status(400).json({ error: 'Invalid download' });
