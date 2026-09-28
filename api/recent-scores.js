@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     .from('lb_scorer_results')
     .select('id,agent_name,overall_score,call_summary,coaching_points,score_intro,score_health,score_plan,score_problem,score_solution,score_enrollment,completed_at,file_name')
     .eq('status', 'complete')
+    .is('deleted_at', null)
     .eq('scorer_type', 'ancillary')
     .order('completed_at', { ascending: false })
     .limit(3);
