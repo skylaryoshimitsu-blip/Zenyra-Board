@@ -9,6 +9,7 @@ const SESSION_TTL_SECONDS = 12 * 60 * 60;
 
 // Allowlists are keyed on lb_users.id — never display name or role.
 const TAHJ_ADMIN_ID  = 'b180a6b3-6f73-415f-b0fb-3a3a505310d2'; // Tahj Williams (admin)
+const TAHJ_AGENT_ID  = '8221439e-565f-43a8-9ad6-b2a7ca4e89e0'; // Tahj Williams (agent)
 const LENT_DIALER_ID = '2a415341-76d2-4b08-a147-5ed14949464b'; // Lent Corteza (dialer)
 
 export const DELETE_ALLOWED_USER_IDS = [TAHJ_ADMIN_ID];
@@ -17,10 +18,9 @@ export const BANKING_PII_ALLOWED_USER_IDS = [
   TAHJ_ADMIN_ID,
   'c9bd754c-1634-46d4-827b-58def8efbf67', // Kole McDevitt (solo)
 ];
-// Accounts that may never sign in or use a session.
-export const DISABLED_USER_IDS = [
-  'd213e861-4833-45dc-bc79-388b497c2c04', // duplicate "Tahj Williams" admin row, created 7/19, no agent_id
-];
+// The team no longer uses this app. Only these accounts may sign in or use an existing session;
+// everyone else is locked out (no rows deleted — just denied at login/session-check time).
+export const ALLOWED_LOGIN_USER_IDS = [TAHJ_ADMIN_ID, TAHJ_AGENT_ID, LENT_DIALER_ID];
 
 export const DENIED_MESSAGE = "This action isn't available for your account.";
 
@@ -61,7 +61,7 @@ function secret() {
 function passwordVersion(passwordHash) { return sha256Hex('pv:' + (passwordHash || '')).slice(0, 16); }
 
 export function isRevokedRow(row) {
-  return !row || DISABLED_USER_IDS.includes(row.id) || !row.password_hash || row.password_hash.startsWith('invalidated');
+  return !row || !ALLOWED_LOGIN_USER_IDS.includes(row.id) || !row.password_hash || row.password_hash.startsWith('invalidated');
 }
 
 export function issueToken(userRow) {
